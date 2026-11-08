@@ -414,4 +414,3 @@ export function submitLoan(input: { borrowerId: string; amount: number; purpose:
 }
 
 // Local question workspace remains a frontend-only drafting tool.
-export { useQuestionWorkspace } from "./question-workspace";

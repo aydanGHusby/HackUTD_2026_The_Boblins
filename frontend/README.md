@@ -1,6 +1,6 @@
 # Paper View frontend
 
-Paper View uses the canonical `backend` branch's loan data, agent server functions, lifecycle and approval rules. The interface has a two-panel courtroom: network/evidence/summary/history on the left; live agent discussion and the human decision on the right. The sidebar also opens the case queue, intake, senior escalations, Operations and the frontend-only Ask AI drafting workspace.
+Paper View uses the canonical `backend` branch's loan data, agent server functions, lifecycle and approval rules. The interface has a two-panel courtroom: network/evidence/summary/history on the left; live agent discussion and the human decision on the right. The sidebar also opens the case queue, intake, senior escalations, and Operations.
 
 ## Run locally
 
@@ -25,7 +25,7 @@ Use **Appearance** in the sidebar or home-page header to choose White, Off-white
 
 The pixel mascot is the logo/favicon and appears in real loading states. The logo's paper-plane animation runs on hover or keyboard focus. Pastel background dots and subtle interface motion respect reduced-motion preferences. The artificial loading delay is disabled.
 
-Ask AI (`/ask-ai`) is still a separate frontend-only drafting preview. Prompts, drafts, context and conversations save in the current browser. It does not call a model or fabricate responses. Questions within the case's Agent discussion do call the existing backend.
+Ask questions within the case's Agent discussion to call the existing backend. The separate Ask AI drafting page has been removed.
 
 ## Validation
 

@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AskAiRouteImport } from './routes/ask-ai'
 import { Route as CasesRouteImport } from './routes/cases'
 import { Route as EscalationsRouteImport } from './routes/escalations'
 import { Route as IntakeRouteImport } from './routes/intake'
@@ -21,11 +20,6 @@ import { Route as CaseIdRouteImport } from './routes/case.$id'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AskAiRoute = AskAiRouteImport.update({
-  id: '/ask-ai',
-  path: '/ask-ai',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CasesRoute = CasesRouteImport.update({
@@ -61,7 +55,6 @@ const CaseIdRoute = CaseIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/ask-ai': typeof AskAiRoute
   '/cases': typeof CasesRoute
   '/escalations': typeof EscalationsRoute
   '/intake': typeof IntakeRoute
@@ -71,7 +64,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/ask-ai': typeof AskAiRoute
   '/cases': typeof CasesRoute
   '/escalations': typeof EscalationsRoute
   '/intake': typeof IntakeRoute
@@ -82,7 +74,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/ask-ai': typeof AskAiRoute
   '/cases': typeof CasesRoute
   '/escalations': typeof EscalationsRoute
   '/intake': typeof IntakeRoute
@@ -94,7 +85,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/ask-ai'
     | '/cases'
     | '/escalations'
     | '/intake'
@@ -104,7 +94,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/ask-ai'
     | '/cases'
     | '/escalations'
     | '/intake'
@@ -114,7 +103,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/ask-ai'
     | '/cases'
     | '/escalations'
     | '/intake'
@@ -125,7 +113,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AskAiRoute: typeof AskAiRoute
   CasesRoute: typeof CasesRoute
   EscalationsRoute: typeof EscalationsRoute
   IntakeRoute: typeof IntakeRoute
@@ -141,13 +128,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ask-ai': {
-      id: '/ask-ai'
-      path: '/ask-ai'
-      fullPath: '/ask-ai'
-      preLoaderRoute: typeof AskAiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cases': {
@@ -197,7 +177,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AskAiRoute: AskAiRoute,
   CasesRoute: CasesRoute,
   EscalationsRoute: EscalationsRoute,
   IntakeRoute: IntakeRoute,
