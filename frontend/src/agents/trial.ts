@@ -26,11 +26,13 @@ export interface ArgueResult { claims: Claim[]; rejected: number; toolCalls: num
 // ---- Fact-checker: a claim counts only if every citation is a real id in this case file ----
 export function checkClaims(raw: { text: string; citations: string[] }[], file: CaseFile): Claim[] {
   const known = new Set([...file.nodes.map((n) => n.id), ...file.edges.map((e) => e.id), ...file.evidence.map((e) => e.id)]);
-  return raw.map((c) => ({
-    text: c.text,
-    citations: c.citations,
-    verified: c.citations.length > 0 && c.citations.every((id) => known.has(id)),
-  }));
+  return raw.map((c) => {
+    // The model sometimes writes its ids into the sentence ("via edge e10", "[col2, e11]") and leaves
+    // citations empty; take only real ids of this case that appear there, and drop a trailing [id, …] list.
+    const text = c.citations.length ? c.text : c.text.replace(/\s*\[[^\]]*\]\s*\.?$/, "").trim();
+    const citations = c.citations.length ? c.citations : [...known].filter((id) => new RegExp(`(^|[^\\w-])${id.replace(/[-]/g, "\\-")}(?![\\w-])`).test(c.text));
+    return { text, citations, verified: citations.length > 0 && citations.every((id) => known.has(id)) };
+  });
 }
 
 // ---- Tools the agents investigate with ----
