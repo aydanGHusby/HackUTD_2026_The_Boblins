@@ -64,7 +64,7 @@ export function AgentChat({ args, questions, notes, active, disabled, onSelect, 
       </div>
 
       {!disabled && (
-        <div className="border-t border-border p-3">
+        <div className="liquid-glass m-3 mb-0 rounded-2xl p-3">
           <div className="mb-2 flex gap-1">
             {(["prosecution", "defense", "note"] as const).map((s) => (
               <button key={s} onClick={() => setTo(s)}

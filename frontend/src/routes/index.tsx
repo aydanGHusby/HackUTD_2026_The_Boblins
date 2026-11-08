@@ -42,7 +42,7 @@ function Landing() {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-candy text-on-candy glow-candy">
             <NetworkMark />
           </span>
-          Fraud<span className="text-sky">Graph</span>
+          Fraud<span className="text-ocean">Graph</span>
         </div>
         <Link to="/cases" className="text-sm font-semibold text-muted-foreground hover:text-foreground">
           Open cases
@@ -73,7 +73,7 @@ function Landing() {
           </p>
         </div>
 
-        <div className="glass edge-lit w-full max-w-md rounded-3xl p-4 lg:max-w-lg">
+        <div className="liquid-glass w-full max-w-md rounded-3xl p-4 lg:max-w-lg">
           <NetworkFigure />
           <div className="mt-3 flex flex-wrap items-center gap-2 px-1 text-[11px] text-foreground/80">
             <span className="rounded-full bg-muted px-2 py-0.5">Loan</span>
@@ -102,7 +102,7 @@ function Landing() {
 
       <footer className="mt-auto flex flex-wrap items-center gap-3 border-t border-border pt-5 text-xs text-muted-foreground">
         <span>FraudGraph · every decision is logged with the analyst who made it and the reason they gave.</span>
-        <Link to="/cases" className="ml-auto inline-flex items-center gap-1 font-semibold text-foreground hover:text-sky">
+        <Link to="/cases" className="ml-auto inline-flex items-center gap-1 font-semibold text-foreground hover:text-ocean">
           Open cases <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </footer>

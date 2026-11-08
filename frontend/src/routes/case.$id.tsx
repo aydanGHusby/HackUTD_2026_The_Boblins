@@ -50,7 +50,7 @@ function CasePage() {
   return (
     <div className="flex h-screen flex-col">
       {/* Header */}
-      <header className="edge-lit flex flex-wrap items-center gap-4 border-b border-border bg-card/70 px-6 py-3 backdrop-blur-xl">
+      <header className="liquid-glass relative z-10 m-3 mb-0 flex flex-wrap items-center gap-4 rounded-2xl px-5 py-3">
         <Link to="/cases" aria-label="Back to cases" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"><ArrowLeft className="h-4 w-4" /></Link>
         <RiskScore score={c.riskScore} size="lg" />
         <div>
@@ -73,15 +73,15 @@ function CasePage() {
           </div>
 
           <div className="glass edge-lit rounded-2xl">
-            <div className="flex gap-1 border-b border-border p-2">
+            <div className="flex gap-1 border-b border-border p-2"><div className="liquid-glass-pill flex gap-1 rounded-full p-1">
               {(["summary", "evidence", "history"] as const).map((d) => (
                 <button key={d} onClick={() => setDrawer(drawer === d ? null : d)}
-                  className={cn("flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold", drawer === d ? "bg-primary text-primary-foreground glow-ocean" : "text-muted-foreground hover:bg-muted")}>
+                  className={cn("flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold", drawer === d ? "bg-primary text-primary-foreground glass-specular" : "text-muted-foreground transition-colors hover:text-foreground")}>
                   {d === "summary" ? "Where they agree" : d === "evidence" ? `Evidence (${evidence.length})` : "History"}
                   <ChevronDown className={cn("h-3 w-3 transition", drawer === d && "rotate-180")} />
                 </button>
               ))}
-            </div>
+            </div></div>
             {drawer === "summary" && (
               <div className="grid gap-3 p-4 md:grid-cols-2">
                 {!crux ? <p className="text-sm text-muted-foreground">Available once both agents finish.</p> : <>
@@ -110,7 +110,8 @@ function CasePage() {
         </section>
 
         {/* Right: chat + decision */}
-        <aside className="flex min-h-0 flex-col border-l border-border bg-card/70 backdrop-blur-xl">
+        {/* Content layer: solid on purpose (liquid glass is for chrome; the agent transcript must stay crisp). */}
+        <aside className="flex min-h-0 flex-col border-l border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-bold">Agent discussion</h2>
             <div className="flex gap-2 text-[11px]">
@@ -150,7 +151,7 @@ function DecisionBox({ enabled, onSubmit }: { enabled: boolean; onSubmit: (d: De
     { d: "escalate", label: "Escalate", on: "border-warning bg-muted text-foreground" },
   ];
   return (
-    <div className="space-y-2 border-t border-border bg-muted/50 p-4">
+    <div className="liquid-glass m-3 space-y-2 rounded-2xl p-4">
       <div className="text-xs font-bold">{enabled ? "Your decision" : "Decision unlocks when the agents finish"}</div>
       <div className="grid grid-cols-3 gap-2">
         {opts.map((o) => (

@@ -65,136 +65,162 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-panel: var(--sidebar-panel);
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Fira Code", ui-monospace, monospace;
 }
 
+/*
+ * Design direction (ui-ux-pro-max): Swiss-minimal analyst dashboard. Solid surfaces, one cobalt
+ * action color, and red reserved for risk / prosecution / flagged links so color always means something.
+ * Token names are kept from the original brand set so every component picks up the new values.
+ *   ocean  = cobalt (primary actions, defense)      candy = red (risk, prosecution, flagged)
+ *   sky    = light cobalt fill with dark text       success / warning = verdict + caution states
+ */
 :root {
-  --radius: 0.75rem;
+  --radius: 0.5rem;
   color-scheme: light;
 
-  /* Brand palette */
-  --ocean: oklch(0.47 0.13 248);        /* ocean blue */
-  --ocean-soft: oklch(0.95 0.025 245);
-  --sky: oklch(0.8 0.1 228);            /* sky blue */
-  --sky-soft: oklch(0.96 0.03 228);
-  --candy: oklch(0.86 0.08 350);        /* cotton candy pink */
-  --candy-strong: oklch(0.53 0.19 355);
-  --candy-soft: oklch(0.965 0.032 350);
-  --success: oklch(0.65 0.13 165);
-  --warning: oklch(0.76 0.13 70);
+  --ocean: oklch(0.488 0.217 264);        /* blue-700: text + fills, 6.7:1 on white */
+  --ocean-soft: oklch(0.97 0.014 254);    /* blue-50 */
+  --sky: oklch(0.882 0.059 254);          /* blue-200 fill, dark text on top */
+  --sky-soft: oklch(0.951 0.026 237);     /* blue-50/100 */
+  --candy: oklch(0.885 0.062 18);         /* red-200 fill, dark red text on top */
+  --candy-strong: oklch(0.577 0.245 27);  /* red-600: risk text + flagged links */
+  --candy-soft: oklch(0.971 0.013 17);    /* red-50 */
+  --success: oklch(0.527 0.154 150);      /* green-700 */
+  --warning: oklch(0.666 0.179 58);       /* amber-600 */
 
-  /* Glow lights behind glass panels */
-  --glow-ocean: oklch(0.55 0.19 250);
-  --glow-candy: oklch(0.72 0.17 350);
+  --glow-ocean: oklch(0.488 0.217 264);
+  --glow-candy: oklch(0.577 0.245 27);
 
-  /* Text placed directly on the pink / sky fills */
-  --on-candy: oklch(0.24 0.04 252);
-  --on-sky: oklch(0.24 0.04 252);
+  --on-candy: oklch(0.396 0.141 25);      /* red-900 on red-200 */
+  --on-sky: oklch(0.208 0.042 265);       /* slate-900 on blue-200 */
 
-  /* Network map fills (mid-tone so the white letter reads) */
-  --node-company: var(--ocean);
-  --node-person: var(--candy-strong);
-  --node-collateral: var(--success);
-  --node-loan: var(--warning);
+  /* Network map: four distinct hues, none of them red (red means "flagged"). White glyphs read on all. */
+  --node-company: oklch(0.546 0.245 263);    /* blue-600 */
+  --node-person: oklch(0.541 0.247 293);     /* violet-600 */
+  --node-collateral: oklch(0.555 0.163 49);  /* amber-700 */
+  --node-loan: oklch(0.511 0.096 186);       /* teal-700 */
 
-  --background: oklch(0.985 0.006 240);
-  --foreground: oklch(0.24 0.04 252);
-  --card: oklch(1 0 0 / 0.88);
-  --card-foreground: oklch(0.24 0.04 252);
-  --popover: oklch(1 0 0 / 0.96);
-  --popover-foreground: oklch(0.24 0.04 252);
+  --background: oklch(0.984 0.003 248);   /* slate-50 */
+  --foreground: oklch(0.208 0.042 265);   /* slate-900 */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.208 0.042 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.208 0.042 265);
   --primary: var(--ocean);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: var(--sky-soft);
-  --secondary-foreground: var(--ocean);
-  --muted: oklch(0.965 0.01 240 / 0.85);
-  --muted-foreground: oklch(0.46 0.035 252);
-  --accent: var(--sky-soft);
-  --accent-foreground: var(--ocean);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.968 0.007 248);    /* slate-100 */
+  --secondary-foreground: oklch(0.279 0.041 260);
+  --muted: oklch(0.968 0.007 248);
+  --muted-foreground: oklch(0.446 0.043 257);  /* slate-600, 7:1 on white */
+  --accent: oklch(0.968 0.007 248);
+  --accent-foreground: oklch(0.208 0.042 265);
   --destructive: var(--candy-strong);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.45 0.05 250 / 0.16);
-  --input: oklch(0.45 0.05 250 / 0.24);
-  --ring: var(--sky);
-  --canvas: oklch(0.975 0.012 235);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.929 0.013 255);       /* slate-200 */
+  --input: oklch(0.869 0.022 252);        /* slate-300 */
+  --ring: var(--ocean);
+  --canvas: oklch(0.968 0.007 248);
 
-  --sidebar: var(--ocean);
-  --sidebar-foreground: oklch(0.96 0.02 230);
-  --sidebar-primary: var(--sky);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.372 0.044 257);
+  --sidebar-primary: var(--ocean-soft);
   --sidebar-primary-foreground: var(--ocean);
-  --sidebar-accent: oklch(0.54 0.12 246);
-  --sidebar-accent-foreground: oklch(0.99 0 0);
-  --sidebar-border: oklch(0.55 0.11 246);
-  --sidebar-ring: var(--sky);
-  --sidebar-panel: oklch(0.99 0.01 240 / 0.16);
+  --sidebar-accent: oklch(0.968 0.007 248);
+  --sidebar-accent-foreground: oklch(0.208 0.042 265);
+  --sidebar-border: oklch(0.929 0.013 255);
+  --sidebar-ring: var(--ocean);
+  --sidebar-panel: oklch(0.984 0.003 248);
 
-  --shadow-glass: 0 1px 0 oklch(1 0 0 / 45%) inset, 0 1px 2px oklch(0.47 0.13 248 / 8%), 0 18px 40px -22px oklch(0.47 0.13 248 / 30%);
+  /* Liquid glass material (chrome only: nav, bars, controls). Content panels stay solid. */
+  --lg-tint-top: oklch(1 0 0 / 0.66);
+  --lg-tint-bottom: oklch(1 0 0 / 0.46);
+  --lg-edge: oklch(1 0 0 / 0.75);
+  --lg-hairline: oklch(0.208 0.042 265 / 0.09);
+  --lg-specular: oklch(1 0 0 / 0.95);
+  --lg-sheen: oklch(1 0 0 / 0.55);
+  --lg-shade: oklch(0.208 0.042 265 / 0.06);
+  --lg-drop: oklch(0.208 0.042 265 / 0.16);
+  --lg-blur: 22px;
+  --lg-saturate: 180%;
+  --shadow-glass: 0 1px 2px oklch(0.208 0.042 265 / 6%);
   --shadow-card: var(--shadow-glass);
-  --shadow-glow-ocean: 0 0 0 1px oklch(0.55 0.19 250 / 35%), 0 8px 30px -6px oklch(0.55 0.19 250 / 45%);
-  --shadow-glow-candy: 0 0 0 1px oklch(0.72 0.17 350 / 40%), 0 8px 30px -6px oklch(0.72 0.17 350 / 45%);
+  /* "glow" is now a hairline ring in the same hue: emphasis without blur. */
+  --shadow-glow-ocean: inset 0 0 0 1px oklch(0.488 0.217 264 / 22%);
+  --shadow-glow-candy: inset 0 0 0 1px oklch(0.577 0.245 27 / 28%);
 }
 
-/* Dark theme: obsidian glass lit by ocean and cotton candy, same hues as the light set. */
+/* Dark (default): slate-950 canvas, slate-900 cards, the same meanings lifted for contrast. */
 .dark {
   color-scheme: dark;
 
-  --ocean: oklch(0.76 0.12 232);
-  --ocean-soft: oklch(0.28 0.07 252);
-  --sky: oklch(0.82 0.11 218);
-  --sky-soft: oklch(0.27 0.07 238);
-  --candy: oklch(0.8 0.13 350);
-  --candy-strong: oklch(0.84 0.12 352);
-  --candy-soft: oklch(0.28 0.08 350);
-  --success: oklch(0.78 0.14 165);
-  --warning: oklch(0.84 0.12 80);
+  --ocean: oklch(0.707 0.165 254);        /* blue-400: text on dark */
+  --ocean-soft: oklch(0.282 0.087 267);
+  --sky: oklch(0.809 0.105 251);          /* blue-300 fill */
+  --sky-soft: oklch(0.257 0.06 264);
+  --candy: oklch(0.808 0.114 19);         /* red-300 fill */
+  --candy-strong: oklch(0.704 0.191 22);  /* red-400 text */
+  --candy-soft: oklch(0.258 0.07 25);
+  --success: oklch(0.792 0.209 151);
+  --warning: oklch(0.828 0.189 84);
 
-  --glow-ocean: oklch(0.62 0.22 252);
-  --glow-candy: oklch(0.74 0.2 350);
+  --glow-ocean: oklch(0.707 0.165 254);
+  --glow-candy: oklch(0.704 0.191 22);
 
-  --on-candy: oklch(0.22 0.07 350);
-  --on-sky: oklch(0.22 0.05 240);
+  --on-candy: oklch(0.258 0.092 26);
+  --on-sky: oklch(0.129 0.042 265);
 
-  --node-company: oklch(0.52 0.15 252);
-  --node-person: oklch(0.56 0.19 355);
-  --node-collateral: oklch(0.54 0.14 165);
-  --node-loan: oklch(0.62 0.13 72);
+  --node-company: oklch(0.546 0.245 263);
+  --node-person: oklch(0.541 0.247 293);
+  --node-collateral: oklch(0.555 0.163 49);
+  --node-loan: oklch(0.511 0.096 186);
 
-  --background: oklch(0.145 0.022 268);
-  --foreground: oklch(0.96 0.01 250);
-  --card: oklch(0.215 0.035 272 / 0.7);
-  --card-foreground: oklch(0.96 0.01 250);
-  --popover: oklch(0.225 0.035 272 / 0.92);
-  --popover-foreground: oklch(0.96 0.01 250);
-  --primary: oklch(0.55 0.19 252);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.3 0.05 260 / 0.75);
-  --secondary-foreground: oklch(0.9 0.05 225);
-  --muted: oklch(0.28 0.032 270 / 0.75);
-  --muted-foreground: oklch(0.83 0.022 250);
-  --accent: oklch(0.33 0.06 250 / 0.8);
-  --accent-foreground: oklch(0.97 0.02 230);
-  --destructive: oklch(0.62 0.19 350);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.88 0.03 260 / 0.14);
-  --input: oklch(0.88 0.03 260 / 0.22);
-  --ring: oklch(0.76 0.13 232);
-  --canvas: oklch(0.11 0.018 268);
+  --background: oklch(0.129 0.042 265);   /* slate-950 */
+  --foreground: oklch(0.968 0.007 248);
+  --card: oklch(0.175 0.04 266);
+  --card-foreground: oklch(0.968 0.007 248);
+  --popover: oklch(0.208 0.042 265);
+  --popover-foreground: oklch(0.968 0.007 248);
+  --primary: oklch(0.546 0.245 263);      /* blue-600 fill, white text 5:1 */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.235 0.042 264);
+  --secondary-foreground: oklch(0.929 0.013 255);
+  --muted: oklch(0.235 0.042 264);
+  --muted-foreground: oklch(0.729 0.038 256);  /* ~slate-400, 6:1 on cards */
+  --accent: oklch(0.257 0.045 264);
+  --accent-foreground: oklch(0.968 0.007 248);
+  --destructive: oklch(0.637 0.237 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.279 0.041 260);       /* slate-800 */
+  --input: oklch(0.372 0.044 257);        /* slate-700 */
+  --ring: oklch(0.707 0.165 254);
+  --canvas: oklch(0.115 0.035 265);
 
-  --sidebar: oklch(0.175 0.03 270);
-  --sidebar-foreground: oklch(0.92 0.015 240);
-  --sidebar-primary: var(--sky);
-  --sidebar-primary-foreground: oklch(0.22 0.05 240);
-  --sidebar-accent: oklch(0.3 0.06 258 / 0.85);
-  --sidebar-accent-foreground: oklch(0.98 0.01 235);
-  --sidebar-border: oklch(0.88 0.03 260 / 0.12);
-  --sidebar-ring: var(--sky);
-  --sidebar-panel: oklch(0.98 0.02 240 / 0.07);
+  --sidebar: oklch(0.155 0.04 266);
+  --sidebar-foreground: oklch(0.869 0.022 252);
+  --sidebar-primary: oklch(0.282 0.087 267);
+  --sidebar-primary-foreground: oklch(0.882 0.059 254);
+  --sidebar-accent: oklch(0.235 0.042 264);
+  --sidebar-accent-foreground: oklch(0.984 0.003 248);
+  --sidebar-border: oklch(0.279 0.041 260);
+  --sidebar-ring: oklch(0.707 0.165 254);
+  --sidebar-panel: oklch(1 0 0 / 0.04);
 
-  --shadow-glass: 0 1px 0 oklch(1 0 0 / 7%) inset, 0 1px 2px oklch(0 0 0 / 40%), 0 22px 50px -24px oklch(0 0 0 / 80%);
+  --lg-tint-top: oklch(0.32 0.045 265 / 0.52);
+  --lg-tint-bottom: oklch(0.2 0.04 265 / 0.42);
+  --lg-edge: oklch(1 0 0 / 0.13);
+  --lg-hairline: oklch(0 0 0 / 0.45);
+  --lg-specular: oklch(1 0 0 / 0.22);
+  --lg-sheen: oklch(1 0 0 / 0.08);
+  --lg-shade: oklch(0 0 0 / 0.35);
+  --lg-drop: oklch(0 0 0 / 0.55);
+  --lg-blur: 24px;
+  --lg-saturate: 160%;
+  --shadow-glass: 0 1px 2px oklch(0 0 0 / 35%);
   --shadow-card: var(--shadow-glass);
-  --shadow-glow-ocean: 0 0 0 1px oklch(0.62 0.22 252 / 45%), 0 10px 40px -8px oklch(0.62 0.22 252 / 55%);
-  --shadow-glow-candy: 0 0 0 1px oklch(0.74 0.2 350 / 50%), 0 10px 40px -8px oklch(0.74 0.2 350 / 55%);
+  --shadow-glow-ocean: inset 0 0 0 1px oklch(0.707 0.165 254 / 30%);
+  --shadow-glow-candy: inset 0 0 0 1px oklch(0.704 0.191 22 / 35%);
 }
 
 @layer base {
@@ -203,37 +229,84 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-feature-settings: "tnum" 1;
+    -webkit-font-smoothing: antialiased;
   }
+  :focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
 }
 
-/* Frosted panel: translucent fill, hairline edge, lit top line. */
+/* Panel: solid surface + hairline edge. (Was frosted glass; blur is reserved for real overlays.) */
 @utility glass {
   background-color: var(--card);
-  backdrop-filter: blur(16px) saturate(1.35);
-  -webkit-backdrop-filter: blur(16px) saturate(1.35);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-glass);
+  box-shadow: var(--shadow-card);
 }
 
+/*
+ * Liquid glass: translucent tint over a blurred, saturated backdrop, a bright specular rim on top,
+ * a soft sheen across the upper half, and a faint inner shade at the bottom edge so it reads as a lens.
+ * Use on navigation and controls only (ui-ux-pro-max: "keep content on a separate layer").
+ * Falls back to an opaque surface for people who ask for reduced transparency.
+ */
+@utility liquid-glass {
+  background:
+    radial-gradient(130% 70% at 15% -10%, var(--lg-sheen), transparent 60%),
+    linear-gradient(180deg, var(--lg-tint-top), var(--lg-tint-bottom));
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+  border: 1px solid var(--lg-edge);
+  box-shadow:
+    inset 0 1px 0 var(--lg-specular),
+    inset 0 -1px 0 var(--lg-shade),
+    0 0 0 0.5px var(--lg-hairline),
+    0 12px 32px -16px var(--lg-drop);
+  @media (prefers-reduced-transparency: reduce) {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Smaller controls (pills, icon buttons): thinner blur, tighter shadow. */
+@utility liquid-glass-pill {
+  background:
+    radial-gradient(120% 90% at 30% -20%, var(--lg-sheen), transparent 65%),
+    linear-gradient(180deg, var(--lg-tint-top), var(--lg-tint-bottom));
+  -webkit-backdrop-filter: blur(14px) saturate(var(--lg-saturate));
+  backdrop-filter: blur(14px) saturate(var(--lg-saturate));
+  border: 1px solid var(--lg-edge);
+  box-shadow:
+    inset 0 1px 0 var(--lg-specular),
+    inset 0 -1px 0 var(--lg-shade),
+    0 0 0 0.5px var(--lg-hairline),
+    0 4px 12px -6px var(--lg-drop);
+  @media (prefers-reduced-transparency: reduce) {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Light catching the top edge of a solid control (primary buttons, active pills). */
+@utility glass-specular {
+  background-image: linear-gradient(180deg, oklch(1 0 0 / 0.18), transparent 55%);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.38),
+    inset 0 -1px 0 oklch(0 0 0 / 0.18),
+    0 4px 14px -6px color-mix(in oklch, var(--color-primary) 60%, transparent);
+}
+
+/* Kept for compatibility; the decorative gradient top line is gone. */
 @utility edge-lit {
   position: relative;
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 1px;
-    pointer-events: none;
-    background: linear-gradient(90deg, transparent, var(--glow-ocean) 35%, var(--glow-candy) 65%, transparent);
-    opacity: 0.55;
-  }
 }
 
 @utility glow-ocean { box-shadow: var(--shadow-glow-ocean); }
 @utility glow-candy { box-shadow: var(--shadow-glow-candy); }
 
-/* Neon halo for strokes and glyphs on the map. */
-@utility halo-ocean { filter: drop-shadow(0 0 6px var(--glow-ocean)); }
-@utility halo-candy { filter: drop-shadow(0 0 6px var(--glow-candy)); }
+/* Map strokes and glyphs no longer get a neon halo; color + weight carry the meaning. */
+@utility halo-ocean { filter: none; }
+@utility halo-candy { filter: none; }
 
 @utility shadow-card { box-shadow: var(--shadow-card); }
 @keyframes graph-flow { to { stroke-dashoffset: -28; } }
@@ -241,4 +314,12 @@
 @keyframes msg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @utility graph-flow { animation: graph-flow 1.2s linear infinite; }
 @utility graph-pulse { animation: graph-pulse 1.4s ease-in-out infinite; }
-@utility msg-in { animation: msg-in 0.25s ease-out both; }
+@utility msg-in { animation: msg-in 0.2s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

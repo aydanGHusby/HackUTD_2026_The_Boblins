@@ -43,7 +43,7 @@ function Cases() {
   return (
     <div className="mx-auto max-w-6xl p-8">
       <div className="text-xs font-extrabold uppercase tracking-[0.22em] text-ocean">FraudGraph</div>
-      <h1 className="mt-1 text-4xl font-extrabold tracking-tight">Cases<span className="text-candy-strong">.</span></h1>
+      <h1 className="mt-1 text-4xl font-extrabold tracking-tight">Cases</h1>
       <p className="mt-1 text-sm text-muted-foreground">Loans flagged by the risk rules, highest risk first.</p>
 
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -62,13 +62,13 @@ function Cases() {
       </div>
 
       <div className="mt-8 flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 rounded-full bg-muted p-1">
+        <div className="liquid-glass-pill flex gap-1 rounded-full p-1">
           {filters.map((f) => (
             <button key={f} onClick={() => setStatus(f)}
-              className={cn("rounded-full px-3 py-1 text-xs font-semibold", status === f ? "bg-primary text-primary-foreground glow-ocean" : "text-muted-foreground")}>{filterLabel[f]}</button>
+              className={cn("rounded-full px-3 py-1 text-xs font-semibold", status === f ? "bg-primary text-primary-foreground glass-specular" : "text-muted-foreground transition-colors hover:text-foreground")}>{filterLabel[f]}</button>
           ))}
         </div>
-        <label className="glass ml-auto flex items-center gap-2 rounded-full px-3 py-1.5 text-sm">
+        <label className="liquid-glass-pill ml-auto flex items-center gap-2 rounded-full px-3 py-1.5 text-sm focus-within:ring-2 focus-within:ring-ring">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search borrower or trigger" className="w-56 bg-transparent outline-none" />
         </label>

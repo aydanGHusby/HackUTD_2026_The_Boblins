@@ -226,12 +226,12 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
           { i: <Maximize2 className="h-4 w-4" />, f: () => { setView({ x: 0, y: 0, k: 1 }); setPos(initial.pos); setSelected(undefined); }, l: "Reset view" },
         ].map((b) => (
           <button key={b.l} aria-label={b.l} title={b.l} onClick={b.f}
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-popover text-foreground hover:bg-accent">{b.i}</button>
+            className="liquid-glass-pill flex h-9 w-9 items-center justify-center rounded-full text-foreground transition hover:brightness-110">{b.i}</button>
         ))}
       </div>
 
       {info && (
-        <div className="pointer-events-none absolute left-3 top-3 max-w-xs rounded-md border border-border bg-popover p-3 text-xs shadow-lg">
+        <div className="liquid-glass pointer-events-none absolute left-3 top-3 max-w-xs rounded-xl p-3 text-xs">
           <div className="font-mono text-muted-foreground">{icon[info.kind]} {info.kind} · {info.id} · hop {initial.dist.get(info.id) ?? "?"}</div>
           <div className="mt-1 font-medium text-foreground">{info.label}</div>
           <NodeDetails node={info} />
