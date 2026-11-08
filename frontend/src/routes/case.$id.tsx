@@ -167,24 +167,9 @@ function CasePage() {
             <StatusBadge status={c.status} />
             <Avatars users={c.viewers} />
           </div>
-          <div className="basis-full flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-            <span>
-              Reviewer: <b className="text-foreground">{verdict?.analyst || `${me.name} (you)`}</b>
-              {!verdict && " · not yet decided"}
-            </span>
-            <span>
-              Stage: <b className="text-foreground">{humanize(life?.stage || c.status)}</b>
-            </span>
-            <span>
-              Flagged for:{" "}
-              <b className="text-foreground">
-                {c.triggers.map(humanize).join(", ") || "Manual review"}
-              </b>
-            </span>
-          </div>
           <div
             role="status"
-            className="basis-full rounded-xl border border-ocean/25 bg-sky-soft px-3 py-2 text-xs"
+            className="basis-full rounded-xl border border-ocean/25 bg-sky-soft px-3 py-1.5 text-xs"
           >
             <b className="text-ocean">Next action</b>
             <span className="ml-2">{next}</span>
@@ -214,7 +199,7 @@ function CasePage() {
                 </button>
               )}
             </div>
-            <div className="glass edge-lit overflow-hidden rounded-2xl">
+            <div className="glass edge-lit shrink-0 overflow-hidden rounded-2xl">
               <GraphView
                 nodes={graph.nodes}
                 edges={graph.edges}
@@ -312,7 +297,7 @@ function CasePage() {
           {/* Right: chat + decision */}
           <aside
             aria-label="Agent discussion and your decision"
-            className="courtroom-discussion flex min-h-[650px] flex-col lg:min-h-0 border-l border-border bg-card/70 backdrop-blur-xl"
+            className="courtroom-discussion flex min-h-[650px] flex-col lg:min-h-0 lg:overflow-y-auto border-l border-border bg-card/70 backdrop-blur-xl"
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <h2 className="text-sm font-bold">Agent discussion</h2>
@@ -338,7 +323,7 @@ function CasePage() {
                 />
               </div>
             )}
-            <div className="min-h-0 flex-1">
+            <div className="flex min-h-[360px] flex-1 flex-col">
               <AgentChat
                 args={args}
                 questions={questions}
