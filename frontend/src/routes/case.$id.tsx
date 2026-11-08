@@ -17,9 +17,9 @@ import type { Claim, Decision } from "@/shared/types";
 export const Route = createFileRoute("/case/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: `${params.id} · FraudGraph` },
+      { title: `${params.id} · Paper View` },
       { name: "description", content: "Explore the loan's network and the agents' arguments, then decide." },
-      { property: "og:title", content: `${params.id} · FraudGraph` },
+      { property: "og:title", content: `${params.id} · Paper View` },
       { property: "og:description", content: "Explore the loan's network and the agents' arguments." },
     ],
   }),

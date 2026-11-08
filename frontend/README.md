@@ -1,4 +1,4 @@
-# FraudGraph Dashboard
+# Paper View Dashboard
 
 Ok our project is FraudGraph. I attached a document of everything about it and an implementation plan. Let me know if this is enough information or if I should do more. With that, can we start building a frontend for it? like it doesn't have to be a perfect frotnend just a frontend to leach off of for now
 

@@ -17,7 +17,7 @@ export function AppSidebar() {
     <aside className="liquid-glass sticky top-3 z-10 m-3 mr-0 flex h-[calc(100vh-1.5rem)] w-56 shrink-0 flex-col rounded-2xl p-4 text-sidebar-foreground">
       <Link to="/cases" className="mb-8 flex items-center gap-2 px-2 text-lg font-bold tracking-tight text-sidebar-accent-foreground">
         <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground"><Network aria-hidden className="h-4 w-4" /></span>
-        Fraud<span className="text-ocean">Graph</span>
+        Paper <span className="text-ocean">View</span>
       </Link>
       <nav aria-label="Main" className="flex flex-col gap-1">
         {nav.map(({ to, label, icon: Icon }) => (

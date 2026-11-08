@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/intake")({
   head: () => ({
     meta: [
-      { title: "New loan · FraudGraph" },
+      { title: "New loan · Paper View" },
       { name: "description", content: "Submit a commercial loan and run the risk rules instantly." },
-      { property: "og:title", content: "New loan · FraudGraph" },
+      { property: "og:title", content: "New loan · Paper View" },
       { property: "og:description", content: "Submit a commercial loan and run the risk rules instantly." },
     ],
   }),
