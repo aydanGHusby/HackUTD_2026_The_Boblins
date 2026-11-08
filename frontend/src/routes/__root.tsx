@@ -139,7 +139,8 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   // The landing page stands on its own; every screen behind it keeps the app chrome.
-  const isLanding = useRouterState({ select: (s) => s.location.pathname === "/" });
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isLanding = pathname === "/";
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -148,7 +149,9 @@ function RootComponent() {
         <Atmosphere />
         {!isLanding && <AppSidebar />}
         <main className="min-w-0 flex-1">
-          <Outlet />
+          <div key={pathname} className="route-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
     </QueryClientProvider>

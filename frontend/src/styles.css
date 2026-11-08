@@ -469,3 +469,54 @@
     .briefcase-inside { top: 22px; height: 4px; }
   }
 }
+
+/* Motion follows the investigation: reveal, connect, focus. No scroll hijacking. */
+.eyebrow-label { font-size: 10px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--muted-foreground); }
+.preview-badge { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border); border-radius: 999px; padding: 8px 12px; font-size: 10px; color: var(--muted-foreground); background: var(--card); }
+.route-enter { animation: pv-route-enter 420ms cubic-bezier(.16,1,.3,1) both; }
+@keyframes pv-route-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.motion-reveal { transition: opacity 650ms ease var(--reveal-delay,0ms), transform 650ms cubic-bezier(.16,1,.3,1) var(--reveal-delay,0ms); }
+.motion-reveal[data-reveal="waiting"] { opacity: 0; transform: translateY(24px); }
+.motion-reveal[data-reveal="visible"] { opacity: 1; transform: translateY(0); }
+.motion-card, .interactive-button, .conversation-link, .story-step { transition: transform 200ms cubic-bezier(.16,1,.3,1), border-color 200ms, box-shadow 200ms, background-color 200ms; }
+.interactive-button:active:not(:disabled), .story-step:active { transform: scale(.97); }
+.nav-motion svg { transition: transform 220ms cubic-bezier(.16,1,.3,1); }
+.nav-motion[aria-current="page"] svg { color: var(--ocean); }
+.assistant-mark { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 1px solid color-mix(in oklch,var(--ocean) 20%,transparent); border-radius: 10px; background: var(--ocean-soft); color: var(--ocean); }
+.assistant-orbit { display: flex; align-items: center; justify-content: center; width: 76px; height: 76px; border: 1px solid color-mix(in oklch,var(--ocean) 25%,transparent); border-radius: 24px; color: var(--ocean); background: radial-gradient(circle at 25% 10%, color-mix(in oklch,var(--sky) 50%,transparent),var(--card)); box-shadow: 0 0 0 10px color-mix(in oklch,var(--ocean) 3%,transparent), 0 0 0 23px color-mix(in oklch,var(--ocean) 2%,transparent); animation: pv-orbit-enter 650ms cubic-bezier(.16,1,.3,1) both; }
+@keyframes pv-orbit-enter { from { opacity: 0; transform: scale(.8) rotate(-8deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+.prompt-card, .question-message, .story-caption { animation: pv-route-enter 450ms cubic-bezier(.16,1,.3,1) both; }
+.prompt-arrow { transition: transform 200ms; }
+.question-composer { transition: border-color 180ms, box-shadow 180ms; }
+.story-record, .story-connection { transition: opacity 350ms ease; }
+.story-dim { opacity: .18; }
+.story-node { transform-box: fill-box; transform-origin: center; animation: pv-node-arrive 650ms cubic-bezier(.16,1,.3,1) both; }
+@keyframes pv-node-arrive { from { opacity: 0; transform: scale(.65); } to { opacity: 1; transform: scale(1); } }
+.story-node-halo { transition: r 250ms, fill 250ms, stroke 250ms; }
+.story-node:focus-visible { outline: none; }
+.story-node:focus-visible .story-node-halo { stroke: var(--ring); stroke-width: 3px; }
+.story-line { stroke-dasharray: 1; animation: pv-line-draw 900ms cubic-bezier(.16,1,.3,1) both; }
+@keyframes pv-line-draw { from { stroke-dashoffset: 1; opacity: 0; } to { stroke-dashoffset: 0; opacity: 1; } }
+.story-signal { animation: pv-signal-travel 2300ms linear 2 both; }
+@keyframes pv-signal-travel { from { stroke-dashoffset: 100; opacity: 0; } 10%,85% { opacity: .8; } to { stroke-dashoffset: -100; opacity: 0; } }
+.atmosphere-drift { animation: pv-atmosphere 18s ease-in-out infinite alternate; }
+.atmosphere-drift-reverse { animation: pv-atmosphere 22s ease-in-out infinite alternate-reverse; }
+@keyframes pv-atmosphere { from { transform: translate3d(0,0,0); } to { transform: translate3d(32px,22px,0); } }
+@media (hover:hover) and (pointer:fine) {
+  .motion-card:hover { transform: translateY(-3px); border-color: color-mix(in oklch,var(--ocean) 35%,var(--border)); box-shadow: 0 12px 28px -20px color-mix(in oklch,var(--ocean) 40%,transparent); }
+  .interactive-button:hover:not(:disabled) { transform: translateY(-1px); }
+  .nav-motion:hover svg { transform: translateX(2px) rotate(-5deg); }
+  .prompt-card:hover .prompt-arrow { transform: translate(2px,-2px); }
+  .story-node:hover .story-node-halo { fill: color-mix(in oklch,var(--ocean) 12%,transparent); stroke: var(--ocean); }
+}
+@media (max-width:1279px) { .conversation-history { order: 2; } }
+@media (prefers-reduced-motion:reduce) {
+  .route-enter, .assistant-orbit, .prompt-card, .question-message, .story-caption, .story-node, .story-line, .story-signal, .atmosphere-drift, .atmosphere-drift-reverse { animation: none !important; transform: none !important; }
+  .story-signal { display: none; }
+  .motion-reveal[data-reveal] { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .motion-card:hover, .interactive-button:hover, .interactive-button:active, .nav-motion:hover svg, .prompt-card:hover .prompt-arrow { transform: none !important; }
+}
+.graph-node-enter { animation: pv-graph-arrive 450ms ease both; }
+.graph-evidence-line { transition: stroke 240ms ease, stroke-width 240ms ease, opacity 240ms ease; }
+@keyframes pv-graph-arrive { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion:reduce) { .graph-node-enter { animation: none; } }

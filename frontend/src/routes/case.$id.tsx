@@ -171,6 +171,13 @@ function CasePage() {
             Score only
           </Link>
         </nav>
+        <Link
+          to="/ask-ai"
+          search={{ case: id }}
+          className="interactive-button rounded-lg border border-border px-3 py-2 text-xs font-medium text-ocean"
+        >
+          Ask AI ↗
+        </Link>
         <Avatars users={c.viewers} />
       </header>
 

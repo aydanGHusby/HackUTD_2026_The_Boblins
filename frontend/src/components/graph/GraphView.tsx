@@ -1,19 +1,47 @@
 // Interactive SVG network canvas: drag nodes, drag background to pan, wheel/pinch or buttons to zoom.
 // Same props the Cytoscape GraphView will take at handoff.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Building2, Landmark, Maximize2, Minus, Plus, User, Warehouse, type LucideIcon } from "lucide-react";
+import {
+  Building2,
+  Landmark,
+  Maximize2,
+  Minus,
+  Plus,
+  User,
+  Warehouse,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { humanize, money } from "@/lib/format";
 import type { Edge, GraphNode, NodeKind } from "@/shared/types";
 
-interface Props { nodes: GraphNode[]; edges: Edge[]; centerId: string; flagged?: string[]; highlight?: string[]; height?: number; referenceLabel?: (id:string)=>string }
+interface Props {
+  nodes: GraphNode[];
+  edges: Edge[];
+  centerId: string;
+  flagged?: string[];
+  highlight?: string[];
+  height?: number;
+  referenceLabel?: (id: string) => string;
+}
 type Pt = { x: number; y: number };
 
-const W = 800, H = 480, MIN = 0.4, MAX = 3;
+const W = 800,
+  H = 480,
+  MIN = 0.4,
+  MAX = 3;
 const fill: Record<NodeKind, string> = {
-  company: "fill-node-company", person: "fill-node-person", collateral: "fill-node-collateral", loan: "fill-node-loan",
+  company: "fill-node-company",
+  person: "fill-node-person",
+  collateral: "fill-node-collateral",
+  loan: "fill-node-loan",
 };
-const icon: Record<NodeKind, LucideIcon> = { company: Building2, person: User, collateral: Warehouse, loan: Landmark };
+const icon: Record<NodeKind, LucideIcon> = {
+  company: Building2,
+  person: User,
+  collateral: Warehouse,
+  loan: Landmark,
+};
 const radius = (id: string, centerId: string) => (id === centerId ? 22 : 17);
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
@@ -22,23 +50,40 @@ function layout(nodes: GraphNode[], edges: Edge[], centerId: string) {
   let frontier = [centerId];
   while (frontier.length) {
     const next: string[] = [];
-    for (const id of frontier) for (const e of edges) {
-      const o = e.from === id ? e.to : e.to === id ? e.from : null;
-      if (o && !dist.has(o)) { dist.set(o, dist.get(id)! + 1); next.push(o); }
-    }
+    for (const id of frontier)
+      for (const e of edges) {
+        const o = e.from === id ? e.to : e.to === id ? e.from : null;
+        if (o && !dist.has(o)) {
+          dist.set(o, dist.get(id)! + 1);
+          next.push(o);
+        }
+      }
     frontier = next;
   }
   const rings = new Map<number, string[]>();
-  nodes.forEach((n) => { const d = dist.get(n.id) ?? 2; rings.set(d, [...(rings.get(d) ?? []), n.id]); });
+  nodes.forEach((n) => {
+    const d = dist.get(n.id) ?? 2;
+    rings.set(d, [...(rings.get(d) ?? []), n.id]);
+  });
   const p: Record<string, Pt> = {};
-  rings.forEach((ids, d) => ids.forEach((id, i) => {
-    const a = (i / ids.length) * Math.PI * 2 + d * 0.6;
-    p[id] = { x: W / 2 + Math.cos(a) * d * 150, y: H / 2 + Math.sin(a) * d * 95 };
-  }));
+  rings.forEach((ids, d) =>
+    ids.forEach((id, i) => {
+      const a = (i / ids.length) * Math.PI * 2 + d * 0.6;
+      p[id] = { x: W / 2 + Math.cos(a) * d * 150, y: H / 2 + Math.sin(a) * d * 95 };
+    }),
+  );
   return { pos: p, dist };
 }
 
-export function GraphView({ nodes, edges, centerId, flagged = [], highlight = [], height = 480, referenceLabel = id=>id }: Props) {
+export function GraphView({
+  nodes,
+  edges,
+  centerId,
+  flagged = [],
+  highlight = [],
+  height = 480,
+  referenceLabel = (id) => id,
+}: Props) {
   const initial = useMemo(() => layout(nodes, edges, centerId), [nodes, edges, centerId]);
   const [pos, setPos] = useState(initial.pos);
   useEffect(() => setPos(initial.pos), [initial]);
@@ -48,8 +93,15 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
   useEffect(() => setSelected(undefined), [highlight]);
   const [dragging, setDragging] = useState<string>();
   const svgRef = useRef<SVGSVGElement>(null);
-  const viewRef = useRef(view); viewRef.current = view;
-  const drag = useRef<{ kind: "node" | "pan"; id?: string; start: Pt; origin: Pt; moved: boolean } | null>(null);
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const drag = useRef<{
+    kind: "node" | "pan";
+    id?: string;
+    start: Pt;
+    origin: Pt;
+    moved: boolean;
+  } | null>(null);
 
   // screen px -> viewBox units
   const toSvg = useCallback((clientX: number, clientY: number): Pt => {
@@ -59,7 +111,8 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
 
   const zoomAt = useCallback((p: Pt, next: number) => {
     setView((v) => {
-      const k2 = clamp(next, MIN, MAX), f = k2 / v.k;
+      const k2 = clamp(next, MIN, MAX),
+        f = k2 / v.k;
       return { k: k2, x: p.x - (p.x - v.x) * f, y: p.y - (p.y - v.y) * f };
     });
   }, []);
@@ -88,8 +141,12 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
     const d = drag.current;
     if (!d) return;
     const p = toSvg(e.clientX, e.clientY);
-    const dx = p.x - d.start.x, dy = p.y - d.start.y;
-    if (!d.moved && Math.abs(dx) + Math.abs(dy) > 2) { d.moved = true; if (d.id) setDragging(d.id); }
+    const dx = p.x - d.start.x,
+      dy = p.y - d.start.y;
+    if (!d.moved && Math.abs(dx) + Math.abs(dy) > 2) {
+      d.moved = true;
+      if (d.id) setDragging(d.id);
+    }
     if (d.kind === "node" && d.id) {
       const id = d.id;
       setPos((s) => ({ ...s, [id]: { x: d.origin.x + dx / view.k, y: d.origin.y + dy / view.k } }));
@@ -97,7 +154,8 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
   };
   const onPointerUp = () => {
     const d = drag.current;
-    if (d && !d.moved) setSelected(d.kind === "node" ? (d.id === selected ? undefined : d.id) : undefined);
+    if (d && !d.moved)
+      setSelected(d.kind === "node" ? (d.id === selected ? undefined : d.id) : undefined);
     drag.current = null;
     setDragging(undefined);
   };
@@ -107,7 +165,10 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
   const neighbors = useMemo(() => {
     if (!selected) return null;
     const s = new Set([selected]);
-    edges.forEach((e) => { if (e.from === selected) s.add(e.to); if (e.to === selected) s.add(e.from); });
+    edges.forEach((e) => {
+      if (e.from === selected) s.add(e.to);
+      if (e.to === selected) s.add(e.from);
+    });
     return s;
   }, [selected, edges]);
   const dim = (id: string) => (neighbors ? !neighbors.has(id) : hasHl && !hl.has(id));
@@ -130,14 +191,21 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
     }
     const kept = new Map<string, { x: number; y: number; label: string }>();
     for (const e of edges) {
-      const a = pos[e.from], b = pos[e.to];
+      const a = pos[e.from],
+        b = pos[e.to];
       if (!a || !b) continue;
-      const on = hl.has(e.id) || flagged.includes(e.id) || hover === e.from || hover === e.to ||
+      const on =
+        hl.has(e.id) ||
+        flagged.includes(e.id) ||
+        hover === e.from ||
+        hover === e.to ||
         (!!selected && (e.from === selected || e.to === selected));
       if (!on) continue;
       const label = humanize(e.kind);
       const box = (x: number, y: number): Box => ({ x, y, w: label.length * 6.3 + 10, h: 15 });
-      const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+      const dx = b.x - a.x,
+        dy = b.y - a.y,
+        len = Math.hypot(dx, dy) || 1;
       const spot = [0.34, 0.5, 0.66, 0.2, 0.8]
         .map((t) => ({ x: a.x + dx * t - (dy / len) * 9, y: a.y + dy * t + (dx / len) * 9 }))
         .find((s) => !taken.some((tb) => hit(box(s.x, s.y), tb)));
@@ -150,9 +218,19 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
 
   return (
     <div className="relative overflow-hidden rounded-md bg-canvas" style={{ height }}>
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet"
-        className={cn("h-full w-full touch-none select-none", dragging ? "cursor-grabbing" : "cursor-grab active:cursor-grabbing")}
-        onPointerDown={(e) => onPointerDown(e)} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}>
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="xMidYMid meet"
+        className={cn(
+          "h-full w-full touch-none select-none",
+          dragging ? "cursor-grabbing" : "cursor-grab active:cursor-grabbing",
+        )}
+        onPointerDown={(e) => onPointerDown(e)}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+      >
         <defs>
           <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
             <circle cx="1" cy="1" r="1" className="fill-border" />
@@ -177,23 +255,65 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
           {pos[centerId] && (
             <g pointerEvents="none">
               <circle cx={pos[centerId].x} cy={pos[centerId].y} r={230} fill="url(#graph-aura)" />
-              <circle cx={pos[centerId].x} cy={pos[centerId].y} r={56} className="fill-none stroke-glow-ocean/30" strokeWidth={1.5} />
-              <circle cx={pos[centerId].x} cy={pos[centerId].y} r={40} className="fill-none stroke-glow-ocean/60 graph-pulse" strokeWidth={2} />
+              <circle
+                cx={pos[centerId].x}
+                cy={pos[centerId].y}
+                r={56}
+                className="fill-none stroke-glow-ocean/30"
+                strokeWidth={1.5}
+              />
+              <circle
+                cx={pos[centerId].x}
+                cy={pos[centerId].y}
+                r={40}
+                className="fill-none stroke-glow-ocean/60 graph-pulse"
+                strokeWidth={2}
+              />
             </g>
           )}
           {[1, 2].map((d) => (
-            <ellipse key={d} cx={W / 2} cy={H / 2} rx={d * 150} ry={d * 95} className="fill-none stroke-border" strokeDasharray="2 6" />
+            <ellipse
+              key={d}
+              cx={W / 2}
+              cy={H / 2}
+              rx={d * 150}
+              ry={d * 95}
+              className="fill-none stroke-border"
+              strokeDasharray="2 6"
+            />
           ))}
           {edges.map((e) => {
-            const a = pos[e.from], b = pos[e.to];
+            const a = pos[e.from],
+              b = pos[e.to];
             if (!a || !b) return null;
-            const isFlag = flagged.includes(e.id), isHl = hl.has(e.id);
-            const faded = neighbors ? !(neighbors.has(e.from) && neighbors.has(e.to) && (e.from === selected || e.to === selected)) : hasHl && !isHl;
+            const isFlag = flagged.includes(e.id),
+              isHl = hl.has(e.id);
+            const faded = neighbors
+              ? !(
+                  neighbors.has(e.from) &&
+                  neighbors.has(e.to) &&
+                  (e.from === selected || e.to === selected)
+                )
+              : hasHl && !isHl;
             return (
               <g key={e.id} className={cn("transition-opacity", faded && "opacity-20")}>
-                <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                  className={cn(isHl ? "stroke-primary halo-ocean" : isFlag ? "stroke-candy-strong halo-candy" : "stroke-muted-foreground/40", isFlag && !isHl && "graph-flow")}
-                  strokeWidth={isHl ? 3.5 : isFlag ? 2.5 : 1.25} strokeDasharray={e.kind === "shares_address" ? "5 4" : isFlag ? "8 6" : undefined} />
+                <line
+                  x1={a.x}
+                  y1={a.y}
+                  x2={b.x}
+                  y2={b.y}
+                  className={cn(
+                    "graph-evidence-line",
+                    isHl
+                      ? "stroke-primary halo-ocean"
+                      : isFlag
+                        ? "stroke-candy-strong halo-candy"
+                        : "stroke-muted-foreground/40",
+                    isFlag && !isHl && "graph-flow",
+                  )}
+                  strokeWidth={isHl ? 3.5 : isFlag ? 2.5 : 1.25}
+                  strokeDasharray={e.kind === "shares_address" ? "5 4" : isFlag ? "8 6" : undefined}
+                />
               </g>
             );
           })}
@@ -201,27 +321,90 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
             const p = pos[n.id];
             if (!p) return null;
             const r = radius(n.id, centerId);
-            const isHl = hl.has(n.id), isSel = n.id === selected, isDrag = n.id === dragging, isHover = n.id === hover;
-            const Icon = icon[n.kind], s = Math.round(r * 0.95);
+            const isHl = hl.has(n.id),
+              isSel = n.id === selected,
+              isDrag = n.id === dragging,
+              isHover = n.id === hover;
+            const Icon = icon[n.kind],
+              s = Math.round(r * 0.95);
             return (
-              <g key={n.id} role="button" tabIndex={0} aria-label={"Inspect " + n.label} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();setSelected(n.id===selected?undefined:n.id);}}} transform={`translate(${p.x},${p.y})`}
-                onPointerDown={(e) => onPointerDown(e, n.id)} onPointerEnter={() => setHover(n.id)} onPointerLeave={() => setHover(undefined)}
-                className={cn("transition-opacity", isDrag ? "cursor-grabbing" : "cursor-grab", dim(n.id) && "opacity-30")}>
-                {(isHl || isSel) && <circle r={r + 7} className={cn("fill-none", isSel ? "stroke-foreground" : "stroke-primary graph-pulse")} strokeWidth={2} />}
+              <g
+                key={n.id}
+                role="button"
+                tabIndex={0}
+                aria-label={"Inspect " + n.label}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelected(n.id === selected ? undefined : n.id);
+                  }
+                }}
+                transform={`translate(${p.x},${p.y})`}
+                onPointerDown={(e) => onPointerDown(e, n.id)}
+                onPointerEnter={() => setHover(n.id)}
+                onPointerLeave={() => setHover(undefined)}
+                className={cn(
+                  "transition-opacity",
+                  isDrag ? "cursor-grabbing" : "cursor-grab",
+                  dim(n.id) && "opacity-30",
+                )}
+              >
+                {(isHl || isSel) && (
+                  <circle
+                    r={r + 7}
+                    className={cn(
+                      "fill-none",
+                      isSel ? "stroke-foreground" : "stroke-primary graph-pulse",
+                    )}
+                    strokeWidth={2}
+                  />
+                )}
                 {/* Inner group scales on hover/drag; the outer translate stays exact so edges never drift. */}
-                <g style={{ transform: `scale(${isDrag ? 1.15 : isHover ? 1.07 : 1})`, transition: "transform 160ms cubic-bezier(.2,.8,.2,1)" }}
-                  filter={isDrag ? "url(#node-lift)" : undefined}>
+                <g
+                  className="graph-node-enter"
+                  style={{
+                    transform: `scale(${isDrag ? 1.15 : isHover ? 1.07 : 1})`,
+                    transition: "transform 160ms cubic-bezier(.2,.8,.2,1)",
+                  }}
+                  filter={isDrag ? "url(#node-lift)" : undefined}
+                >
                   <circle r={r + 4} className={cn(fill[n.kind], "opacity-20")} />
-                  <circle r={r} className={cn(fill[n.kind], "stroke-background")} strokeWidth={2.5} />
+                  <circle
+                    r={r}
+                    className={cn(fill[n.kind], "stroke-background")}
+                    strokeWidth={2.5}
+                  />
                   <circle r={r - 1.5} fill="url(#node-sheen)" pointerEvents="none" />
-                  <circle r={r - 1.5} className="fill-none stroke-white/25" strokeWidth={1} pointerEvents="none" />
-                  <Icon x={-s / 2} y={-s / 2} width={s} height={s} strokeWidth={2} className="pointer-events-none text-white" aria-hidden />
+                  <circle
+                    r={r - 1.5}
+                    className="fill-none stroke-white/25"
+                    strokeWidth={1}
+                    pointerEvents="none"
+                  />
+                  <Icon
+                    x={-s / 2}
+                    y={-s / 2}
+                    width={s}
+                    height={s}
+                    strokeWidth={2}
+                    className="pointer-events-none text-white"
+                    aria-hidden
+                  />
                 </g>
-                <text y={r + 14} textAnchor="middle" strokeWidth={4} strokeLinejoin="round"
-                  className="pointer-events-none fill-canvas stroke-canvas text-[11px] font-medium">
+                <text
+                  y={r + 14}
+                  textAnchor="middle"
+                  strokeWidth={4}
+                  strokeLinejoin="round"
+                  className="pointer-events-none fill-canvas stroke-canvas text-[11px] font-medium"
+                >
                   {n.label.length > 26 ? n.label.slice(0, 25) + "…" : n.label}
                 </text>
-                <text y={r + 14} textAnchor="middle" className="pointer-events-none fill-foreground text-[11px] font-medium">
+                <text
+                  y={r + 14}
+                  textAnchor="middle"
+                  className="pointer-events-none fill-foreground text-[11px] font-medium"
+                >
                   {n.label.length > 26 ? n.label.slice(0, 25) + "…" : n.label}
                 </text>
               </g>
@@ -231,9 +414,24 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
           <g pointerEvents="none">
             {[...labeled.values()].map((l) => (
               <g key={l.label + l.x.toFixed(0) + l.y.toFixed(0)}>
-                <text x={l.x} y={l.y} textAnchor="middle" strokeWidth={5} strokeLinejoin="round"
-                  className="fill-canvas stroke-canvas text-[11px] font-medium">{l.label}</text>
-                <text x={l.x} y={l.y} textAnchor="middle" className="fill-foreground/90 text-[11px] font-medium">{l.label}</text>
+                <text
+                  x={l.x}
+                  y={l.y}
+                  textAnchor="middle"
+                  strokeWidth={5}
+                  strokeLinejoin="round"
+                  className="fill-canvas stroke-canvas text-[11px] font-medium"
+                >
+                  {l.label}
+                </text>
+                <text
+                  x={l.x}
+                  y={l.y}
+                  textAnchor="middle"
+                  className="fill-foreground/90 text-[11px] font-medium"
+                >
+                  {l.label}
+                </text>
               </g>
             ))}
           </g>
@@ -242,19 +440,43 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
 
       <div className="absolute right-3 top-3 flex flex-col gap-1">
         {[
-          { i: <Plus className="h-4 w-4" />, f: () => zoomAt({ x: W / 2, y: H / 2 }, view.k * 1.25), l: "Zoom in" },
-          { i: <Minus className="h-4 w-4" />, f: () => zoomAt({ x: W / 2, y: H / 2 }, view.k / 1.25), l: "Zoom out" },
-          { i: <Maximize2 className="h-4 w-4" />, f: () => { setView({ x: 0, y: 0, k: 1 }); setPos(initial.pos); setSelected(undefined); }, l: "Reset view" },
+          {
+            i: <Plus className="h-4 w-4" />,
+            f: () => zoomAt({ x: W / 2, y: H / 2 }, view.k * 1.25),
+            l: "Zoom in",
+          },
+          {
+            i: <Minus className="h-4 w-4" />,
+            f: () => zoomAt({ x: W / 2, y: H / 2 }, view.k / 1.25),
+            l: "Zoom out",
+          },
+          {
+            i: <Maximize2 className="h-4 w-4" />,
+            f: () => {
+              setView({ x: 0, y: 0, k: 1 });
+              setPos(initial.pos);
+              setSelected(undefined);
+            },
+            l: "Reset view",
+          },
         ].map((b) => (
-          <button key={b.l} aria-label={b.l} title={b.l} onClick={b.f}
-            className="liquid-glass-pill flex h-9 w-9 items-center justify-center rounded-full text-foreground transition hover:brightness-110">{b.i}</button>
+          <button
+            key={b.l}
+            aria-label={b.l}
+            title={b.l}
+            onClick={b.f}
+            className="liquid-glass-pill flex h-9 w-9 items-center justify-center rounded-full text-foreground transition hover:brightness-110"
+          >
+            {b.i}
+          </button>
         ))}
       </div>
 
       {info && (
         <div className="liquid-glass pointer-events-none absolute left-3 top-3 max-w-xs rounded-xl p-3 text-xs">
           <div className="flex items-center gap-1.5 font-mono text-muted-foreground">
-            <KindDot kind={info.kind} size={18} /> {info.kind} · {info.id} · hop {initial.dist.get(info.id) ?? "?"}
+            <KindDot kind={info.kind} size={18} /> {info.kind} · {info.id} · hop{" "}
+            {initial.dist.get(info.id) ?? "?"}
           </div>
           <div className="mt-1 font-medium text-foreground">{info.label}</div>
           <NodeDetails node={info} referenceLabel={referenceLabel} />
@@ -263,9 +485,15 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
 
       <div className="pointer-events-none absolute bottom-2 left-3 right-3 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
         {(Object.keys(fill) as NodeKind[]).map((k) => (
-          <span key={k} className="flex items-center gap-1.5"><KindDot kind={k} size={16} />{k}</span>
+          <span key={k} className="flex items-center gap-1.5">
+            <KindDot kind={k} size={16} />
+            {k}
+          </span>
         ))}
-        <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-candy-strong" />flagged</span>
+        <span className="flex items-center gap-1">
+          <span className="h-0.5 w-3 bg-candy-strong" />
+          flagged
+        </span>
         <span className="ml-auto">Drag nodes · drag to pan · scroll to zoom · click to focus</span>
       </div>
     </div>
@@ -274,25 +502,48 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
 
 /** Small colored disc with the node kind's icon, for the legend and the info card. */
 function KindDot({ kind, size }: { kind: NodeKind; size: number }) {
-  const Icon = icon[kind], h = size / 2, s = Math.round(size * 0.6);
+  const Icon = icon[kind],
+    h = size / 2,
+    s = Math.round(size * 0.6);
   return (
     <svg width={size} height={size} aria-hidden className="shrink-0">
       <circle cx={h} cy={h} r={h} className={fill[kind]} />
-      <Icon x={h - s / 2} y={h - s / 2} width={s} height={s} strokeWidth={2.25} className="text-white" />
+      <Icon
+        x={h - s / 2}
+        y={h - s / 2}
+        width={s}
+        height={s}
+        strokeWidth={2.25}
+        className="text-white"
+      />
     </svg>
   );
 }
 
-function NodeDetails({ node, referenceLabel }: { node: GraphNode; referenceLabel:(id:string)=>string }) {
+function NodeDetails({
+  node,
+  referenceLabel,
+}: {
+  node: GraphNode;
+  referenceLabel: (id: string) => string;
+}) {
   const d = node.data as unknown as Record<string, unknown>;
   return (
     <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-muted-foreground">
-      {Object.entries(d).filter(([k]) => !["id", "name"].includes(k)).map(([k, v]) => (
-        <div key={k} className="contents">
-          <dt>{humanize(k)}</dt>
-          <dd className="text-foreground">{typeof v === "number" && /value|amount|revenue|worth/i.test(k) ? money(v) : /Id$/.test(k) ? referenceLabel(String(v)) : String(v)}</dd>
-        </div>
-      ))}
+      {Object.entries(d)
+        .filter(([k]) => !["id", "name"].includes(k))
+        .map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt>{humanize(k)}</dt>
+            <dd className="text-foreground">
+              {typeof v === "number" && /value|amount|revenue|worth/i.test(k)
+                ? money(v)
+                : /Id$/.test(k)
+                  ? referenceLabel(String(v))
+                  : String(v)}
+            </dd>
+          </div>
+        ))}
     </dl>
   );
 }

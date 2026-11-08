@@ -79,3 +79,11 @@ PATH=/opt/homebrew/bin:$PATH npm run build --prefix frontend
 ```
 
 The optional native subscription integration test runs with `TEST_LIVE_DB=1`, a local database named `fraudgraph-review-tests`, and the test backend on port 3113. It checks two real WebSocket subscriptions receiving a committed change. Provider-stub backend tests do not establish live NVIDIA quality. A physical projector readability check is still required before the demo.
+
+## Ask AI interface preview and interaction design
+
+Open `/ask-ai` from the sidebar, or use **Ask AI** on a case to carry its context into the workspace. Suggested prompts fill the composer. Enter or the send button saves the question locally; Shift+Enter inserts a line break. The workspace keeps recent conversations and unsent drafts in this browser, with separate case context and a balanced/risk/legitimacy perspective selector. Changing the case after submitting a question starts another conversation. Storage failures are visible.
+
+This tab is intentionally frontend-only: it never calls NVIDIA or generates answers. The “AI not connected” badge and reply placeholder make that explicit. The existing case-review AI flow is separate.
+
+The landing page's illustrative network supports node selection, connection highlighting, three exploration steps and keyboard controls. Page entry, scroll reveals, cards, graph nodes and navigation use restrained motion inspired by the reference site's graph-focused presentation. Motion respects `prefers-reduced-motion`; no scrolling is hijacked. Manual browser/projector visual review remains pending.

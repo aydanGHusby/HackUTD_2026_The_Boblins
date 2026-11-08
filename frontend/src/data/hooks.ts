@@ -294,3 +294,6 @@ export const submitScoreVerdict = (
   decision: Decision,
   reasoning: string,
 ) => action("verdict", { caseId, actor, decision, reasoning, reviewMode: "score" });
+
+// Local-only question drafts; this workspace intentionally makes no AI requests.
+export { useQuestionWorkspace } from "./question-workspace";

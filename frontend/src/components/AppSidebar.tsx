@@ -1,13 +1,14 @@
 import { useConnection } from "@/data/hooks";
 import { useRouterState } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import { LayoutGrid, FilePlus2, ArrowUpCircle, Network, Moon, Sun } from "lucide-react";
+import { LayoutGrid, FilePlus2, ArrowUpCircle, Network, Moon, Sun, Sparkles } from "lucide-react";
 import { setIdentity, useIdentity } from "@/data/identity";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 const nav = [
   { to: "/cases", label: "Cases", icon: LayoutGrid },
+  { to: "/ask-ai", label: "Ask AI", icon: Sparkles },
   { to: "/intake", label: "New loan", icon: FilePlus2 },
   { to: "/escalations", label: "Escalations", icon: ArrowUpCircle },
 ] as const;
@@ -34,7 +35,7 @@ export function AppSidebar() {
             key={to}
             to={to}
             activeOptions={{ exact: true }}
-            className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-200 hover:bg-sidebar-accent"
+            className="nav-motion flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-200 hover:bg-sidebar-accent"
             activeProps={{
               className: "liquid-glass-pill text-sidebar-primary-foreground hover:bg-transparent",
               "aria-current": "page",
