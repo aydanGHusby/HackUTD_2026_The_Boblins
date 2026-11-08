@@ -1,6 +1,8 @@
 // Loan lifecycle: Applied → Checked → AI review → Decided → Closed → Funded → Monitored (or Declined).
 // Loans only store a stage once someone closes or funds them; before that it is derived from the
 // loan, its case, the analyst's verdict and any senior sign-off, so older data needs no edits.
+import { SIGN_OFF_OVER, signOffNeeded } from "@/lib/approval";
+import { money } from "@/lib/format";
 import type { Case, Loan, LoanStage, SignOff, Verdict } from "@/shared/types";
 
 export const LIFECYCLE: { stage: LoanStage; label: string }[] = [
@@ -43,7 +45,12 @@ export function deriveStage({ loan, case: c, verdict, signOff }: LoanContext): {
 
 export function lifecycle(ctx: LoanContext): Lifecycle {
   const { stage, note } = deriveStage(ctx);
-  if (stage === "decided") return { stage, note, next: { stage: "closed", label: "Mark closed" } };
+  if (stage === "decided") {
+    // Four-eyes rule: big approvals wait for a senior before the loan can close.
+    const blockedBy = signOffNeeded(ctx.loan, ctx.verdict, ctx.signOff) === "large_loan"
+      ? `Loans over ${money(SIGN_OFF_OVER)} need a senior sign-off before closing.` : undefined;
+    return { stage, note: blockedBy ? "Waiting for a senior sign-off" : note, next: { stage: "closed", label: "Mark closed", blockedBy } };
+  }
   if (stage === "closed") return { stage, note, next: { stage: "funded", label: "Fund loan" } };
   return { stage, note };
 }

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Panel, TriggerTag } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
-import { submitLoan, useIntakeOptions } from "@/data/hooks";
+import { submitLoan, useIntakeOptions, useLiveStatus } from "@/data/hooks";
 import { useIdentity } from "@/data/identity";
 import { money } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,7 @@ const field = "w-full rounded-xl border border-input bg-card px-3 py-2 text-sm o
 
 function Intake() {
   const me = useIdentity();
+  const live = useLiveStatus();
   const { companies, people, collateral } = useIntakeOptions();
   const [borrowerId, setBorrower] = useState(companies[0]?.id ?? "");
   const [amount, setAmount] = useState("");
@@ -49,7 +50,10 @@ function Intake() {
           </div>
           <Chips label="Collateral" items={collateral.map((c) => ({ id: c.id, label: `${c.description} · ${money(c.value)}` }))} selected={cols} onToggle={(id) => toggle(cols, setCols, id)} />
           <Chips label="Guarantors" items={people.map((p) => ({ id: p.id, label: p.name }))} selected={guars} onToggle={(id) => toggle(guars, setGuars, id)} />
-          <Button type="submit" className="justify-self-start">Submit and run risk rules</Button>
+          {/* Loan and case numbers come from the shared data, so wait until it has loaded. */}
+          <Button type="submit" className="justify-self-start" disabled={live === "connecting"}>
+            {live === "connecting" ? "Connecting to the shared database…" : "Submit and run risk rules"}
+          </Button>
         </form>
       </Panel>
       {result && (

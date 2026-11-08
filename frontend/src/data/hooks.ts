@@ -4,6 +4,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import * as mock from "@/mock/mockData";
 import { argueFn, type CaseFile } from "@/agents/trial";
 import { applyLoanOps, loadLoanState, resetLoanState } from "@/data/spacetime";
+import { sameName, signOffNeeded } from "@/lib/approval";
 import { lifecycle, type Lifecycle } from "@/lib/lifecycle";
 import { computeOpsMetrics } from "@/lib/ops";
 import type {
@@ -219,15 +220,16 @@ export function useLoanLifecycle(loanId: string | undefined) {
   const s = useStore();
   return loanId ? loanLifecycle(s, loanId) : undefined;
 }
+/** Decisions waiting for a senior: escalations, and not-fraud decisions on loans over $1M. */
 export function useEscalations() {
   const s = useStore();
-  return s.verdicts
-    .filter((v) => v.decision === "escalate" && !s.signOffs.some((o) => o.caseId === v.caseId))
-    .map((v) => {
-      const c = s.cases.find((x) => x.id === v.caseId)!;
-      const loan = s.loans.find((l) => l.id === c.loanId);
-      return { verdict: v, case: c, loan, borrower: borrowerName(loan) };
-    });
+  return s.verdicts.flatMap((v) => {
+    const c = s.cases.find((x) => x.id === v.caseId);
+    if (!c) return [];
+    const loan = s.loans.find((l) => l.id === c.loanId);
+    const reason = signOffNeeded(loan, v, s.signOffs.find((o) => o.caseId === v.caseId));
+    return reason ? [{ verdict: v, case: c, loan, borrower: borrowerName(loan), reason }] : [];
+  });
 }
 /** "connecting" until the first database read, then "online", or "offline" (mock data only). */
 export const useLiveStatus = () => useStore().live;
@@ -354,14 +356,27 @@ export function addNote(caseId: string, author: string, text: string) {
     { op: "append", table: "audit", item: log(caseId, author, "added a note") },
   );
 }
+/** Senior sign-off. Refused when nothing needs signing, or when the reviewer made the decision themselves. */
 export function signOff(caseId: string, reviewer: string, decision: "fraud" | "not_fraud", reasoning: string) {
+  const verdict = store.verdicts.find((v) => v.caseId === caseId);
+  const loanId = store.cases.find((c) => c.id === caseId)?.loanId ?? "";
+  const loan = store.loans.find((l) => l.id === loanId);
+  const existing = store.signOffs.find((o) => o.caseId === caseId);
+  if (!verdict || !signOffNeeded(loan, verdict, existing) || sameName(reviewer, verdict.analyst)) return false;
   commit(
     { op: "append", table: "signOffs", item: { caseId, reviewer, decision, reasoning, at: now() } },
+    { op: "update", table: "loans", key: "id", value: loanId, patch: { status: decision === "fraud" ? "declined" : "approved" } },
     { op: "append", table: "audit", item: log(caseId, reviewer, `senior sign-off: ${decision}`) },
   );
+  return true;
 }
+function nextNumber(ids: string[], floor: number): number {
+  return Math.max(floor, ...ids.map((id) => Number(id.match(/(\d+)$/)?.[1] ?? 0))) + 1;
+}
+
 export function submitLoan(input: { borrowerId: string; amount: number; purpose: string; collateralIds: string[]; guarantorIds: string[] }, actor: string) {
-  const loanId = `L-${1000 + store.loans.length + 1}`;
+  // Next number after the highest in use (counting rows breaks once any are removed, or before sync).
+  const loanId = `L-${nextNumber(store.loans.map((l) => l.id), 1000)}`;
   const borrower = mock.companies.find((c) => c.id === input.borrowerId);
   const newEdges: Edge[] = [
     { id: uid("e"), from: input.borrowerId, to: loanId, kind: "borrower_of" },
@@ -381,7 +396,7 @@ export function submitLoan(input: { borrowerId: string; amount: number; purpose:
   ];
   let caseId: string | undefined;
   if (triggers.length) {
-    caseId = `CASE-${String(store.cases.length + 1).padStart(2, "0")}`;
+    caseId = `CASE-${String(nextNumber(store.cases.map((c) => c.id), 0)).padStart(2, "0")}`;
     ops.push(
       { op: "append", table: "cases", item: { id: caseId, loanId, riskScore, triggers, status: "queued" } },
       { op: "append", table: "audit", item: log(caseId, actor, `submitted loan ${loanId}; risk rules opened case (score ${riskScore})`) },

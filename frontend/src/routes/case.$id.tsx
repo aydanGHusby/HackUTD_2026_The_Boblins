@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ArrowLeft, ChevronDown, Gavel, Loader2 } from "lucide-react";
 import { AgentChat } from "@/components/AgentChat";
 import { LifecycleBar } from "@/components/LifecycleBar";
+import { SignOffForm } from "@/components/SignOffForm";
 import { GraphView } from "@/components/graph/GraphView";
 import { Avatars, Empty, RiskScore, StatusBadge, TriggerTag } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import {
 } from "@/data/hooks";
 import { useIdentity } from "@/data/identity";
 import { dateTime, humanize, money } from "@/lib/format";
+import { signOffNeeded } from "@/lib/approval";
 import type { Lifecycle } from "@/lib/lifecycle";
 import { cn } from "@/lib/utils";
 import type { Claim, Decision } from "@/shared/types";
@@ -132,7 +134,7 @@ function CasePage() {
             <AgentChat args={args} questions={questions} notes={notes} active={active} disabled={decided} running={running}
               onSelect={select} onAsk={(s, t) => askQuestion(id, me.name, s, t)} onNote={(t) => addNote(id, me.name, t)} />
           </div>
-          {verdict ? <Decided verdict={verdict} signOff={signOff} life={life} loanId={c.loanId} actor={me.name} /> :
+          {verdict ? <Decided verdict={verdict} signOff={signOff} life={life} loanId={c.loanId} actor={me.name} needs={signOffNeeded(c.loan, verdict, signOff)} /> :
             <DecisionBox enabled={c.status === "awaiting_verdict"} onSubmit={(d, r) => submitVerdict(id, me.name, d, r)} />}
         </aside>
       </div>
@@ -140,9 +142,9 @@ function CasePage() {
   );
 }
 
-function Decided({ verdict, signOff, life, loanId, actor }: {
+function Decided({ verdict, signOff, life, loanId, actor, needs }: {
   verdict: NonNullable<ReturnType<typeof useVerdict>>; signOff: ReturnType<typeof useSignOff>;
-  life: Lifecycle | undefined; loanId: string; actor: string;
+  life: Lifecycle | undefined; loanId: string; actor: string; needs: ReturnType<typeof signOffNeeded>;
 }) {
   return (
     <div className={cn("border-t border-border p-4 text-sm", verdict.decision === "fraud" ? "bg-candy-soft" : "bg-sky-soft")}>
@@ -150,6 +152,7 @@ function Decided({ verdict, signOff, life, loanId, actor }: {
       <div className="text-xs text-muted-foreground">{verdict.analyst} · {dateTime(verdict.decidedAt)}</div>
       <p className="mt-1">{verdict.reasoning}</p>
       {signOff && <p className="mt-1 text-xs">Senior sign-off: <b>{humanize(signOff.decision)}</b> by {signOff.reviewer}</p>}
+      {needs && <div className="mt-3 rounded-xl border border-border bg-card/60 p-3"><div className="mb-1 text-xs font-bold">Senior sign-off</div><SignOffForm verdict={verdict} reason={needs} /></div>}
       {life?.next && (
         <div className="mt-3 space-y-1">
           <Button size="sm" className="w-full" disabled={!!life.next.blockedBy}
