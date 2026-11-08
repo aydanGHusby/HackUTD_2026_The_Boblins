@@ -125,7 +125,7 @@ function CasePage() {
           </div>
           {trial && !running && <div className="border-b border-border bg-candy-soft px-4 py-2 text-xs text-candy-strong">Trial stopped: {trial}</div>}
           <div className="min-h-0 flex-1">
-            <AgentChat args={args} questions={questions} notes={notes} active={active} disabled={decided}
+            <AgentChat args={args} questions={questions} notes={notes} active={active} disabled={decided} running={running}
               onSelect={select} onAsk={(s, t) => askQuestion(id, me.name, s, t)} onNote={(t) => addNote(id, me.name, t)} />
           </div>
           {verdict ? <Decided verdict={verdict} signOff={signOff} /> :

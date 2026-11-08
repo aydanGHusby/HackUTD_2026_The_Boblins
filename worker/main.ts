@@ -1,6 +1,6 @@
 // Courtroom worker entry point.
 //   node worker/main.ts --local worker/fixtures/sample-court.json [--out worker/out/court.json]
-//                       [--depth opening|full] [--case CASE-01] [--no-tools]
+//                       [--depth opening|debate|full] [--case CASE-01] [--tools]
 //   node worker/main.ts --spacetime [--case CASE-05] [--once]
 //       Works on the loan app's SpacetimeDB (SPACETIMEDB_URL / SPACETIMEDB_DATABASE, default local
 //       fraudgraph-local). Company/person/collateral records come from --local (default the fixture),
@@ -16,24 +16,27 @@ const { values } = parseArgs({
   options: {
     local: { type: "string" },
     out: { type: "string", default: "worker/out/court.json" },
-    depth: { type: "string", default: "full" },
+    depth: { type: "string", default: "debate" },
     case: { type: "string", multiple: true },
-    "no-tools": { type: "boolean", default: false },
+    // The brief already lists every record, so tool lookups are off by default: 6 calls instead of 8-9, ~4s faster.
+    tools: { type: "boolean", default: false },
+    "no-tools": { type: "boolean", default: false }, // kept so old commands still run
     spacetime: { type: "boolean", default: false },
     once: { type: "boolean", default: false },
   },
 });
 
 const depth = values.depth as Depth;
-if (depth !== "opening" && depth !== "full") throw new Error("--depth must be opening or full");
+const useTools = values.tools && !values["no-tools"];
+if (!["opening", "debate", "full"].includes(depth)) throw new Error("--depth must be opening, debate or full");
 const log = (msg: string) => console.log(`${new Date().toISOString().slice(11, 19)} ${msg}`);
 const llm = NvidiaLLM.fromEnv(log);
-log(`model ${llm.model}, thinking ${llm.thinking ? "on" : "off"}, depth ${depth}, tools ${values["no-tools"] ? "off" : "on"}`);
+log(`model ${llm.model}, thinking ${llm.thinking ? "on" : "off"}, depth ${depth}, tools ${useTools ? "on" : "off"}`);
 
 if (values.spacetime) {
   const fixture = MemoryStore.fromFile(values.local ?? "worker/fixtures/sample-court.json").state;
   const store = LoanStateStore.fromEnv({ companies: fixture.companies, people: fixture.people, collateral: fixture.collateral });
-  const worker = new CourtWorker({ llm, store, depth, useTools: !values["no-tools"], log, caseIds: values.case });
+  const worker = new CourtWorker({ llm, store, depth, useTools, log, caseIds: values.case });
   log(`SpacetimeDB ${store.opts.url} database ${store.opts.database}`);
   if (values.once) {
     const started = Date.now();
@@ -60,7 +63,7 @@ Performance: ${secs.toFixed(1)}s wall time, loan_state now at revision ${store.l
 } else {
   if (!values.local) throw new Error("pass --local <json> or --spacetime");
   const store = MemoryStore.fromFile(values.local, values.out);
-  const worker = new CourtWorker({ llm, store, depth, useTools: !values["no-tools"], log, caseIds: values.case });
+  const worker = new CourtWorker({ llm, store, depth, useTools, log, caseIds: values.case });
   const started = Date.now();
   await worker.runUntilIdle();
   printReport(store.state, values.case);

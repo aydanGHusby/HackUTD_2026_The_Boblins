@@ -74,6 +74,15 @@ test("opening depth runs one round and skips the crux", async () => {
   assert.equal(store.state.cases.find((c) => c.id === "CASE-05")!.status, "awaiting_verdict");
 });
 
+test("debate depth runs openings and rebuttals, then the crux", async () => {
+  const store = new MemoryStore(loadFixture());
+  await runTrial("CASE-05", { llm: new FakeLLM(), store, depth: "debate", useTools: false });
+  assert.deepEqual(store.state.arguments.map((a) => `${a.side}:${a.round}`), [
+    "prosecution:opening", "defense:opening", "prosecution:rebuttal", "defense:rebuttal",
+  ]);
+  assert.equal(store.state.cruxes.length, 1);
+});
+
 test("a failed trial puts the case back to queued", async () => {
   const store = new MemoryStore(loadFixture());
   await assert.rejects(runTrial("CASE-02", { llm: new FakeLLM({ failOn: "You are the defender" }), store }));

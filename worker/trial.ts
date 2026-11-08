@@ -10,7 +10,13 @@ import type { LLM } from "./llm.ts";
 import { caseBrief } from "./prompts.ts";
 import type { CourtStore } from "./store.ts";
 
-export type Depth = "opening" | "full";
+// "debate" skips closings: openings and rebuttals already show both sides, and the crux sums up.
+export type Depth = "opening" | "debate" | "full";
+const ROUNDS: Record<Depth, Round[]> = {
+  opening: ["opening"],
+  debate: ["opening", "rebuttal"],
+  full: ["opening", "rebuttal", "closing"],
+};
 
 export interface TrialDeps {
   llm: LLM;
@@ -63,14 +69,17 @@ export async function runTrial(caseId: string, deps: TrialDeps): Promise<void> {
     await audit("clerk", `filed ${evidence.length} evidence items using ${clerk.toolCalls.length} tool calls`);
     for (const line of describeRejections(clerk.dropped)) await audit("citation_checker", `clerk ${line}`);
 
-    const rounds: Round[] = depth === "full" ? ["opening", "rebuttal", "closing"] : ["opening"];
+    const rounds: Round[] = ROUNDS[depth];
     const args: Argument[] = [];
     for (const round of rounds) {
-      for (const side of SIDES) {
-        log(`[${caseId}] ${side} ${round}`);
-        const res = await runAdvocate(llm, {
-          index: ctx.index, side, round, brief: ctx.brief, evidence, prior: args, allowed: ctx.allowed,
-        });
+      // Both sides answer the same earlier rounds, so they argue at the same time (about half the wait).
+      log(`[${caseId}] ${round}`);
+      const prior = [...args];
+      const results = await Promise.all(SIDES.map((side) => runAdvocate(llm, {
+        index: ctx.index, side, round, brief: ctx.brief, evidence, prior, allowed: ctx.allowed,
+      })));
+      for (const [i, side] of SIDES.entries()) {
+        const res = results[i];
         const arg: Argument = {
           id: `arg-${randomUUID().slice(0, 8)}`, caseId, side, round, claims: res.claims, createdAt: new Date().toISOString(),
         };
@@ -81,7 +90,7 @@ export async function runTrial(caseId: string, deps: TrialDeps): Promise<void> {
       }
     }
 
-    if (depth === "full") {
+    if (depth !== "opening") {
       log(`[${caseId}] crux`);
       const crux = await runCrux(llm, { caseId, brief: ctx.brief, args });
       await store.setCrux(crux);

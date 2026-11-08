@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ChevronDown, SendHorizonal, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ChevronDown, Loader2, SendHorizonal, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { dateTime, humanize } from "@/lib/format";
 import type { Argument, Claim, Note, Question, Side } from "@/shared/types";
@@ -14,11 +14,11 @@ type Item =
   | { kind: "note"; at: string; n: Note; key: string };
 
 interface Props {
-  args: Argument[]; questions: Question[]; notes: Note[]; active?: Claim | undefined; disabled: boolean;
+  args: Argument[]; questions: Question[]; notes: Note[]; active?: Claim | undefined; disabled: boolean; running?: boolean;
   onSelect: (c: Claim) => void; onAsk: (to: Side, text: string) => void; onNote: (text: string) => void;
 }
 
-export function AgentChat({ args, questions, notes, active, disabled, onSelect, onAsk, onNote }: Props) {
+export function AgentChat({ args, questions, notes, active, disabled, running, onSelect, onAsk, onNote }: Props) {
   const items = useMemo<Item[]>(() => {
     const list: Item[] = [];
     args.forEach((a) => a.claims.forEach((claim, i) => list.push({ kind: "claim", at: a.createdAt, side: a.side, round: a.round, claim, key: `${a.id}-${i}` })));
@@ -29,7 +29,7 @@ export function AgentChat({ args, questions, notes, active, disabled, onSelect, 
   }, [args, questions, notes]);
 
   const bottom = useRef<HTMLDivElement>(null);
-  useEffect(() => { bottom.current?.scrollIntoView({ block: "nearest" }); }, [items.length]);
+  useEffect(() => { bottom.current?.scrollIntoView({ block: "nearest" }); }, [items.length, running]);
 
   const [to, setTo] = useState<Side | "note">("prosecution");
   const [text, setText] = useState("");
@@ -43,7 +43,7 @@ export function AgentChat({ args, questions, notes, active, disabled, onSelect, 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
-        {items.length === 0 && <div className="py-10 text-center text-sm text-muted-foreground">The agents haven't started yet.</div>}
+        {items.length === 0 && !running && <div className="py-10 text-center text-sm text-muted-foreground">The agents haven't started yet.</div>}
         {items.map((it) => {
           if (it.kind === "note") return (
             <div key={it.key} className="msg-in mx-auto max-w-[85%] rounded-lg bg-muted px-3 py-2 text-xs">
@@ -61,6 +61,13 @@ export function AgentChat({ args, questions, notes, active, disabled, onSelect, 
           );
           return <ClaimBubble key={it.key} side={it.side} round={it.round} claim={it.claim} active={active === it.claim} onClick={() => onSelect(it.claim)} />;
         })}
+        {/* Claims land one round at a time while a trial runs; this shows the next ones are coming. */}
+        {running && (
+          <div className="msg-in flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            {args.length ? "Agents are writing the next round…" : "Agents are reading the case file…"}
+          </div>
+        )}
         <div ref={bottom} />
       </div>
 
