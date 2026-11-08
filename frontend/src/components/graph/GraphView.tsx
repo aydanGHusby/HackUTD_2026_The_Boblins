@@ -1,6 +1,6 @@
+import { CLERK_FOUND } from "@/shared/clerk";
 // Interactive SVG network canvas: drag nodes, drag background to pan, wheel/pinch or buttons to zoom.
 // Same props the Cytoscape GraphView will take at handoff.
-import { CLERK_FOUND } from "@/shared/clerk";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -353,7 +353,9 @@ export function GraphView({
                   )}
                   strokeLinecap={found ? "round" : undefined}
                   strokeWidth={isHl ? 3.5 : isFlag || found ? 2.5 : 1.25}
-                  strokeDasharray={found ? "1 6" : e.kind === "shares_address" ? "5 4" : isFlag ? "8 6" : undefined}
+                  strokeDasharray={
+                    found ? "1 6" : e.kind === "shares_address" ? "5 4" : isFlag ? "8 6" : undefined
+                  }
                 />
               </g>
             );
@@ -538,9 +540,26 @@ export function GraphView({
             {k}
           </span>
         ))}
-        <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-candy-strong" />flagged</span>
+        <span className="flex items-center gap-1">
+          <span className="h-0.5 w-3 bg-candy-strong" />
+          flagged
+        </span>
         {edges.some((e) => e.detail === CLERK_FOUND) && (
-          <span className="flex items-center gap-1"><svg width="14" height="4"><line x1="1" y1="2" x2="13" y2="2" className="stroke-sky" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="1 4" /></svg>found by clerk</span>
+          <span className="flex items-center gap-1">
+            <svg width="14" height="4" aria-hidden>
+              <line
+                x1="1"
+                y1="2"
+                x2="13"
+                y2="2"
+                className="stroke-sky"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray="1 4"
+              />
+            </svg>
+            found by clerk
+          </span>
         )}
         <span className="ml-auto">Drag nodes · drag to pan · scroll to zoom · click to focus</span>
       </div>

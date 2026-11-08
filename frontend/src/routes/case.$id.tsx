@@ -1,3 +1,4 @@
+import { CreditMemo } from "@/components/CreditMemo";
 import { LoadingStatus } from "@/components/Mascot";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -12,7 +13,6 @@ import { PresentationView, usePresentationMode } from "@/components/Presentation
 import { AgentChat } from "@/components/AgentChat";
 import { LifecycleBar } from "@/components/LifecycleBar";
 import { SignOffForm } from "@/components/SignOffForm";
-import { CreditMemo } from "@/components/CreditMemo";
 import { GraphView } from "@/components/graph/GraphView";
 import { Avatars, Empty, RiskScore, StatusBadge, TriggerTag } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
@@ -259,7 +259,9 @@ function CasePage() {
                   </button>
                 ))}
               </div>
-              {drawer === "summary" && <CreditMemo crux={crux} metrics={metrics} />}
+              {drawer === "summary" && (
+                <CreditMemo crux={crux} metrics={metrics} formatText={readable} />
+              )}
               {drawer === "evidence" && (
                 <div className="grid gap-2 p-3 md:grid-cols-2">
                   {evidence.length === 0 && (
