@@ -1,6 +1,6 @@
 # Paper Trail demo script
 
-Two parts: the **video** (under 2 minutes, one voice-over) and the **live demo** for judges (about 6 minutes). Both run on the app from `main`.
+Two parts: the **video** (up to 3 minutes, one voice-over) and the **live demo** for judges (about 6 minutes). Both run on the app from `main`.
 
 Roles, on two laptops or two different browsers (tabs in one browser share one identity):
 
@@ -25,19 +25,35 @@ Run order: **stop workers → reset → rehearse → reset → record or demo.**
 
 ---
 
-## 2. Video (under 2 minutes)
+## 2. Video (up to 3 minutes, one voice-over)
 
-Record in short clips (macOS: Cmd+Shift+5 → Record Selected Portion) and join them. Cut the ~10 s trial wait to ~2 s in editing. Record the Analyst and Senior in two browser windows side by side so the sign-off arriving is visible.
+Plan for about **2:50** so there's buffer. Record the screen in short clips (macOS: Cmd+Shift+5 → Record Selected Portion), then record the voice-over separately while reading this table, so the ~10 s trial wait can be cut to ~2 s without the speech going out of sync. Record the Analyst and Senior in two browser windows side by side so the sign-off arriving is visible.
+
+**Data for the video:** after the reset, keep **CASE-01's** seeded debate (it holds the fake-citation example for 1:58); every other open case should show **Run trial**. If you'd rather every case look fresh, clear CASE-01 too and skip the 1:58 shot.
+
+### Part 1: Introduction (0:00–0:40)
 
 | Time | On screen | Voice-over |
 |---|---|---|
-| 0:00–0:12 | Landing page → **Cases** | "Commercial-loan fraud hides across deals: one warehouse pledged twice, one person behind several borrowers. Paper Trail catches it." |
-| 0:12–0:30 | **New loan:** Northgate Logistics Holdings, amount `1200000`, purpose "Fleet acquisition", guarantor **Raymond Voss** → **Submit and run risk rules** → flags include **cross deal link**, risk 100 | "A new application comes in. Our risk rules search every other deal and find this borrower shares a director and address with three other companies." |
-| 0:30–0:40 | Open the new case (**CASE-13**) → **Network map**: the ring in red, the blue dotted hidden-address line | "The map shows the hidden network, including a shared address no record mentions, found by our code." |
-| 0:40–1:05 | **Run trial** → *(cut the wait)* → Risk agent and Legitimacy agent messages appear → click one claim, its records light up | "Two NVIDIA Nemotron agents debate the case: one argues fraud, one argues it's legitimate. Every claim must cite real records; click one and you see what it's based on." |
-| 1:05–1:15 | **Credit memo** tab: suggested next step, conditions, documents to request | "A third AI writes a credit memo with a suggested next step. It's a suggestion: a person decides." |
-| 1:15–1:35 | Analyst: **Choose the next step → Ask a senior reviewer**, reason, submit → Senior: **Escalations** → the case appears → reason → **Fraud** → the bar ends at **Declined** | "Four-eyes rules: escalations and large approvals need a different senior, and no one approves their own decision." |
-| 1:35–1:50 | **Operations** page | "Managers see the whole pipeline live. Code finds the facts, AI argues both sides, and people decide, with every step on the record." |
+| 0:00–0:06 | Title card: **Paper Trail** · HackUTD 2026 · Goldman Sachs challenge | "This is Paper Trail, our platform for reviewing commercial loans for fraud." |
+| 0:06–0:20 | Landing page ("See the network behind the loan"), slow scroll over the network animation | "Commercial-loan fraud rarely shows up in a single loan. It hides across deals: the same warehouse pledged to two lenders, one person quietly running several borrowers. Each application looks fine on its own, so the pattern is easy to miss." |
+| 0:20–0:40 | **Cases** page, slow pan over the list | "Paper Trail is built for the people who review those loans: loan analysts, the senior credit reviewers who sign off on big decisions, and the managers who run the pipeline. It checks every application against the whole portfolio, has two AI agents argue both sides, writes a credit memo, and tracks each loan from application to funding. The AI never decides; people do, and every step is on the record." |
+
+### Part 2: How it works (0:40–2:50)
+
+| Time | On screen | Voice-over |
+|---|---|---|
+| 0:40–0:52 | **Cases** list: risk scores and "why flagged" tags | "Every application goes through risk rules automatically. Clean loans are approved straight away; risky ones open a case, highest risk first." |
+| 0:52–1:10 | **New loan:** Northgate Logistics Holdings, amount `1200000`, purpose "Fleet acquisition", guarantor **Raymond Voss** → **Submit and run risk rules** → flags include **cross deal link**, risk 100 | "Here's a new application. The moment it's submitted, our rules search every other deal in the portfolio and flag it: this borrower shares a director and an address with three other companies." |
+| 1:10–1:22 | Open **CASE-13** → **Network map**: the ring in red, the blue dotted hidden-address line | "The map shows the hidden network: one man behind four companies and three loans, and a shared address no record mentions, found by our code." |
+| 1:22–1:48 | **Run trial** → *(cut the wait)* → Risk agent and Legitimacy agent messages appear → click one claim, its records light up | "Now we run the trial. Two NVIDIA Nemotron agents debate the case: one argues it's fraud, the other argues it's legitimate. Every claim has to cite real records. Click one and you see exactly what it's based on." |
+| 1:48–1:58 | **Credit memo** tab: suggested next step, key numbers, conditions, documents to request | "A third AI writes a credit memo: the key numbers, a suggested next step, and the documents to request. It's only a suggestion." |
+| 1:58–2:08 | **CASE-01** → the claim marked **"Hidden · failed citation check"** | "If an agent cites something that isn't in our records, a fact-checker hides it automatically, so the AI can't invent facts." |
+| 2:08–2:25 | Analyst on CASE-13: **Choose the next step → Ask a senior reviewer**, reason, submit → Senior window: **Escalations** → reason → **Fraud** → the bar shows **Declined** | "The analyst decides. Escalations and large approvals need a second, senior reviewer, and no one can approve their own decision." |
+| 2:25–2:40 | Senior: **Escalations → CASE-03 ("Over $1M approval") → Not fraud** → Analyst: CASE-03 → **Mark closed → Fund loan** → bar reaches **Monitored** → **History** tab | "A legitimate loan moves on: a senior signs off, the analyst closes and funds it, and the history records who did what, and when." |
+| 2:40–2:50 | **Operations** page → end card with team names | "Managers see the whole pipeline live. Paper Trail: code finds the facts, AI argues both sides, and people decide." |
+
+If it runs long, cut in this order: the Cases-list shot (0:40), then the fact-checker (1:58), then the funding shot (2:25). Keep the introduction and the Run trial moment.
 
 ---
 
