@@ -122,8 +122,9 @@ test("the worker runs at most two trials at once, highest risk first", async () 
   await worker.runUntilIdle();
 
   assert.equal(maxInTrial, 2);
-  assert.deepEqual(order.slice(0, 2), ["CASE-06", "CASE-01"]); // risk 96, 91
-  assert.deepEqual(order, ["CASE-06", "CASE-01", "CASE-02", "CASE-05", "CASE-04", "CASE-03"]);
+  const byRisk = [...loadFixture().cases].sort((a, b) => b.riskScore - a.riskScore).map((c) => c.id);
+  assert.deepEqual(order.slice(0, 2), ["CASE-06", "CASE-09"]); // risk 96, 95
+  assert.deepEqual(order, byRisk);
   assert.ok(store.state.cases.every((c) => c.status === "awaiting_verdict"));
   // The fixture's question for CASE-01 was answered once its trial finished.
   assert.ok(store.state.questions[0].answerId);

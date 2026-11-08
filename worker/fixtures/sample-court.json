@@ -62,6 +62,83 @@
       "address": "1450 Commerce Way, Suite 210, Irving TX",
       "registeredOn": "2026-10-21",
       "annualRevenue": 0
+    },
+    {
+      "id": "c10",
+      "name": "Lakeshore Auto Group LLC",
+      "address": "77 Harbor Blvd, Cleveland OH",
+      "registeredOn": "2024-01-15",
+      "annualRevenue": 2300000
+    },
+    {
+      "id": "c11",
+      "name": "Lakeshore Fleet Leasing Inc",
+      "address": "77 Harbor Blvd, Cleveland OH",
+      "registeredOn": "2024-05-09",
+      "annualRevenue": 1100000
+    },
+    {
+      "id": "c12",
+      "name": "Brightwater Dental Partners",
+      "address": "410 Elm St, Raleigh NC",
+      "registeredOn": "2011-06-20",
+      "annualRevenue": 9400000
+    },
+    {
+      "id": "c13",
+      "name": "Brightwater Imaging LLC",
+      "address": "412 Elm St, Raleigh NC",
+      "registeredOn": "2019-03-11",
+      "annualRevenue": 2100000
+    },
+    {
+      "id": "c14",
+      "name": "Quantum Leaf Logistics LLC",
+      "address": "3001 Biscayne Blvd, Suite 400, Miami FL",
+      "registeredOn": "2026-09-08",
+      "annualRevenue": 25000
+    },
+    {
+      "id": "c15",
+      "name": "Bluepine Trade Solutions LLC",
+      "address": "3001 Biscayne Blvd Suite 400, Miami FL",
+      "registeredOn": "2026-08-22",
+      "annualRevenue": 40000
+    },
+    {
+      "id": "c16",
+      "name": "Red Mesa Construction Inc",
+      "address": "88 Cactus Rd, Phoenix AZ",
+      "registeredOn": "2014-02-03",
+      "annualRevenue": 7000000
+    },
+    {
+      "id": "c17",
+      "name": "Desert Sky Concrete LLC",
+      "address": "90 Cactus Rd, Phoenix AZ",
+      "registeredOn": "2020-07-14",
+      "annualRevenue": 2600000
+    },
+    {
+      "id": "c18",
+      "name": "Greenfield Organics Co-op",
+      "address": "12 Prairie Ln, Ames IA",
+      "registeredOn": "2018-04-02",
+      "annualRevenue": 1100000
+    },
+    {
+      "id": "c19",
+      "name": "Summit Peak Hotel Partners LLC",
+      "address": "600 Lodge Way, Park City UT",
+      "registeredOn": "2026-08-01",
+      "annualRevenue": 0
+    },
+    {
+      "id": "c20",
+      "name": "Summit Peak Group Inc",
+      "address": "600 Lodge Way, Park City UT",
+      "registeredOn": "2005-05-17",
+      "annualRevenue": 40000000
     }
   ],
   "people": [
@@ -84,6 +161,36 @@
       "id": "p4",
       "name": "Raymond Voss",
       "netWorth": 1100000
+    },
+    {
+      "id": "p5",
+      "name": "Elena Marsh",
+      "netWorth": 640000
+    },
+    {
+      "id": "p6",
+      "name": "Dr. Anita Rao",
+      "netWorth": 5600000
+    },
+    {
+      "id": "p7",
+      "name": "Marcus Hale",
+      "netWorth": 120000
+    },
+    {
+      "id": "p8",
+      "name": "Tom\u00e1s Herrera",
+      "netWorth": 900000
+    },
+    {
+      "id": "p9",
+      "name": "Grace Lindqvist",
+      "netWorth": 1300000
+    },
+    {
+      "id": "p10",
+      "name": "Owen Whitaker",
+      "netWorth": 22000000
     }
   ],
   "collateral": [
@@ -122,6 +229,48 @@
       "kind": "equipment",
       "value": 900000,
       "description": "Refrigerated trailer fleet (12 units)"
+    },
+    {
+      "id": "col7",
+      "kind": "inventory",
+      "value": 1200000,
+      "description": "Used-vehicle lot inventory (64 units), 77 Harbor Blvd"
+    },
+    {
+      "id": "col8",
+      "kind": "equipment",
+      "value": 1500000,
+      "description": "Dental chairs and treatment suites"
+    },
+    {
+      "id": "col9",
+      "kind": "receivables",
+      "value": 300000,
+      "description": "Freight receivables (unaudited)"
+    },
+    {
+      "id": "col10",
+      "kind": "equipment",
+      "value": 2200000,
+      "description": "Excavators and cranes (9 units)"
+    },
+    {
+      "id": "col11",
+      "kind": "real_estate",
+      "value": 4200000,
+      "description": "Processing facility site, 12 Prairie Ln"
+    },
+    {
+      "id": "col12",
+      "kind": "real_estate",
+      "value": 14000000,
+      "description": "Summit Peak Lodge (84-room hotel)"
+    },
+    {
+      "id": "col13",
+      "kind": "equipment",
+      "value": 900000,
+      "description": "MRI and CT scanners, 412 Elm St"
     }
   ],
   "loans": [
@@ -188,6 +337,94 @@
       "purpose": "Fleet purchase",
       "createdOn": "2026-10-02",
       "status": "approved"
+    },
+    {
+      "id": "L-1009",
+      "borrowerId": "c10",
+      "amount": 1600000,
+      "purpose": "Inventory floor plan",
+      "createdOn": "2026-11-06",
+      "status": "under_review"
+    },
+    {
+      "id": "L-1010",
+      "borrowerId": "c11",
+      "amount": 950000,
+      "purpose": "Lease fleet purchase",
+      "createdOn": "2026-07-19",
+      "status": "approved"
+    },
+    {
+      "id": "L-1011",
+      "borrowerId": "c12",
+      "amount": 1200000,
+      "purpose": "Clinic equipment upgrade",
+      "createdOn": "2026-11-04",
+      "status": "under_review"
+    },
+    {
+      "id": "L-1012",
+      "borrowerId": "c13",
+      "amount": 800000,
+      "purpose": "Imaging equipment",
+      "createdOn": "2025-05-02",
+      "status": "approved"
+    },
+    {
+      "id": "L-1013",
+      "borrowerId": "c14",
+      "amount": 4500000,
+      "purpose": "Trade finance line",
+      "createdOn": "2026-11-07",
+      "status": "under_review"
+    },
+    {
+      "id": "L-1014",
+      "borrowerId": "c15",
+      "amount": 2000000,
+      "purpose": "Working capital",
+      "createdOn": "2026-10-12",
+      "status": "approved"
+    },
+    {
+      "id": "L-1015",
+      "borrowerId": "c16",
+      "amount": 1500000,
+      "purpose": "Equipment purchase",
+      "createdOn": "2026-11-03",
+      "status": "under_review"
+    },
+    {
+      "id": "L-1016",
+      "borrowerId": "c17",
+      "amount": 1800000,
+      "purpose": "Batch plant expansion",
+      "createdOn": "2026-04-21",
+      "status": "approved"
+    },
+    {
+      "id": "L-1017",
+      "borrowerId": "c16",
+      "amount": 1800000,
+      "purpose": "Bonding line",
+      "createdOn": "2025-09-10",
+      "status": "approved"
+    },
+    {
+      "id": "L-1018",
+      "borrowerId": "c18",
+      "amount": 3600000,
+      "purpose": "Processing facility build",
+      "createdOn": "2026-11-05",
+      "status": "under_review"
+    },
+    {
+      "id": "L-1019",
+      "borrowerId": "c19",
+      "amount": 9500000,
+      "purpose": "Hotel acquisition",
+      "createdOn": "2026-11-06",
+      "status": "under_review"
     }
   ],
   "edges": [
@@ -401,6 +638,271 @@
       "from": "p4",
       "to": "L-1008",
       "kind": "guarantees"
+    },
+    {
+      "id": "e35",
+      "from": "c10",
+      "to": "L-1009",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e36",
+      "from": "c11",
+      "to": "L-1010",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e37",
+      "from": "col7",
+      "to": "L-1010",
+      "kind": "pledged_to"
+    },
+    {
+      "id": "e38",
+      "from": "col7",
+      "to": "L-1009",
+      "kind": "pledged_to",
+      "detail": "Lot inventory already pledged to L-1010"
+    },
+    {
+      "id": "e39",
+      "from": "p5",
+      "to": "c10",
+      "kind": "director_of"
+    },
+    {
+      "id": "e40",
+      "from": "p5",
+      "to": "c11",
+      "kind": "director_of"
+    },
+    {
+      "id": "e41",
+      "from": "c10",
+      "to": "c11",
+      "kind": "shares_address",
+      "detail": "77 Harbor Blvd"
+    },
+    {
+      "id": "e42",
+      "from": "p5",
+      "to": "L-1009",
+      "kind": "guarantees"
+    },
+    {
+      "id": "e43",
+      "from": "c12",
+      "to": "L-1011",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e44",
+      "from": "col8",
+      "to": "L-1011",
+      "kind": "pledged_to"
+    },
+    {
+      "id": "e45",
+      "from": "p6",
+      "to": "c12",
+      "kind": "owns",
+      "detail": "70%"
+    },
+    {
+      "id": "e46",
+      "from": "p6",
+      "to": "c13",
+      "kind": "owns",
+      "detail": "55%"
+    },
+    {
+      "id": "e47",
+      "from": "p6",
+      "to": "L-1011",
+      "kind": "guarantees"
+    },
+    {
+      "id": "e48",
+      "from": "p6",
+      "to": "L-1012",
+      "kind": "guarantees"
+    },
+    {
+      "id": "e49",
+      "from": "c13",
+      "to": "L-1012",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e50",
+      "from": "col13",
+      "to": "L-1012",
+      "kind": "pledged_to"
+    },
+    {
+      "id": "e51",
+      "from": "c14",
+      "to": "L-1013",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e52",
+      "from": "col9",
+      "to": "L-1013",
+      "kind": "pledged_to"
+    },
+    {
+      "id": "e53",
+      "from": "p7",
+      "to": "c14",
+      "kind": "director_of"
+    },
+    {
+      "id": "e54",
+      "from": "p7",
+      "to": "c15",
+      "kind": "director_of"
+    },
+    {
+      "id": "e55",
+      "from": "c14",
+      "to": "c15",
+      "kind": "shares_address",
+      "detail": "3001 Biscayne Blvd, Suite 400 (virtual office)"
+    },
+    {
+      "id": "e56",
+      "from": "c15",
+      "to": "L-1014",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e57",
+      "from": "p7",
+      "to": "L-1013",
+      "kind": "guarantees"
+    },
+    {
+      "id": "e58",
+      "from": "p7",
+      "to": "L-1014",
+      "kind": "guarantees"
+    },
+    {
+      "id": "e59",
+      "from": "c16",
+      "to": "L-1015",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e60",
+      "from": "col10",
+      "to": "L-1015",
+      "kind": "pledged_to"
+    },
+    {
+      "id": "e61",
+      "from": "p8",
+      "to": "c16",
+      "kind": "owns",
+      "detail": "100%"
+    },
+    {
+      "id": "e62",
+      "from": "p8",
+      "to": "c17",
+      "kind": "director_of"
+    },
+    {
+      "id": "e63",
+      "from": "c17",
+      "to": "L-1016",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e64",
+      "from": "c16",
+      "to": "L-1017",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e65",
+      "from": "p8",
+      "to": "L-1015",
+      "kind": "guarantees"
+    },
+    {
+      "id": "e66",
+      "from": "p8",
+      "to": "L-1016",
+      "kind": "guarantees"
+    },
+    {
+      "id": "e67",
+      "from": "p8",
+      "to": "L-1017",
+      "kind": "guarantees"
+    },
+    {
+      "id": "e68",
+      "from": "c18",
+      "to": "L-1018",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e69",
+      "from": "col11",
+      "to": "L-1018",
+      "kind": "pledged_to"
+    },
+    {
+      "id": "e70",
+      "from": "p9",
+      "to": "c18",
+      "kind": "director_of"
+    },
+    {
+      "id": "e71",
+      "from": "p9",
+      "to": "L-1018",
+      "kind": "guarantees"
+    },
+    {
+      "id": "e72",
+      "from": "c19",
+      "to": "L-1019",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e73",
+      "from": "col12",
+      "to": "L-1019",
+      "kind": "pledged_to"
+    },
+    {
+      "id": "e74",
+      "from": "c20",
+      "to": "c19",
+      "kind": "owns",
+      "detail": "100%"
+    },
+    {
+      "id": "e75",
+      "from": "p10",
+      "to": "c20",
+      "kind": "director_of"
+    },
+    {
+      "id": "e76",
+      "from": "p10",
+      "to": "c19",
+      "kind": "director_of"
+    },
+    {
+      "id": "e77",
+      "from": "p10",
+      "to": "L-1019",
+      "kind": "guarantees"
     }
   ],
   "cases": [
@@ -460,6 +962,66 @@
         "duplicate_collateral",
         "new_company_large_loan",
         "amount_vs_revenue"
+      ],
+      "status": "queued"
+    },
+    {
+      "id": "CASE-07",
+      "loanId": "L-1009",
+      "riskScore": 88,
+      "triggers": [
+        "duplicate_collateral",
+        "shared_director",
+        "shared_address"
+      ],
+      "status": "queued"
+    },
+    {
+      "id": "CASE-08",
+      "loanId": "L-1011",
+      "riskScore": 38,
+      "triggers": [
+        "guarantor_overexposure"
+      ],
+      "status": "queued"
+    },
+    {
+      "id": "CASE-09",
+      "loanId": "L-1013",
+      "riskScore": 95,
+      "triggers": [
+        "new_company_large_loan",
+        "amount_vs_revenue",
+        "shared_address",
+        "shared_director"
+      ],
+      "status": "queued"
+    },
+    {
+      "id": "CASE-10",
+      "loanId": "L-1015",
+      "riskScore": 66,
+      "triggers": [
+        "guarantor_overexposure",
+        "shared_director"
+      ],
+      "status": "queued"
+    },
+    {
+      "id": "CASE-11",
+      "loanId": "L-1018",
+      "riskScore": 54,
+      "triggers": [
+        "amount_vs_revenue"
+      ],
+      "status": "queued"
+    },
+    {
+      "id": "CASE-12",
+      "loanId": "L-1019",
+      "riskScore": 61,
+      "triggers": [
+        "new_company_large_loan"
       ],
       "status": "queued"
     }
