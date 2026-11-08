@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/Mascot";
 import { Link } from "@tanstack/react-router";
-import { LayoutGrid, FilePlus2, ArrowUpCircle, Gauge, Moon, Sun } from "lucide-react";
+import { LayoutGrid, FilePlus2, ArrowUpCircle, Gauge } from "lucide-react";
+import { useLiveStatus } from "@/data/hooks";
 import { setIdentity, useIdentity } from "@/data/identity";
-import { useTheme } from "@/lib/theme";
-import { cn } from "@/lib/utils";
+import { AppearancePicker } from "@/components/AppearancePicker";
 
 const nav = [
   { to: "/cases", label: "Cases", icon: LayoutGrid },
@@ -15,7 +15,7 @@ const nav = [
 
 export function AppSidebar() {
   const me = useIdentity();
-  const { theme, setTheme } = useTheme();
+  const live = useLiveStatus();
   return (
     <aside className="app-sidebar liquid-glass sticky top-3 z-10 m-3 mr-0 flex h-[calc(100vh-1.5rem)] w-56 shrink-0 flex-col rounded-2xl p-4 text-sidebar-foreground">
       <Link
@@ -41,35 +41,18 @@ export function AppSidebar() {
         ))}
       </nav>
       <div className="mt-auto space-y-2 rounded-lg border border-sidebar-border bg-sidebar-panel p-3 text-xs">
-        <div className="flex items-center justify-between gap-2">
-          <span className="opacity-80">Theme</span>
-          <div className="flex gap-1 rounded-full bg-sidebar p-1">
-            {(
-              [
-                ["light", Sun, "Light theme"],
-                ["dark", Moon, "Dark theme"],
-              ] as const
-            ).map(([t, Icon, label]) => (
-              <button
-                key={t}
-                aria-label={label}
-                title={label}
-                aria-pressed={theme === t}
-                onClick={() => setTheme(t)}
-                className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-full transition",
-                  theme === t
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "opacity-70 hover:bg-sidebar-accent hover:opacity-100",
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-              </button>
-            ))}
-          </div>
-        </div>
+        <AppearancePicker />
         {/* The loan app syncs through the shared SpacetimeDB loan_state (polled every second). */}
-        <div role="status" className="text-xs">● Shared SpacetimeDB workspace</div>
+        <div role="status" className="text-xs">
+          ● Shared SpacetimeDB workspace
+        </div>
+        <div role="status" className="text-xs">
+          {live === "online"
+            ? "● Shared database connected"
+            : live === "connecting"
+              ? "Connecting to shared database…"
+              : "○ Offline demo · changes stay local"}
+        </div>
         <Link to="/" className="block text-xs underline">
           Choose demo profile
         </Link>
@@ -108,9 +91,20 @@ function NameField({ name, onSave }: { name: string; onSave: (name: string) => v
     else setDraft(name);
   };
   return (
-    <input id="signed-in-as" value={draft} placeholder="Your name"
-      onChange={(e) => setDraft(e.target.value)} onBlur={save}
-      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setDraft(name); e.currentTarget.blur(); } }}
-      className="w-full rounded-lg bg-sidebar-panel px-2 py-1 text-sm font-semibold text-sidebar-accent-foreground outline-none ring-1 ring-sidebar-border focus:ring-2 focus:ring-sidebar-ring" />
+    <input
+      id="signed-in-as"
+      value={draft}
+      placeholder="Your name"
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={save}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") {
+          setDraft(name);
+          e.currentTarget.blur();
+        }
+      }}
+      className="w-full rounded-lg bg-sidebar-panel px-2 py-1 text-sm font-semibold text-sidebar-accent-foreground outline-none ring-1 ring-sidebar-border focus:ring-2 focus:ring-sidebar-ring"
+    />
   );
 }

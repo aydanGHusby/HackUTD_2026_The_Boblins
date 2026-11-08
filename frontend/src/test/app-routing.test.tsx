@@ -13,5 +13,6 @@ describe("App routing", () => {
     const matches = router.matchRoutes("/");
 
     expect(matches.at(-1)?.routeId).not.toBe(rootRouteId);
+    expect(router.matchRoutes("/case/CASE-01").at(-1)?.routeId).toBe("/case/$id");
   });
 });

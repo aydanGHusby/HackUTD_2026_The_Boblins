@@ -1,41 +1,103 @@
-import { Check, X } from "lucide-react";
+import { Check, LockKeyhole, X } from "lucide-react";
 import { LIFECYCLE, type Lifecycle } from "@/lib/lifecycle";
 import { cn } from "@/lib/utils";
 
-/** Applied → Checked → AI review → Decided → Closed → Funded → Monitored, with Declined as a dead end. */
-export function LifecycleBar({ lifecycle }: { lifecycle: Lifecycle }) {
+/** Progress comes only from the backend lifecycle, never a timer or a predicted outcome. */
+export function LifecycleBar({
+  lifecycle,
+  running = false,
+}: {
+  lifecycle: Lifecycle;
+  running?: boolean;
+}) {
   const declined = lifecycle.stage === "declined";
-  // A declined loan stopped after the decision; everything from Decided on is replaced by Declined.
-  const steps = declined ? LIFECYCLE.slice(0, 3) : LIFECYCLE;
-  const current = declined ? steps.length : steps.findIndex((s) => s.stage === lifecycle.stage);
+  const steps = declined
+    ? [...LIFECYCLE.slice(0, 3), { stage: "declined", label: "Declined" }]
+    : LIFECYCLE;
+  const current = Math.max(
+    0,
+    steps.findIndex((step) => step.stage === lifecycle.stage),
+  );
+  const percent = (current / (steps.length - 1)) * 100;
+  const blocked = lifecycle.next?.blockedBy;
   return (
-    <div className="flex basis-full flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-      <ol className="flex flex-wrap items-center gap-1" aria-label="Loan progress">
-        {steps.map((s, i) => {
-          const done = i < current;
-          const here = i === current;
+    <section
+      aria-label="Loan lifecycle"
+      className="stage-progress-panel basis-full rounded-2xl border border-border bg-background/35 px-4 py-3"
+    >
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-xs">
+          <span
+            className={cn("h-1.5 w-1.5 rounded-full", declined ? "bg-candy-strong" : "bg-ocean")}
+          />
+          <span className="font-semibold">{declined ? "Workflow stopped" : "Loan progress"}</span>
+          <span className="text-muted-foreground">
+            {steps[current]?.label} · Stage {current + 1} of {steps.length}
+          </span>
+        </div>
+        {(blocked || lifecycle.note) && (
+          <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            {blocked && <LockKeyhole className="h-3 w-3" />}
+            {blocked || lifecycle.note}
+          </p>
+        )}
+      </div>
+      <div
+        role="progressbar"
+        aria-label="Loan stage progress"
+        aria-valuemin={0}
+        aria-valuemax={steps.length - 1}
+        aria-valuenow={current}
+        aria-valuetext={`${steps[current]?.label}${declined ? " — workflow stopped" : ""}${blocked ? ` — ${blocked}` : ""}`}
+        className="mb-3 h-1.5 overflow-hidden rounded-full bg-muted"
+      >
+        <div
+          className={cn(
+            "stage-progress-fill h-full rounded-full",
+            declined ? "bg-candy-strong" : "bg-primary",
+            running && "stage-progress-running",
+          )}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <ol aria-label="Loan stages" className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+        {steps.map((step, index) => {
+          const done = index < current;
+          const here = index === current;
           return (
-            <li key={s.stage} className="flex items-center gap-1" aria-current={here ? "step" : undefined}>
-              {i > 0 && <span className={cn("h-px w-4", done || here ? "bg-ocean" : "bg-border")} />}
-              <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold",
-                done && "bg-ocean-soft text-ocean",
-                here && "bg-primary text-primary-foreground glow-ocean",
-                !done && !here && "text-muted-foreground")}>
-                {done && <Check className="h-3 w-3" />}{s.label}
+            <li
+              key={step.stage}
+              aria-current={here ? "step" : undefined}
+              className={cn(
+                "flex items-center gap-1.5 text-[10px] font-medium sm:text-[11px]",
+                here ? "text-foreground" : done ? "text-ocean" : "text-muted-foreground",
+              )}
+            >
+              <span
+                className={cn(
+                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[9px]",
+                  here
+                    ? declined
+                      ? "border-candy-strong bg-candy-soft text-candy-strong"
+                      : "border-primary bg-primary text-primary-foreground"
+                    : done
+                      ? "border-ocean/40 bg-ocean/10"
+                      : "border-border",
+                )}
+              >
+                {here && declined ? (
+                  <X className="h-3 w-3" />
+                ) : done ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  index + 1
+                )}
               </span>
+              <span>{step.label}</span>
             </li>
           );
         })}
-        {declined && (
-          <li className="flex items-center gap-1" aria-current="step">
-            <span className="h-px w-4 bg-candy-strong" />
-            <span className="inline-flex items-center gap-1 rounded-full bg-candy-soft px-2 py-0.5 font-semibold text-candy-strong">
-              <X className="h-3 w-3" />Declined
-            </span>
-          </li>
-        )}
       </ol>
-      {lifecycle.note && <span className="text-muted-foreground">{lifecycle.note}</span>}
-    </div>
+    </section>
   );
 }

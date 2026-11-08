@@ -737,3 +737,88 @@
   --shadow-card: var(--shadow-glass);
   --shadow-glow-ocean: 0 0 0 1px oklch(0.62 0.22 252 / 45%), 0 10px 40px -8px oklch(0.62 0.22 252 / 55%);
   --shadow-glow-candy: 0 0 0 1px oklch(0.74 0.2 350 / 50%), 0 10px 40px -8px oklch(0.74 0.2 350 / 55%);}
+
+/* Courtroom styling follows the supplied dark network/chat reference. */
+.case-classic { font-family: 'Fira Sans',ui-sans-serif,system-ui,sans-serif; }
+.dark .case-classic { --background:#070a12; --canvas:#050810; --card:#111525; --foreground:#eef1f8; --muted:#202438; --muted-foreground:#b5bdcd; --border:#2c3144; --input:#353b50; --primary:#0878de; --primary-foreground:#ffffff; --ocean:#51c7f4; --sky:#a0d9ff; --sky-soft:#102e48; --candy:#ff9bcf; --candy-strong:#ff9bcf; --candy-soft:#41172f; --on-candy:#281020; --on-sky:#0d2139; --success:#40db9b; --warning:#d39824; --node-company:#1476c7; --node-person:#cb347d; --node-collateral:#009b75; --node-loan:#bf8717; }
+.courtroom-layout { background:var(--background); }
+.courtroom-layout header { background:var(--card); }
+.courtroom-layout .glass { background:var(--card); box-shadow:none; }
+.courtroom-layout .agent-messages > div { animation-duration:220ms; }
+.courtroom-layout .agent-messages button { line-height:1.55; }
+.courtroom-layout .agent-messages .rounded-2xl { border-radius:22px; }
+.courtroom-layout .agent-discussion textarea { min-height:48px; border-radius:18px; }
+.courtroom-layout .agent-discussion form>button { border-radius:16px; height:48px; width:48px; }
+.courtroom-layout .agent-messages [role=status] { font-size:12px; }
+.stage-progress-panel { width:100%; }
+.stage-progress-fill { transition:width 500ms cubic-bezier(.2,.8,.2,1); }
+.stage-progress-running { background-image:linear-gradient(110deg,transparent 30%,#ffffff35 50%,transparent 70%); background-size:220% 100%; animation:stage-progress-shimmer 2s ease-in-out infinite; }
+@keyframes stage-progress-shimmer { from { background-position:200% 0; } to { background-position:-20% 0; } }
+@media (prefers-reduced-motion:reduce) { .stage-progress-fill { transition:none; } .stage-progress-running { animation:none; } }
+@media (max-width:1023px) { .courtroom-layout { height:auto; } .courtroom-discussion { min-height:750px; } .courtroom-layout .agent-messages { max-height:500px; } }
+/* Carry the courtroom's navy/blue/pink palette through navigation and other screens. */
+.dark { --background:#080b15; --card:#111525; --card-foreground:#eef1f8; --foreground:#eef1f8; --popover:#14192a; --popover-foreground:#eef1f8; --muted:#202438; --muted-foreground:#b5bdcd; --border:#2c3144; --input:#353b50; --primary:#0878de; --primary-foreground:#ffffff; --ocean:#51c7f4; --ocean-soft:#102b45; --sky:#a0d9ff; --sky-soft:#102e48; --candy:#ff9bcf; --candy-strong:#ff9bcf; --candy-soft:#41172f; --on-candy:#281020; --on-sky:#0d2139; --sidebar:#0d1120; --sidebar-panel:#161c2e; --sidebar-border:#2c3144; --sidebar-primary:#0878de; --sidebar-primary-foreground:#ffffff; --canvas:#050810; }
+
+/* User-selected palette wins over fixed app and courtroom surface colors. */
+:root[data-palette], :root[data-palette] .case-classic {
+  --background: var(--palette-background);
+  --foreground: var(--palette-foreground);
+  --card: var(--palette-card);
+  --card-foreground: var(--palette-card-foreground);
+  --popover: var(--palette-popover);
+  --popover-foreground: var(--palette-popover-foreground);
+  --primary: var(--palette-primary);
+  --primary-foreground: var(--palette-primary-foreground);
+  --secondary: var(--palette-secondary);
+  --secondary-foreground: var(--palette-secondary-foreground);
+  --muted: var(--palette-muted);
+  --muted-foreground: var(--palette-muted-foreground);
+  --accent: var(--palette-accent);
+  --accent-foreground: var(--palette-accent-foreground);
+  --border: var(--palette-border);
+  --input: var(--palette-input);
+  --ring: var(--palette-ring);
+  --canvas: var(--palette-canvas);
+  --ocean: var(--palette-ocean);
+  --ocean-soft: var(--palette-ocean-soft);
+  --sky: var(--palette-sky);
+  --sky-soft: var(--palette-sky-soft);
+  --candy: var(--palette-candy);
+  --candy-strong: var(--palette-candy-strong);
+  --candy-soft: var(--palette-candy-soft);
+  --on-candy: var(--palette-on-candy);
+  --on-sky: var(--palette-on-sky);
+  --success: var(--palette-success);
+  --warning: var(--palette-warning);
+  --destructive: var(--palette-destructive);
+  --destructive-foreground: var(--palette-destructive-foreground);
+  --sidebar: var(--palette-sidebar);
+  --sidebar-foreground: var(--palette-sidebar-foreground);
+  --sidebar-primary: var(--palette-sidebar-primary);
+  --sidebar-primary-foreground: var(--palette-sidebar-primary-foreground);
+  --sidebar-accent: var(--palette-sidebar-accent);
+  --sidebar-accent-foreground: var(--palette-sidebar-accent-foreground);
+  --sidebar-border: var(--palette-sidebar-border);
+  --sidebar-ring: var(--palette-sidebar-ring);
+  --sidebar-panel: var(--palette-sidebar-panel);
+  --lg-tint-top: var(--palette-lg-tint-top);
+  --lg-tint-bottom: var(--palette-lg-tint-bottom);
+  --lg-edge: var(--palette-lg-edge);
+  --lg-hairline: var(--palette-lg-hairline);
+  --glow-ocean: var(--palette-glow-ocean);
+  --glow-candy: var(--palette-glow-candy);
+  color-scheme: var(--palette-color-scheme);
+}
+.appearance-popover { max-height: min(690px,calc(100dvh - 32px)); }
+.appearance-popover[data-state="open"] { animation:pv-route-enter 160ms ease-out; }
+
+/* Presentation stays a real, interactive case review; Escape restores the workspace. */
+.presentation-mode .app-sidebar, .presentation-mode .atmosphere { display: none; }
+.presentation-mode .courtroom-layout { font-size: 17px; }
+.presentation-mode .agent-messages { padding: 1.5rem; }
+.presentation-mode .agent-messages .text-sm { font-size: 1rem; line-height: 1.6; }
+.presentation-mode .courtroom-layout > header { padding-inline: 1.5rem; }
+.presentation-mode .courtroom-layout > .grid { grid-template-columns: minmax(0, 1.1fr) minmax(380px, 1fr); }
+@media (max-width: 900px) {
+  .presentation-mode .courtroom-layout > .grid { grid-template-columns: minmax(0, 1fr); }
+}

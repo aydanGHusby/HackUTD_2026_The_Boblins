@@ -285,7 +285,12 @@ export async function askQuestion(caseId: string, askedBy: string, to: Side, tex
     const arg = await argueAndRecord(caseId, to, "answer", { file, question: text });
     commit({ op: "update", table: "questions", key: "id", value: qid, patch: { answerId: arg.id } });
   } catch (err) {
-    commit({ op: "append", table: "audit", item: log(caseId, agentActor[to], `could not answer: ${(err as Error).message}`) });
+    commit(
+      { op: "remove", table: "questions", key: "id", value: qid },
+      { op: "append", table: "audit", item: log(caseId, agentActor[to], `could not answer: ${(err as Error).message}`) },
+    );
+    // Surface failures to the composer so its draft stays available for retry.
+    throw err;
   }
 }
 
@@ -443,3 +448,5 @@ export function submitLoan(input: { borrowerId: string; amount: number; purpose:
   commit(...ops);
   return { loanId, caseId, triggers };
 }
+
+// Local question workspace remains a frontend-only drafting tool.

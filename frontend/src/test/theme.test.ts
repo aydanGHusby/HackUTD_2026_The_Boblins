@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { THEME_KEY, getTheme, setTheme } from "@/lib/theme";
+import { THEME_KEY, PALETTE_KEY, getTheme, setTheme } from "@/lib/theme";
 
 describe("theme", () => {
   afterEach(() => {
     document.documentElement.classList.remove("dark");
     localStorage.removeItem(THEME_KEY);
+    localStorage.removeItem(PALETTE_KEY);
+    document.documentElement.removeAttribute("data-palette");
+    document.documentElement.removeAttribute("style");
   });
 
   it("starts light with no dark class on <html>", () => {
