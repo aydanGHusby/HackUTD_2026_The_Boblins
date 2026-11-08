@@ -4,7 +4,7 @@ Paper Trail uses the canonical `backend` branch's loan data, agent server functi
 
 ## Run locally
 
-From the repository root, run `npm run dev:app` and keep that terminal open, then visit `http://127.0.0.1:3111/`. The local database runs on 3108, the retained account-demo Node server on 3112, and the TanStack frontend on 3111. The courtroom's server functions run within the frontend server and use the database directly through HTTP. The browser polls the shared loan snapshot using `src/data/spacetime.ts` and the canonical hooks in `src/data/hooks.ts`.
+From the repository root, run `npm run dev:app` and keep that terminal open, then visit `http://127.0.0.1:3111/`. The local database runs on 3108 and the TanStack frontend on 3111. The courtroom's server functions run within the frontend server and use the database directly through HTTP. The browser polls the shared loan snapshot using `src/data/spacetime.ts` and the canonical hooks in `src/data/hooks.ts`.
 
 Configure `SPACETIMEDB_DATABASE=paper-view-courtroom` in the root `.env`; `NVIDIA_API_KEY` and `NVIDIA_MODEL` remain server-only. The local canonical module has been published to that separate database. Older `fraudgraph-local` and `fraudgraph-review` databases were preserved; their previous reviews were not migrated into the new courtroom seed. On another computer, install the module dependencies and local SpacetimeDB CLI, start the database, then publish the module as `paper-view-courtroom`. The backend's original publish/worker commands remain available.
 

@@ -59,13 +59,6 @@ await service("SpacetimeDB", "http://127.0.0.1:3108/v1/health", [
 ]);
 if (!stopping)
   await service(
-    "Backend",
-    "http://localhost:3112/api/status",
-    ["--env-file-if-exists=.env", "server.mjs"],
-    { PORT: "3112" },
-  );
-if (!stopping)
-  await service(
     "Frontend",
     "http://127.0.0.1:3111/",
     [
