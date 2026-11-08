@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/Mascot";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutGrid, FilePlus2, ArrowUpCircle, Gauge, MessagesSquare } from "lucide-react";
+import { LayoutGrid, FilePlus2, ArrowUpCircle, Gauge, MessagesSquare, History } from "lucide-react";
 import { useLiveStatus } from "@/data/hooks";
 import { setIdentity, useIdentity } from "@/data/identity";
 import { AppearancePicker } from "@/components/AppearancePicker";
@@ -9,9 +9,10 @@ import { AppearancePicker } from "@/components/AppearancePicker";
 const nav = [
   { to: "/cases", label: "Cases", icon: LayoutGrid },
   { to: "/ask-ai", label: "Ask AI", icon: MessagesSquare },
+  { to: "/history", label: "History", icon: History },
   { to: "/intake", label: "New loan", icon: FilePlus2 },
   { to: "/escalations", label: "Escalations", icon: ArrowUpCircle },
-  { to: "/ops", label: "Operations", icon: Gauge, MessagesSquare },
+  { to: "/ops", label: "Operations", icon: Gauge },
 ] as const;
 
 export function AppSidebar() {

@@ -27,7 +27,7 @@ export const Route = createFileRoute("/ask-ai")({
       : {},
   head: () => ({
     meta: [
-      { title: "Ask AI · Paper View" },
+      { title: "Ask AI · Paper Trail" },
       {
         name: "description",
         content: "Discuss a case with the Risk and Legitimacy agents or leave a team note.",

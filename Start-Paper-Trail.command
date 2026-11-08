@@ -7,5 +7,5 @@ if ! command -v npm >/dev/null 2>&1; then
   read -r "?Press Return to close."
   exit 1
 fi
-printf '\nStarting Paper View at http://127.0.0.1:3111/\nKeep this Terminal window open. Press Control+C to stop.\n\n'
+printf '\nStarting Paper Trail at http://127.0.0.1:3111/\nKeep this Terminal window open. Press Control+C to stop.\n\n'
 exec npm run dev:app

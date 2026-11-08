@@ -1,5 +1,5 @@
 // Server-side bridge to the shared SpacetimeDB database (module in spacetimedb/src/index.ts).
-// Same HTTP approach as the root app's src/spacetime-bridge.mjs.
+// Talks to SpacetimeDB over its HTTP API.
 import { createServerFn } from "@tanstack/react-start";
 import { serverEnv } from "@/lib/server-env";
 

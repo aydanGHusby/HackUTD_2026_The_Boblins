@@ -1,8 +1,8 @@
 import { CreditMemo } from "@/components/CreditMemo";
 import { LoadingStatus } from "@/components/Mascot";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { ArrowLeft, ChevronDown, Gavel, Monitor, Minimize2 } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { ArrowLeft, ClipboardCheck, Gavel, Monitor, Minimize2 } from "lucide-react";
 import {
   ActionError,
   DecisionBox,
@@ -14,6 +14,9 @@ import { AIFindings } from "@/components/AIFindings";
 import { LifecycleBar } from "@/components/LifecycleBar";
 import { SignOffForm } from "@/components/SignOffForm";
 import { GraphView } from "@/components/graph/GraphView";
+import { ResizeHandle, useStoredSize } from "@/components/ResizeHandle";
+import { DecisionDock } from "@/components/DecisionDock";
+import { CaseSummary } from "@/components/CaseSummary";
 import { Avatars, Empty, RiskScore, StatusBadge, TriggerTag } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +27,7 @@ import {
   useArguments,
   useAudit,
   useCase,
+  useCases,
   useCrux,
   useEvidence,
   useLoanLifecycle,
@@ -44,12 +48,12 @@ import type { Claim } from "@/shared/types";
 export const Route = createFileRoute("/case/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: `${params.id} · Paper View` },
+      { title: `${params.id} · Paper Trail` },
       {
         name: "description",
         content: "Explore the loan's network and the agents' arguments, then decide.",
       },
-      { property: "og:title", content: `${params.id} · Paper View` },
+      { property: "og:title", content: `${params.id} · Paper Trail` },
       {
         property: "og:description",
         content: "Explore the loan's network and the agents' arguments.",
@@ -58,6 +62,11 @@ export const Route = createFileRoute("/case/$id")({
   }),
   component: CasePage,
 });
+
+const LEFT_DEFAULT = 63; // leave most of the workspace for the network
+const MIN_COLUMN = 360;
+const CASE_TABS = ["map", "summary", "evidence", "history"] as const;
+type CaseTab = (typeof CASE_TABS)[number];
 
 function CasePage() {
   const { id } = Route.useParams();
@@ -75,12 +84,52 @@ function CasePage() {
   const trial = useTrial(id);
   const life = useLoanLifecycle(c?.loanId);
   const running = trial === "running";
-
   const [highlight, setHighlight] = useState<string[]>([]);
-  const [drawer, setDrawer] = useState<"evidence" | "summary" | "history" | null>("summary");
+  const [tab, setTab] = useState<CaseTab>("map");
 
   const [selection, setSelection] = useState<{ text: string; citations: string[] }>();
   const { presenting, setPresenting } = usePresentationMode();
+  const allCases = useCases();
+
+  // Once a decision is recorded the case turns into a results page; "View full case" goes back.
+  const [workspace, setWorkspace] = useState(false);
+  const [justDecided, setJustDecided] = useState(false);
+  const hadVerdict = useRef(!!verdict);
+  useEffect(() => {
+    if (verdict && !hadVerdict.current) {
+      setJustDecided(true);
+      setWorkspace(false);
+    }
+    hadVerdict.current = !!verdict;
+  }, [verdict]);
+  useEffect(() => {
+    setWorkspace(false);
+    setJustDecided(false);
+    hadVerdict.current = !!verdict;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Draggable border between the left column and the agent discussion (% of the split).
+  const split = useRef<HTMLDivElement>(null);
+  const [leftPct, setLeftPct] = useStoredSize("paperview.case.leftPct", LEFT_DEFAULT);
+  // The map fills its tab: track the tab's height and hand it to the graph.
+  const mapBox = useRef<HTMLDivElement>(null);
+  const [mapHeight, setMapHeight] = useState(460);
+  useEffect(() => {
+    const el = mapBox.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const h = Math.round(entry!.contentRect.height);
+      if (h > 0) setMapHeight(Math.max(460, h));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [c?.id, verdict, workspace, presenting]);
+  const resizeColumns = (dx: number) => {
+    const w = split.current?.clientWidth || window.innerWidth;
+    const minPct = (MIN_COLUMN / w) * 100;
+    setLeftPct((p) => Math.min(100 - minPct, Math.max(minPct, p + (dx / w) * 100)));
+  };
 
   if (!c)
     return (
@@ -98,6 +147,7 @@ function CasePage() {
   const readable = (text: string) =>
     text.replace(/\b[A-Za-z][A-Za-z0-9_-]*\b/g, (token) => label(token));
   const inspect = (text: string, citations: string[]) => {
+    setTab("map");
     setSelection({ text: readable(text), citations });
     const ids = new Set(citations);
     graph.edges.forEach((edge) => {
@@ -111,6 +161,8 @@ function CasePage() {
   const next = nextAction(c.status, running, life, !!signOffNeeded(c.loan, verdict, signOff));
   const decided = c.status === "decided";
   const select = (cl: Claim) => {
+    setTab("map");
+
     setSelection({ text: readable(cl.text), citations: cl.citations });
     const ids = new Set(cl.citations);
     graph.edges.forEach((edge) => {
@@ -157,27 +209,17 @@ function CasePage() {
               {presenting ? <Minimize2 className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
               {presenting ? "Exit presentation" : "Present"}
             </Button>
+            {verdict && workspace && (
+              <Button size="sm" variant="outline" onClick={() => setWorkspace(false)}>
+                <ClipboardCheck className="h-4 w-4" /> View summary
+              </Button>
+            )}
             <StatusBadge status={c.status} />
             <Avatars users={c.viewers} />
           </div>
-          <div className="basis-full flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-            <span>
-              Reviewer: <b className="text-foreground">{verdict?.analyst || `${me.name} (you)`}</b>
-              {!verdict && " · not yet decided"}
-            </span>
-            <span>
-              Stage: <b className="text-foreground">{humanize(life?.stage || c.status)}</b>
-            </span>
-            <span>
-              Flagged for:{" "}
-              <b className="text-foreground">
-                {c.triggers.map(humanize).join(", ") || "Manual review"}
-              </b>
-            </span>
-          </div>
           <div
             role="status"
-            className="basis-full rounded-xl border border-ocean/25 bg-sky-soft px-3 py-2 text-xs"
+            className="basis-full rounded-xl border border-ocean/25 bg-sky-soft px-3 py-1.5 text-xs"
           >
             <b className="text-ocean">Next action</b>
             <span className="ml-2">{next}</span>
@@ -188,168 +230,30 @@ function CasePage() {
           {life && <LifecycleBar lifecycle={life} running={running} />}
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 2xl:grid-cols-[minmax(0,1.7fr)_minmax(340px,1fr)]">
-          {/* Left: canvas + drawer */}
-          <section className="flex min-h-0 flex-col gap-3 bg-canvas p-4 2xl:overflow-y-auto">
-            <div className="flex shrink-0 items-center justify-between text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">
-                Network map · 2 hops from {c.loanId}
-              </span>
-              {highlight.length > 0 && (
-                <button
-                  className="font-semibold text-ocean"
-                  onClick={() => {
-                    setHighlight([]);
-                  }}
-                >
-                  Clear highlight
-                </button>
-              )}
-            </div>
-            <div className="case-network-canvas glass edge-lit shrink-0 overflow-hidden rounded-2xl">
-              <GraphView
-                nodes={graph.nodes}
-                edges={graph.edges}
-                centerId={c.loanId}
-                flagged={graph.flagged}
-                highlight={highlight}
-                height={presenting ? "clamp(520px, 68vh, 820px)" : "clamp(460px, 60vh, 720px)"}
-                referenceLabel={label}
-                onInspect={(reference) => {
-                  const node = graph.nodes.find((n) => n.id === reference);
-                  const edge = graph.edges.find((e) => e.id === reference);
-                  inspect(
-                    node?.label ||
-                      (edge
-                        ? `${label(edge.from)} ${humanize(edge.kind)} ${label(edge.to)}`
-                        : reference),
-                    [reference],
-                  );
-                }}
-              />
-            </div>
-
-            {selection && (
-              <EvidenceInspector
-                selection={selection}
-                nodes={graph.nodes}
-                edges={graph.edges}
-                onClose={() => {
-                  setSelection(undefined);
-                  setHighlight([]);
-                }}
-              />
-            )}
-            <div className="glass edge-lit shrink-0 rounded-2xl">
-              <div className="flex gap-1 border-b border-border p-2">
-                {(["summary", "evidence", "history"] as const).map((d) => (
-                  <button
-                    key={d}
-                    aria-expanded={drawer === d}
-                    onClick={() => setDrawer(drawer === d ? null : d)}
-                    className={cn(
-                      "flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold",
-                      drawer === d
-                        ? "bg-primary text-primary-foreground glow-ocean"
-                        : "text-muted-foreground hover:bg-muted",
-                    )}
-                  >
-                    {d === "summary"
-                      ? "Credit memo"
-                      : d === "evidence"
-                        ? `Evidence (${evidence.length})`
-                        : "History"}
-                    <ChevronDown
-                      className={cn("h-3 w-3 transition", drawer === d && "rotate-180")}
-                    />
-                  </button>
-                ))}
-              </div>
-              {drawer === "summary" && (
-                <CreditMemo crux={crux} metrics={metrics} formatText={readable} />
-              )}
-              {drawer === "evidence" && (
-                <div className="grid gap-2 p-3 md:grid-cols-2">
-                  {evidence.length === 0 && (
-                    <p className="p-1 text-sm text-muted-foreground">No evidence filed yet.</p>
-                  )}
-                  {evidence.map((e) => (
-                    <button
-                      key={e.id}
-                      onClick={() => {
-                        inspect(e.fact, e.citations);
-                      }}
-                      className="rounded-xl border border-border p-3 text-left text-sm hover:border-sky hover:bg-sky-soft"
-                    >
-                      {readable(e.fact)}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {drawer === "history" && (
-                <ol className="space-y-1 p-4 text-sm">
-                  {audit.map((a) => (
-                    <li key={a.id}>
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {dateTime(a.at)}
-                      </span>{" "}
-                      <b>{a.actor}</b> <span className="text-muted-foreground">{a.action}</span>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </div>
-          </section>
-
-          {/* Right: findings overview + decision */}
-          <aside
-            aria-label="AI findings and your decision"
-            className="courtroom-discussion flex min-h-[650px] flex-col 2xl:min-h-0 border-l border-border bg-card/70 backdrop-blur-xl"
-          >
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <h2 className="text-sm font-bold">AI findings</h2>
-              {!decided && (
-                <Button size="sm" disabled={running} onClick={() => runTrial(id, me.name)}>
-                  {running ? (
-                    <LoadingStatus label="Agents arguing…" size={24} announce={false} />
-                  ) : (
-                    <>
-                      <Gavel className="h-3.5 w-3.5" />
-                      {args.length ? "Re-run trial" : "Run trial"}
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-            {trial && !running && (
-              <div className="p-3">
-                <ActionError
-                  title="Analysis interrupted"
-                  detail={trial}
-                  onRetry={() => runTrial(id, me.name)}
-                />
-              </div>
-            )}
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <AIFindings
-                args={args}
-                crux={crux}
-                running={running}
-                formatText={readable}
-                onInspect={select}
-              />
-              <div className="px-4 pb-4">
-                <Link
-                  to="/ask-ai"
-                  search={{ case: id }}
-                  className="flex items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
-                >
-                  Discuss this case in Ask AI →
-                </Link>
-              </div>
-            </div>
-            {verdict ? (
-              <Decided
+        {verdict && !workspace && !presenting ? (
+          <CaseSummary
+            verdict={verdict}
+            borrower={c.borrower}
+            amount={c.loan?.amount}
+            purpose={c.loan?.purpose}
+            riskScore={c.riskScore}
+            triggers={c.triggers}
+            args={args}
+            crux={crux}
+            metrics={metrics}
+            justDecided={justDecided}
+            nextCaseId={
+              allCases
+                .filter((x) => x.id !== c.id && x.status === "awaiting_verdict")
+                .sort((a, b) => b.riskScore - a.riskScore)[0]?.id
+            }
+            formatText={readable}
+            onOpenCase={() => {
+              setWorkspace(true);
+              setJustDecided(false);
+            }}
+            nextSteps={
+              <NextSteps
                 verdict={verdict}
                 signOff={signOff}
                 life={life}
@@ -357,16 +261,272 @@ function CasePage() {
                 actor={me.name}
                 needs={signOffNeeded(c.loan, verdict, signOff)}
               />
-            ) : (
-              <DecisionBox
-                enabled={c.status === "awaiting_verdict"}
-                reviewer={me.name}
-                amount={c.loan?.amount}
-                onSubmit={(d, r) => submitVerdict(id, me.name, d, r)}
-              />
-            )}
-          </aside>
-        </div>
+            }
+          />
+        ) : (
+          <div
+            ref={split}
+            style={{ "--left": `${leftPct}%` } as CSSProperties}
+            className="grid min-h-0 flex-1 grid-cols-1 2xl:grid-cols-[minmax(0,var(--left))_auto_minmax(0,1fr)]"
+          >
+            {/* Left: four tabs — network map, credit memo, evidence, history */}
+            <section className="flex min-h-0 flex-col bg-canvas p-4 2xl:overflow-y-auto">
+              <div className="glass edge-lit flex min-h-[580px] shrink-0 flex-1 flex-col overflow-hidden rounded-2xl">
+                <div className="flex flex-wrap items-center gap-1 border-b border-border p-2.5">
+                  <div role="tablist" aria-label="Case details" className="flex flex-wrap gap-1">
+                    {CASE_TABS.map((t) => (
+                      <button
+                        key={t}
+                        role="tab"
+                        id={`case-tab-${t}`}
+                        aria-selected={tab === t}
+                        aria-controls={`case-panel-${t}`}
+                        tabIndex={tab === t ? 0 : -1}
+                        onClick={() => setTab(t)}
+                        onKeyDown={(e) => {
+                          const i = CASE_TABS.indexOf(t);
+                          const to =
+                            e.key === "ArrowRight"
+                              ? CASE_TABS[(i + 1) % CASE_TABS.length]
+                              : e.key === "ArrowLeft"
+                                ? CASE_TABS[(i + CASE_TABS.length - 1) % CASE_TABS.length]
+                                : undefined;
+                          if (!to) return;
+                          e.preventDefault();
+                          setTab(to);
+                          document.getElementById(`case-tab-${to}`)?.focus();
+                        }}
+                        className={cn(
+                          "rounded-full px-4 py-2 text-sm font-semibold",
+                          tab === t
+                            ? "bg-primary text-primary-foreground glow-ocean"
+                            : "text-muted-foreground hover:bg-muted",
+                        )}
+                      >
+                        {t === "map"
+                          ? "Network map"
+                          : t === "summary"
+                            ? "Credit memo"
+                            : t === "evidence"
+                              ? `Evidence (${evidence.length})`
+                              : "History"}
+                      </button>
+                    ))}
+                  </div>
+                  {tab === "map" && (
+                    <div className="ml-auto flex items-center gap-3 px-2 text-xs text-muted-foreground">
+                      <span>2 hops from {c.loanId}</span>
+                      {highlight.length > 0 && (
+                        <button
+                          className="font-semibold text-ocean"
+                          onClick={() => {
+                            setHighlight([]);
+                          }}
+                        >
+                          Clear highlight
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Panels stay mounted (hidden) so the map keeps its dragged layout between tabs */}
+                <div
+                  role="tabpanel"
+                  id="case-panel-map"
+                  aria-labelledby="case-tab-map"
+                  hidden={tab !== "map"}
+                  className="min-h-0 flex-1 flex-col data-[on]:flex"
+                  data-on={tab === "map" || undefined}
+                >
+                  <div
+                    ref={mapBox}
+                    className="min-h-[460px] flex-1 overflow-hidden"
+                  >
+                    <GraphView
+                      nodes={graph.nodes}
+                      edges={graph.edges}
+                      centerId={c.loanId}
+                      flagged={graph.flagged}
+                      highlight={highlight}
+                      height={mapHeight}
+                      referenceLabel={label}
+                      onInspect={(reference) => {
+                        const node = graph.nodes.find((n) => n.id === reference);
+                        const edge = graph.edges.find((e) => e.id === reference);
+                        inspect(
+                          node?.label ||
+                            (edge
+                              ? `${label(edge.from)} ${humanize(edge.kind)} ${label(edge.to)}`
+                              : reference),
+                          [reference],
+                        );
+                      }}
+                    />
+                  </div>
+                  {selection && (
+                    <div className="max-h-[40%] shrink-0 overflow-y-auto border-t border-border p-3">
+                      <EvidenceInspector
+                        selection={selection}
+                        nodes={graph.nodes}
+                        edges={graph.edges}
+                        onClose={() => {
+                          setSelection(undefined);
+                          setHighlight([]);
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div
+                  role="tabpanel"
+                  id="case-panel-summary"
+                  aria-labelledby="case-tab-summary"
+                  hidden={tab !== "summary"}
+                  className="case-tab-scroll min-h-0 flex-1 overflow-y-auto"
+                >
+                  <CreditMemo crux={crux} metrics={metrics} formatText={readable} />
+                </div>
+                <div
+                  role="tabpanel"
+                  id="case-panel-evidence"
+                  aria-labelledby="case-tab-evidence"
+                  hidden={tab !== "evidence"}
+                  className="min-h-0 flex-1 overflow-y-auto"
+                >
+                  <div className="grid gap-2 p-3 md:grid-cols-2">
+                    {evidence.length === 0 && (
+                      <p className="p-1 text-sm text-muted-foreground">No evidence filed yet.</p>
+                    )}
+                    {evidence.map((e) => (
+                      <button
+                        key={e.id}
+                        onClick={() => {
+                          inspect(e.fact, e.citations);
+                        }}
+                        className="rounded-xl border border-border p-3 text-left text-sm hover:border-sky hover:bg-sky-soft"
+                      >
+                        {readable(e.fact)}
+                        <span className="mt-1 block text-[11px] font-semibold text-ocean">
+                          Show on map →
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div
+                  role="tabpanel"
+                  id="case-panel-history"
+                  aria-labelledby="case-tab-history"
+                  hidden={tab !== "history"}
+                  className="min-h-0 flex-1 overflow-y-auto"
+                >
+                  <ol className="space-y-1 p-4 text-sm">
+                    {audit.length === 0 && (
+                      <li className="text-muted-foreground">
+                        Nothing has happened on this case yet.
+                      </li>
+                    )}
+                    {audit.map((a) => (
+                      <li key={a.id}>
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {dateTime(a.at)}
+                        </span>{" "}
+                        <b>{a.actor}</b> <span className="text-muted-foreground">{a.action}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            </section>
+
+            <ResizeHandle
+              orientation="vertical"
+              label="Resize findings panel"
+              value={leftPct}
+              min={0}
+              max={100}
+              onResize={resizeColumns}
+              onReset={() => setLeftPct(LEFT_DEFAULT)}
+              className="hidden 2xl:flex"
+            />
+
+            {/* Right: findings + decision */}
+            <aside
+              aria-label="AI findings and your decision"
+              className="courtroom-discussion flex min-h-[650px] flex-col 2xl:min-h-0 border-l border-border bg-card/70 backdrop-blur-xl"
+            >
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <h2 className="text-sm font-bold">AI findings</h2>
+                {!decided && (
+                  <Button size="sm" disabled={running} onClick={() => runTrial(id, me.name)}>
+                    {running ? (
+                      <LoadingStatus label="Agents arguing…" size={24} announce={false} />
+                    ) : (
+                      <>
+                        <Gavel className="h-3.5 w-3.5" />
+                        {args.length ? "Re-run trial" : "Run trial"}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+              {trial && !running && (
+                <div className="p-3">
+                  <ActionError
+                    title="Analysis interrupted"
+                    detail={trial}
+                    onRetry={() => runTrial(id, me.name)}
+                  />
+                </div>
+              )}
+              <div className="flex min-h-[360px] flex-1 flex-col">
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  <AIFindings
+                    args={args}
+                    crux={crux}
+                    running={running}
+                    formatText={readable}
+                    onInspect={select}
+                  />
+                </div>
+                <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border p-4">
+                  <Link
+                    to="/ask-ai"
+                    search={{ case: id }}
+                    className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
+                  >
+                    Discuss in Ask AI →
+                  </Link>{" "}
+                  <DecisionDock
+                    borrower={c.borrower}
+                    state={
+                      verdict ? "decided" : c.status === "awaiting_verdict" ? "ready" : "waiting"
+                    }
+                  >
+                    {verdict ? (
+                      <Decided
+                        verdict={verdict}
+                        signOff={signOff}
+                        life={life}
+                        loanId={c.loanId}
+                        actor={me.name}
+                        needs={signOffNeeded(c.loan, verdict, signOff)}
+                      />
+                    ) : (
+                      <DecisionBox
+                        enabled={c.status === "awaiting_verdict"}
+                        reviewer={me.name}
+                        amount={c.loan?.amount}
+                        onSubmit={(d, r) => submitVerdict(id, me.name, d, r)}
+                      />
+                    )}
+                  </DecisionDock>
+                </div>
+              </div>
+            </aside>
+          </div>
+        )}
       </div>
     </PresentationView>
   );
@@ -401,6 +561,25 @@ function Decided({
         {verdict.analyst} · {dateTime(verdict.decidedAt)}
       </div>
       <p className="mt-1 whitespace-pre-wrap break-words">{verdict.reasoning}</p>
+      <NextSteps
+        verdict={verdict}
+        signOff={signOff}
+        life={life}
+        loanId={loanId}
+        actor={actor}
+        needs={needs}
+      />
+    </div>
+  );
+}
+
+type DecidedProps = Parameters<typeof Decided>[0];
+
+/** What happens after the decision: sign-off, closing, funding. Shared by the dialog and the summary. */
+function NextSteps({ verdict, signOff, life, loanId, actor, needs }: DecidedProps) {
+  void verdict;
+  return (
+    <div>
       <p className="mt-2 text-xs text-muted-foreground">
         {needs
           ? "Next: a different senior reviewer must sign off."

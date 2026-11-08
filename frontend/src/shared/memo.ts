@@ -30,9 +30,17 @@ Reply with only JSON in this shape:
 {"agreed":["..."],"disputed":[{"point":"...","decidingFact":"..."}],
  "memo":{"recommendation":"escalate","summary":"...","conditions":["..."],"documents":["..."]}}`;
 
+// The model sometimes writes a list as one string, or its items as {"document": "..."}; keep what it
+// meant instead of failing the whole memo (a retry re-runs the trial and doubles its time).
+const text = (s: unknown): string =>
+  typeof s === "string" ? s.trim()
+  : s && typeof s === "object" ? (Object.values(s).find((x) => typeof x === "string") as string | undefined)?.trim() ?? ""
+  : "";
 const strings = (v: unknown, field: string, max: number): string[] => {
+  if (v === undefined || v === null) return [];
+  if (typeof v === "string") v = [v];
   if (!Array.isArray(v)) throw new Error(`${field} must be an array of strings`);
-  return v.filter((s): s is string => typeof s === "string" && !!s.trim()).map((s) => s.trim()).slice(0, max);
+  return v.map(text).filter(Boolean).slice(0, max);
 };
 
 /** Checks a model reply; throws a message the model can act on in a retry. */

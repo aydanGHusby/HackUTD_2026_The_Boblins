@@ -829,3 +829,227 @@
   .courtroom-layout { height: auto; overflow: visible; }
   .courtroom-discussion { min-height: 0; }
 }
+/* ── Resize handles (drag a border to resize panels) ─────────────────── */
+@layer components {
+  .resize-handle {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    touch-action: none;
+    outline: none;
+    z-index: 5;
+  }
+  /* Wide invisible hit area, thin visible line */
+  .resize-handle-v { width: 10px; margin-inline: -5px; cursor: col-resize; }
+  .resize-handle-h { height: 14px; cursor: row-resize; }
+  .resize-handle::before {
+    content: "";
+    position: absolute;
+    background: transparent;
+    transition: background-color 150ms ease;
+  }
+  .resize-handle-v::before { inset-block: 0; left: 50%; width: 2px; transform: translateX(-50%); }
+  .resize-handle-h::before { inset-inline: 12px; top: 50%; height: 2px; transform: translateY(-50%); border-radius: 2px; }
+
+  .resize-handle-grip {
+    position: relative;
+    border-radius: 999px;
+    background: var(--border);
+    opacity: 0.9;
+    transition: background-color 150ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .resize-handle-v .resize-handle-grip { width: 4px; height: 36px; }
+  .resize-handle-h .resize-handle-grip { width: 40px; height: 4px; }
+
+  .resize-handle[data-active]::before,
+  .resize-handle:focus-visible::before { background: var(--primary); }
+  .resize-handle[data-active] .resize-handle-grip,
+  .resize-handle:focus-visible .resize-handle-grip { background: var(--primary); }
+  .resize-handle-v[data-active] .resize-handle-grip { transform: scaleY(1.3); }
+  .resize-handle-h[data-active] .resize-handle-grip { transform: scaleX(1.3); }
+
+  @media (hover: hover) and (pointer: fine) {
+    .resize-handle:hover::before { background: color-mix(in oklab, var(--primary) 55%, transparent); }
+    .resize-handle:hover .resize-handle-grip { background: var(--primary); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .resize-handle-grip { transition: background-color 150ms ease; }
+    .resize-handle[data-active] .resize-handle-grip { transform: none; }
+  }
+}
+
+/* ── Decision dock: mascot in the chat corner opens the decision dialog ── */
+@layer components {
+  .decision-dock {
+    pointer-events: auto;
+    position: relative;
+    display: block;
+    border-radius: 999px;
+    outline: none;
+    transition: transform 120ms var(--ease-out);
+  }
+  .decision-dock:active { transform: scale(0.94); }
+  .decision-dock:focus-visible .decision-dock-mascot { box-shadow: 0 0 0 3px var(--ring); }
+
+  .decision-dock-mascot {
+    display: grid;
+    place-items: center;
+    width: 68px;
+    height: 68px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow: 0 10px 28px -10px rgb(0 0 0 / 0.6);
+    transition: transform 200ms var(--ease-out), border-color 150ms ease;
+  }
+  .decision-dock[data-state-ready] .decision-dock-mascot { border-color: color-mix(in oklab, var(--primary) 60%, var(--border)); }
+
+  /* "Something's waiting" dot */
+  .decision-dock-ping {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--primary);
+    border: 2px solid var(--card);
+  }
+
+  /* Speech bubble, anchored to the mascot, grows from its bottom-right corner */
+  .decision-dock-bubble {
+    position: absolute;
+    right: 8px;
+    bottom: calc(100% + 10px);
+    white-space: nowrap;
+    border-radius: 14px 14px 4px 14px;
+    border: 1px solid var(--border);
+    background: var(--popover);
+    color: var(--popover-foreground);
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    box-shadow: 0 10px 24px -12px rgb(0 0 0 / 0.6);
+    transform-origin: 100% 100%;
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+    pointer-events: none;
+    transition: opacity 150ms var(--ease-out), transform 200ms var(--ease-out);
+  }
+  .decision-dock:focus-visible .decision-dock-bubble { opacity: 1; transform: none; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .decision-dock:hover .decision-dock-bubble { opacity: 1; transform: none; }
+    .decision-dock:hover .decision-dock-mascot { transform: translateY(-3px) rotate(-6deg); }
+  }
+
+  /* Dialog: dim fades, panel scales up from 0.96. Exits are a little quicker. */
+  .decision-overlay[data-state="open"] { animation: decision-fade-in 200ms var(--ease-out); }
+  .decision-overlay[data-state="closed"] { animation: decision-fade-out 150ms var(--ease-out); }
+  .decision-dialog { transform: translate(-50%, -50%); }
+  .decision-dialog[data-state="open"] { animation: decision-pop-in 220ms var(--ease-out); }
+  .decision-dialog[data-state="closed"] { animation: decision-pop-out 150ms var(--ease-out); }
+
+  /* DecisionBox / Decided were styled as a sidebar footer; let them sit flush in the dialog */
+  .decision-dialog-body > * { border-top: 0 !important; background: transparent !important; padding: 1.25rem !important; }
+  .decision-dialog-body textarea { min-height: 6rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .decision-dock-bubble { transform: none; transition: opacity 150ms ease; }
+    .decision-dock:hover .decision-dock-mascot { transform: none; }
+    .decision-dialog[data-state="open"] { animation: decision-fade-in 150ms ease; }
+    .decision-dialog[data-state="closed"] { animation: decision-fade-out 120ms ease; }
+  }
+}
+@keyframes decision-fade-in { from { opacity: 0; } }
+@keyframes decision-fade-out { to { opacity: 0; } }
+@keyframes decision-pop-in { from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); } }
+@keyframes decision-pop-out { to { opacity: 0; transform: translate(-50%, -49%) scale(0.97); } }
+
+/* ── Case summary: the results page after a decision ─────────────────── */
+@layer components {
+  .summary-verdict { background: var(--card); }
+  .summary-tone-fraud { border-color: color-mix(in oklab, var(--color-candy) 55%, transparent); background: linear-gradient(160deg, color-mix(in oklab, var(--color-candy) 16%, var(--card)), var(--card) 60%); }
+  .summary-tone-clear { border-color: color-mix(in oklab, oklch(0.78 0.15 160) 55%, transparent); background: linear-gradient(160deg, color-mix(in oklab, oklch(0.78 0.15 160) 14%, var(--card)), var(--card) 60%); }
+  .summary-tone-escalate { border-color: color-mix(in oklab, var(--color-sky) 55%, transparent); background: linear-gradient(160deg, color-mix(in oklab, var(--color-sky) 16%, var(--card)), var(--card) 60%); }
+  .summary-tone-fraud h2, .summary-tone-fraud .summary-stamp { color: var(--color-candy-strong); }
+  .summary-tone-clear h2, .summary-tone-clear .summary-stamp { color: oklch(0.8 0.15 160); }
+  .summary-tone-escalate h2, .summary-tone-escalate .summary-stamp { color: var(--color-sky); }
+
+  .summary-stamp {
+    display: grid;
+    place-items: center;
+    width: 76px;
+    height: 76px;
+    flex-shrink: 0;
+    border-radius: 22px;
+    border: 2px solid currentColor;
+    background: color-mix(in oklab, currentColor 12%, transparent);
+    transform: rotate(-6deg);
+  }
+
+  .summary-side-risk { border-top: 3px solid var(--color-candy); }
+  .summary-side-legit { border-top: 3px solid var(--color-sky); }
+  .summary-bullet { margin-top: 0.55em; width: 6px; height: 6px; flex-shrink: 0; border-radius: 999px; background: currentColor; opacity: 0.5; }
+
+  /* Sections rise in one after another (rare moment: once per decision) */
+  .summary-step { animation: summary-rise 320ms var(--ease-out) both; animation-delay: calc(var(--step, 0) * 60ms); }
+  /* The verdict lands like a rubber stamp when it was just made */
+  .summary-stamp-live { animation: summary-stamp 420ms var(--ease-out) 120ms both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .summary-step { animation: summary-fade 200ms ease both; animation-delay: 0ms; }
+    .summary-stamp-live { animation: none; }
+  }
+}
+@keyframes summary-rise { from { opacity: 0; transform: translateY(12px); } }
+@keyframes summary-fade { from { opacity: 0; } }
+@keyframes summary-stamp {
+  0% { opacity: 0; transform: rotate(-14deg) scale(1.5); }
+  60% { opacity: 1; transform: rotate(-5deg) scale(0.94); }
+  100% { opacity: 1; transform: rotate(-6deg) scale(1); }
+}
+
+/* Loan progress: spread the steps over the bar's full width, first at the left edge and last at
+   the right, so each marker lines up with where the bar fills to (declined path has 4, full path 7) */
+@media (min-width: 640px) {
+  .lifecycle-steps { display: flex; justify-content: space-between; }
+}
+
+/* ── History page ─────────────────────────────────────────────────────── */
+@layer components {
+  .history-badge {
+    display: flex;
+    width: 5.5rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 14px;
+    border: 1.5px solid currentColor;
+    background: color-mix(in oklab, currentColor 12%, transparent);
+    padding: 0.5rem 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .history-tone-fraud .history-badge { color: var(--color-candy-strong); }
+  .history-tone-clear .history-badge { color: oklch(0.8 0.15 160); }
+  .history-tone-escalate .history-badge { color: var(--color-sky); }
+
+  .history-row > * { transition: border-color 150ms ease, transform 160ms var(--ease-out); }
+  .history-open { opacity: 0.7; transition: opacity 150ms ease, transform 200ms var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) {
+    .history-row:hover > * { transform: translateY(-1px); }
+    .history-row:hover .history-open { opacity: 1; transform: translateX(3px); }
+  }
+  .history-row:focus-visible .history-open { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .history-row:hover > *, .history-row:hover .history-open { transform: none; }
+  }
+}
+
+/* Case tabs: the credit memo fills its tab instead of its old 40vh drawer cap */
+.case-tab-scroll > div { max-height: none; overflow: visible; }

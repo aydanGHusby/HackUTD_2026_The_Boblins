@@ -7,9 +7,9 @@ import { dateTime, humanize, money } from "@/lib/format";
 export const Route = createFileRoute("/escalations")({
   head: () => ({
     meta: [
-      { title: "Escalations · Paper View" },
+      { title: "Escalations · Paper Trail" },
       { name: "description", content: "Cases escalated by analysts awaiting senior sign-off." },
-      { property: "og:title", content: "Escalations · Paper View" },
+      { property: "og:title", content: "Escalations · Paper Trail" },
       { property: "og:description", content: "Cases escalated by analysts awaiting senior sign-off." },
     ],
   }),

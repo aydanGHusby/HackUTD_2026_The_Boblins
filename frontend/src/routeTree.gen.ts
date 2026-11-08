@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AskAiRouteImport } from './routes/ask-ai'
 import { Route as CasesRouteImport } from './routes/cases'
 import { Route as EscalationsRouteImport } from './routes/escalations'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as IntakeRouteImport } from './routes/intake'
 import { Route as OpsRouteImport } from './routes/ops'
 import { Route as QueueRouteImport } from './routes/queue'
@@ -36,6 +37,11 @@ const CasesRoute = CasesRouteImport.update({
 const EscalationsRoute = EscalationsRouteImport.update({
   id: '/escalations',
   path: '/escalations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IntakeRoute = IntakeRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/ask-ai': typeof AskAiRoute
   '/cases': typeof CasesRoute
   '/escalations': typeof EscalationsRoute
+  '/history': typeof HistoryRoute
   '/intake': typeof IntakeRoute
   '/ops': typeof OpsRoute
   '/queue': typeof QueueRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/ask-ai': typeof AskAiRoute
   '/cases': typeof CasesRoute
   '/escalations': typeof EscalationsRoute
+  '/history': typeof HistoryRoute
   '/intake': typeof IntakeRoute
   '/ops': typeof OpsRoute
   '/queue': typeof QueueRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/ask-ai': typeof AskAiRoute
   '/cases': typeof CasesRoute
   '/escalations': typeof EscalationsRoute
+  '/history': typeof HistoryRoute
   '/intake': typeof IntakeRoute
   '/ops': typeof OpsRoute
   '/queue': typeof QueueRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/ask-ai'
     | '/cases'
     | '/escalations'
+    | '/history'
     | '/intake'
     | '/ops'
     | '/queue'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/ask-ai'
     | '/cases'
     | '/escalations'
+    | '/history'
     | '/intake'
     | '/ops'
     | '/queue'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/ask-ai'
     | '/cases'
     | '/escalations'
+    | '/history'
     | '/intake'
     | '/ops'
     | '/queue'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   AskAiRoute: typeof AskAiRoute
   CasesRoute: typeof CasesRoute
   EscalationsRoute: typeof EscalationsRoute
+  HistoryRoute: typeof HistoryRoute
   IntakeRoute: typeof IntakeRoute
   OpsRoute: typeof OpsRoute
   QueueRoute: typeof QueueRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/escalations'
       fullPath: '/escalations'
       preLoaderRoute: typeof EscalationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/intake': {
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   AskAiRoute: AskAiRoute,
   CasesRoute: CasesRoute,
   EscalationsRoute: EscalationsRoute,
+  HistoryRoute: HistoryRoute,
   IntakeRoute: IntakeRoute,
   OpsRoute: OpsRoute,
   QueueRoute: QueueRoute,

@@ -1,6 +1,6 @@
 import { ActionError } from "@/components/InvestigationTools";
 import { LoadingStatus, Mascot } from "@/components/Mascot";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, ChevronDown, Loader2, SendHorizonal, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { dateTime, humanize } from "@/lib/format";
@@ -22,6 +22,8 @@ type Item =
   | { kind: "note"; at: string; n: Note; key: string };
 
 interface Props {
+  /** Floats in the bottom-right corner of the message list (e.g. the decision mascot). */
+  corner?: ReactNode;
   referenceLabel?: (id: string) => string;
   formatText?: (text: string) => string;
   args: Argument[];
@@ -47,6 +49,7 @@ export function AgentChat({
   onSelect,
   onAsk,
   onNote,
+  corner,
 }: Props) {
   const items = useMemo<Item[]>(() => {
     const list: Item[] = [];
@@ -105,71 +108,77 @@ export function AgentChat({
 
   return (
     <div className="agent-discussion flex h-full min-h-0 flex-col">
-      <div
-        role="log"
-        aria-label="Agent discussion messages"
-        aria-relevant="additions"
-        className="agent-messages flex-1 space-y-4 overflow-y-auto p-4"
-      >
-        {items.length === 0 && !running && (
-          <div className="py-10 text-center text-sm text-muted-foreground">
-            The agents haven't started yet.
-          </div>
-        )}
-        {items.map((it) => {
-          if (it.kind === "note")
-            return (
-              <div
-                key={it.key}
-                className="msg-in mx-auto max-w-[85%] rounded-lg bg-muted px-3 py-2 text-xs"
-              >
-                <b>{it.n.author}</b> left a note ·{" "}
-                <span className="text-muted-foreground">{dateTime(it.n.at)}</span>
-                <p className="mt-0.5">{it.n.text}</p>
-              </div>
-            );
-          if (it.kind === "question")
-            return (
-              <div key={it.key} className="msg-in flex justify-end">
-                <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3.5 py-2 text-sm text-primary-foreground">
-                  <div className="text-[10px] font-semibold opacity-80">
-                    {it.q.askedBy} → {agentName[it.q.to]}
-                  </div>
-                  {it.q.text}
-                  {!it.q.answerId && (
-                    <div className="mt-1 text-[10px] italic opacity-70">waiting for reply…</div>
-                  )}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          role="log"
+          aria-label="Agent discussion messages"
+          aria-relevant="additions"
+          className="agent-messages flex-1 space-y-4 overflow-y-auto p-4"
+        >
+          {items.length === 0 && !running && (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              The agents haven't started yet.
+            </div>
+          )}
+          {items.map((it) => {
+            if (it.kind === "note")
+              return (
+                <div
+                  key={it.key}
+                  className="msg-in mx-auto max-w-[85%] rounded-lg bg-muted px-3 py-2 text-xs"
+                >
+                  <b>{it.n.author}</b> left a note ·{" "}
+                  <span className="text-muted-foreground">{dateTime(it.n.at)}</span>
+                  <p className="mt-0.5">{it.n.text}</p>
                 </div>
-              </div>
+              );
+            if (it.kind === "question")
+              return (
+                <div key={it.key} className="msg-in flex justify-end">
+                  <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3.5 py-2 text-sm text-primary-foreground">
+                    <div className="text-[10px] font-semibold opacity-80">
+                      {it.q.askedBy} → {agentName[it.q.to]}
+                    </div>
+                    {it.q.text}
+                    {!it.q.answerId && (
+                      <div className="mt-1 text-[10px] italic opacity-70">waiting for reply…</div>
+                    )}
+                  </div>
+                </div>
+              );
+            return (
+              <ClaimBubble
+                key={it.key}
+                side={it.side}
+                round={it.round}
+                claim={it.claim}
+                active={active === it.claim}
+                onClick={() => onSelect(it.claim)}
+                referenceLabel={referenceLabel}
+                formatText={formatText}
+              />
             );
-          return (
-            <ClaimBubble
-              key={it.key}
-              side={it.side}
-              round={it.round}
-              claim={it.claim}
-              active={active === it.claim}
-              onClick={() => onSelect(it.claim)}
-              referenceLabel={referenceLabel}
-              formatText={formatText}
-            />
-          );
-        })}
-        {/* Claims land one round at a time while a trial runs; this shows the next ones are coming. */}
-        {running && (
-          <div className="msg-in flex items-center gap-2 text-xs text-muted-foreground">
-            <LoadingStatus
-              label={
-                args.length
-                  ? "Agents are writing the next round…"
-                  : "Agents are reading the case file…"
-              }
-              size={26}
-              className="text-xs"
-            />
-          </div>
+          })}
+          {/* Claims land one round at a time while a trial runs; this shows the next ones are coming. */}
+          {running && (
+            <div className="msg-in flex items-center gap-2 text-xs text-muted-foreground">
+              <LoadingStatus
+                label={
+                  args.length
+                    ? "Agents are writing the next round…"
+                    : "Agents are reading the case file…"
+                }
+                size={26}
+                className="text-xs"
+              />
+            </div>
+          )}
+          {corner && <div aria-hidden className="h-20" />}
+          <div ref={bottom} />
+        </div>
+        {corner && (
+          <div className="pointer-events-none absolute bottom-3 right-3 z-10">{corner}</div>
         )}
-        <div ref={bottom} />
       </div>
 
       {!disabled && (

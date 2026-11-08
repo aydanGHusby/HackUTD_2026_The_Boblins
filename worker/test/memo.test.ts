@@ -24,6 +24,17 @@ test("the checker rejects an unknown recommendation, a missing summary and an em
   assert.throws(() => validateMemo({ agreed: [], disputed: [] }), /memo must be an object/);
 });
 
+test("the checker keeps lists written as one string or as objects", () => {
+  const m = validateMemo({
+    ...good,
+    agreed: "col5 secures two loans",
+    memo: { ...good.memo, conditions: undefined, documents: [{ document: "A UCC lien search on col5" }, "Appraisal of col5"] },
+  });
+  assert.deepEqual(m.agreed, ["col5 secures two loans"]);
+  assert.deepEqual(m.memo.conditions, []);
+  assert.deepEqual(m.memo.documents, ["A UCC lien search on col5", "Appraisal of col5"]);
+});
+
 test("a worker trial saves the credit memo with the crux", async () => {
   const store = new MemoryStore(loadFixture());
   await runTrial("CASE-06", { llm: new FakeLLM(), store, depth: "debate", useTools: false });
