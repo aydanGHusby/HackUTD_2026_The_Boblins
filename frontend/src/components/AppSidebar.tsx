@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { LayoutGrid, FilePlus2, ArrowUpCircle, Network, Moon, Sun } from "lucide-react";
 import { setIdentity, useIdentity } from "@/data/identity";
 import { useTheme } from "@/lib/theme";
@@ -42,8 +43,7 @@ export function AppSidebar() {
           </div>
         </div>
         <div className="opacity-80">Signed in as</div>
-        <input value={me.name} onChange={(e) => setIdentity({ ...me, name: e.target.value || "Analyst" })}
-          className="w-full rounded-lg bg-sidebar-panel px-2 py-1 text-sm font-semibold text-sidebar-accent-foreground outline-none ring-1 ring-sidebar-border focus:ring-2 focus:ring-sidebar-ring" />
+        <NameField name={me.name} onSave={(name) => setIdentity({ ...me, name })} />
         <div className="grid grid-cols-2 gap-1">
           {(["analyst", "senior_reviewer"] as const).map((r) => (
             <button key={r} onClick={() => setIdentity({ ...me, role: r })}
@@ -54,5 +54,22 @@ export function AppSidebar() {
         </div>
       </div>
     </aside>
+  );
+}
+
+// Edits stay local while typing and save on Enter or blur, so the field can be cleared and retyped.
+function NameField({ name, onSave }: { name: string; onSave: (name: string) => void }) {
+  const [draft, setDraft] = useState(name);
+  useEffect(() => setDraft(name), [name]);
+  const save = () => {
+    const next = draft.trim();
+    if (next && next !== name) onSave(next);
+    else setDraft(name);
+  };
+  return (
+    <input value={draft} placeholder="Your name" aria-label="Your name"
+      onChange={(e) => setDraft(e.target.value)} onBlur={save}
+      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setDraft(name); e.currentTarget.blur(); } }}
+      className="w-full rounded-lg bg-sidebar-panel px-2 py-1 text-sm font-semibold text-sidebar-accent-foreground outline-none ring-1 ring-sidebar-border focus:ring-2 focus:ring-sidebar-ring" />
   );
 }
