@@ -4,8 +4,9 @@ import { useEffect, useSyncExternalStore } from "react";
 import * as mock from "@/mock/mockData";
 import { argueFn, type CaseFile } from "@/agents/trial";
 import { applyLoanOps, loadLoanState, resetLoanState } from "@/data/spacetime";
+import { lifecycle, type Lifecycle } from "@/lib/lifecycle";
 import type {
-  Argument, AuditEvent, Case, Claim, Crux, Decision, EvidenceItem, GraphNode, Note, Question, Round, Side, SignOff, Verdict, Edge, Loan,
+  Argument, AuditEvent, Case, Claim, Crux, Decision, EvidenceItem, GraphNode, LoanStage, Note, Question, Round, Side, SignOff, Verdict, Edge, Loan,
 } from "@/shared/types";
 
 type Shared = {
@@ -51,12 +52,19 @@ function applyOps(s: Store, ops: Op[]): Store {
   return next;
 }
 
-const sync = { started: false, online: false, revision: -1, pending: 0, busy: false };
+// checked: the first read has answered, so `online` is known. Writes made before that wait in `queued`.
+const sync = { started: false, checked: false, online: false, revision: -1, pending: 0, busy: false, queued: [] as Op[][] };
 
 function commit(...ops: Op[]) {
   store = applyOps(store, ops);
   listeners.forEach((l) => l());
-  if (!sync.online) return;
+  // A page that never reads the store (e.g. a fresh load of New loan) hasn't started syncing yet.
+  startSync();
+  if (!sync.checked) { sync.queued.push(ops); return; }
+  if (sync.online) send(ops);
+}
+
+function send(ops: Op[]) {
   sync.pending++;
   applyLoanOps({ data: { actionId: uid("act"), ops: JSON.stringify(ops) } })
     .catch((err) => console.error("[sync] write failed", err))
@@ -69,9 +77,15 @@ async function refresh() {
   sync.busy = true;
   try {
     const res = await loadLoanState();
-    if (res.status === "offline") { sync.online = false; return; }
+    if (res.status === "offline") { sync.online = false; sync.checked = true; sync.queued = []; return; }
     if (res.status === "empty") { await resetLoanState({ data: JSON.stringify(seed()) }); sync.revision = -1; return; }
     sync.online = true;
+    if (!sync.checked) {
+      // Send what was written before the first read; the snapshot is applied once those land.
+      sync.checked = true;
+      for (const ops of sync.queued.splice(0)) send(ops);
+      if (sync.pending) return;
+    }
     if (res.revision !== sync.revision && !sync.pending) {
       sync.revision = res.revision;
       set({ presence: [], running: [], ...(JSON.parse(res.data) as Partial<Shared>) });
@@ -182,6 +196,22 @@ export function useViewing(caseId: string, user: string) {
   }, [caseId, user]);
 }
 export const useSignOff = (caseId: string) => useStore().signOffs.find((v) => v.caseId === caseId);
+
+function loanLifecycle(s: Shared, loanId: string): Lifecycle | undefined {
+  const loan = s.loans.find((l) => l.id === loanId);
+  if (!loan) return undefined;
+  const c = s.cases.find((x) => x.loanId === loanId);
+  return lifecycle({
+    loan, case: c,
+    verdict: c && s.verdicts.find((v) => v.caseId === c.id),
+    signOff: c && s.signOffs.find((o) => o.caseId === c.id),
+  });
+}
+/** Where a loan is in Applied → … → Monitored, and the next step an analyst can take. */
+export function useLoanLifecycle(loanId: string | undefined) {
+  const s = useStore();
+  return loanId ? loanLifecycle(s, loanId) : undefined;
+}
 export function useEscalations() {
   const s = useStore();
   return s.verdicts
@@ -282,6 +312,28 @@ export async function runTrial(caseId: string, actor: string) {
     );
   }
 }
+const STAGE_ACTION: Partial<Record<LoanStage, string>> = {
+  closed: "closed the loan",
+  funded: "funded the loan",
+  monitored: "moved the loan to post-funding monitoring",
+};
+/** Move a loan to its next stage after the decision, with an audit entry on its case. */
+export function advanceLoan(loanId: string, stage: "closed" | "funded" | "monitored", actor: string) {
+  const current = loanLifecycle(store, loanId);
+  const allowed = stage === "monitored" ? current?.stage === "funded" : current?.next?.stage === stage && !current.next.blockedBy;
+  if (!allowed) return false;
+  const caseId = store.cases.find((c) => c.loanId === loanId)?.id ?? loanId;
+  commit(
+    { op: "update", table: "loans", key: "id", value: loanId, patch: { stage } },
+    { op: "append", table: "audit", item: log(caseId, actor, `${STAGE_ACTION[stage]} (${loanId})`) },
+  );
+  return true;
+}
+/** Funding hands the loan straight to monitoring; both steps go in the history. */
+export function fundLoan(loanId: string, actor: string) {
+  return advanceLoan(loanId, "funded", actor) && advanceLoan(loanId, "monitored", "system");
+}
+
 export function addNote(caseId: string, author: string, text: string) {
   commit(
     { op: "append", table: "notes", item: { id: uid("n"), caseId, author, text, at: now() } },

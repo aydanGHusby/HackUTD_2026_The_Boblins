@@ -2,15 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, ChevronDown, Gavel, Loader2 } from "lucide-react";
 import { AgentChat } from "@/components/AgentChat";
+import { LifecycleBar } from "@/components/LifecycleBar";
 import { GraphView } from "@/components/graph/GraphView";
 import { Avatars, Empty, RiskScore, StatusBadge, TriggerTag } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import {
-  addNote, askQuestion, runTrial, submitVerdict, useArguments, useAudit, useCase, useCrux, useEvidence,
-  useNotes, useQuestions, useSignOff, useSubgraph, useTrial, useVerdict, useViewing,
+  addNote, advanceLoan, askQuestion, fundLoan, runTrial, submitVerdict, useArguments, useAudit, useCase, useCrux, useEvidence,
+  useLoanLifecycle, useNotes, useQuestions, useSignOff, useSubgraph, useTrial, useVerdict, useViewing,
 } from "@/data/hooks";
 import { useIdentity } from "@/data/identity";
 import { dateTime, humanize, money } from "@/lib/format";
+import type { Lifecycle } from "@/lib/lifecycle";
 import { cn } from "@/lib/utils";
 import type { Claim, Decision } from "@/shared/types";
 
@@ -41,6 +43,7 @@ function CasePage() {
   const verdict = useVerdict(id);
   const signOff = useSignOff(id);
   const trial = useTrial(id);
+  const life = useLoanLifecycle(c?.loanId);
   const running = trial === "running";
   const [active, setActive] = useState<Claim>();
   const [highlight, setHighlight] = useState<string[]>([]);
@@ -62,6 +65,7 @@ function CasePage() {
         </div>
         <div className="flex flex-wrap gap-1">{c.triggers.map((t) => <TriggerTag key={t} trigger={t} />)}</div>
         <div className="ml-auto flex items-center gap-3"><StatusBadge status={c.status} /><Avatars users={c.viewers} /></div>
+        {life && <LifecycleBar lifecycle={life} />}
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px]">
@@ -128,7 +132,7 @@ function CasePage() {
             <AgentChat args={args} questions={questions} notes={notes} active={active} disabled={decided} running={running}
               onSelect={select} onAsk={(s, t) => askQuestion(id, me.name, s, t)} onNote={(t) => addNote(id, me.name, t)} />
           </div>
-          {verdict ? <Decided verdict={verdict} signOff={signOff} /> :
+          {verdict ? <Decided verdict={verdict} signOff={signOff} life={life} loanId={c.loanId} actor={me.name} /> :
             <DecisionBox enabled={c.status === "awaiting_verdict"} onSubmit={(d, r) => submitVerdict(id, me.name, d, r)} />}
         </aside>
       </div>
@@ -136,13 +140,26 @@ function CasePage() {
   );
 }
 
-function Decided({ verdict, signOff }: { verdict: NonNullable<ReturnType<typeof useVerdict>>; signOff: ReturnType<typeof useSignOff> }) {
+function Decided({ verdict, signOff, life, loanId, actor }: {
+  verdict: NonNullable<ReturnType<typeof useVerdict>>; signOff: ReturnType<typeof useSignOff>;
+  life: Lifecycle | undefined; loanId: string; actor: string;
+}) {
   return (
     <div className={cn("border-t border-border p-4 text-sm", verdict.decision === "fraud" ? "bg-candy-soft" : "bg-sky-soft")}>
       <div className="font-bold">Decision: {humanize(verdict.decision)}</div>
       <div className="text-xs text-muted-foreground">{verdict.analyst} · {dateTime(verdict.decidedAt)}</div>
       <p className="mt-1">{verdict.reasoning}</p>
       {signOff && <p className="mt-1 text-xs">Senior sign-off: <b>{humanize(signOff.decision)}</b> by {signOff.reviewer}</p>}
+      {life?.next && (
+        <div className="mt-3 space-y-1">
+          <Button size="sm" className="w-full" disabled={!!life.next.blockedBy}
+            onClick={() => (life.next!.stage === "funded" ? fundLoan(loanId, actor) : advanceLoan(loanId, life.next!.stage, actor))}>
+            {life.next.label}
+          </Button>
+          {life.next.blockedBy && <p className="text-xs text-muted-foreground">{life.next.blockedBy}</p>}
+        </div>
+      )}
+      {life?.stage === "monitored" && <p className="mt-2 text-xs font-semibold text-ocean">Funded · under monitoring</p>}
     </div>
   );
 }
