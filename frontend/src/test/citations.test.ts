@@ -5,7 +5,7 @@ const file = {
   caseId: "CASE-06", loanId: "L-1006", borrower: "Crestview", triggers: [],
   nodes: [{ id: "c3" }, { id: "col2" }, { id: "L-1003" }, { id: "L-1006" }],
   edges: [{ id: "e1" }, { id: "e10" }, { id: "e-zx2dc3" }],
-  evidence: [{ id: "ev-1" }],
+  evidence: [{ id: "ev-1", citations: ["col2"] }],
 } as unknown as CaseFile;
 
 describe("checkClaims", () => {
