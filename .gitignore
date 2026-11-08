@@ -7,3 +7,10 @@
 node_modules/
 npm-debug.log*
 .DS_Store
+
+.local-spacetime/
+
+spacetimedb/dist/
+
+# Worker output
+worker/out/

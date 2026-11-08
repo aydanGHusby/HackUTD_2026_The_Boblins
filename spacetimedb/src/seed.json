@@ -1,0 +1,253 @@
+{
+  "accounts": [
+    {
+      "id": "ACC-8492",
+      "owner": "Apex Shell Logistics LLC",
+      "type": "Business Wire",
+      "inst": "Chase NA",
+      "balance": 482500,
+      "riskScore": 94,
+      "status": "flagged_mule",
+      "kyc": false,
+      "country": "US",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "ACC-1102",
+      "owner": "James Miller",
+      "type": "Retail Checking",
+      "inst": "Wells Fargo",
+      "balance": 1240,
+      "riskScore": 82,
+      "status": "suspicious",
+      "kyc": true,
+      "country": "US",
+      "x": -160,
+      "y": -120
+    },
+    {
+      "id": "ACC-1105",
+      "owner": "David Chen",
+      "type": "Retail Checking",
+      "inst": "Bank of America",
+      "balance": 2100,
+      "riskScore": 84,
+      "status": "suspicious",
+      "kyc": true,
+      "country": "US",
+      "x": -220,
+      "y": 0
+    },
+    {
+      "id": "ACC-1109",
+      "owner": "Rachel Taylor",
+      "type": "Retail Checking",
+      "inst": "Citibank",
+      "balance": 850,
+      "riskScore": 85,
+      "status": "suspicious",
+      "kyc": true,
+      "country": "US",
+      "x": -160,
+      "y": 120
+    },
+    {
+      "id": "ACC-9920",
+      "owner": "Crypto Gateway Cayman",
+      "type": "Offshore VASP",
+      "inst": "Cayman Commercial Bank",
+      "balance": 2450000,
+      "riskScore": 96,
+      "status": "flagged_mule",
+      "kyc": false,
+      "country": "KY",
+      "x": 190,
+      "y": -80
+    },
+    {
+      "id": "ACC-3310",
+      "owner": "Vanguard Merchant Settlement",
+      "type": "Payment Processor",
+      "inst": "PNC Bank",
+      "balance": 640000,
+      "riskScore": 38,
+      "status": "normal",
+      "kyc": true,
+      "country": "US",
+      "x": 120,
+      "y": 160
+    },
+    {
+      "id": "ACC-7741",
+      "owner": "Liam Vance",
+      "type": "Personal Checking",
+      "inst": "Capital One",
+      "balance": 8400,
+      "riskScore": 18,
+      "status": "normal",
+      "kyc": true,
+      "country": "US",
+      "x": -320,
+      "y": -180
+    },
+    {
+      "id": "ACC-5521",
+      "owner": "Starlight Escrow Services",
+      "type": "Escrow Commercial",
+      "inst": "US Bank",
+      "balance": 1890000,
+      "riskScore": 42,
+      "status": "normal",
+      "kyc": true,
+      "country": "US",
+      "x": 300,
+      "y": 180
+    },
+    {
+      "id": "ACC-2041",
+      "owner": "Metro Payroll Dist. Inc.",
+      "type": "Corporate Payroll",
+      "inst": "JPMorgan Chase",
+      "balance": 3200000,
+      "riskScore": 12,
+      "status": "normal",
+      "kyc": true,
+      "country": "US",
+      "x": -400,
+      "y": -90
+    },
+    {
+      "id": "ACC-4089",
+      "owner": "Elena Rostova Private Trust",
+      "type": "Wealth Mgmt",
+      "inst": "Morgan Stanley",
+      "balance": 520000,
+      "riskScore": 22,
+      "status": "normal",
+      "kyc": true,
+      "country": "US",
+      "x": -60,
+      "y": 260
+    },
+    {
+      "id": "ACC-6102",
+      "owner": "FinTech Clearing Corp",
+      "type": "Settlement Gateway",
+      "inst": "BNY Mellon",
+      "balance": 4100000,
+      "riskScore": 28,
+      "status": "normal",
+      "kyc": true,
+      "country": "US",
+      "x": 20,
+      "y": 350
+    },
+    {
+      "id": "ACC-9011",
+      "owner": "Pacific Import/Export Group",
+      "type": "International Trade",
+      "inst": "HSBC",
+      "balance": 780000,
+      "riskScore": 65,
+      "status": "normal",
+      "kyc": true,
+      "country": "HK",
+      "x": 240,
+      "y": 60
+    }
+  ],
+  "transfers": [
+    {
+      "id": "TX-901",
+      "from": "ACC-1102",
+      "to": "ACC-8492",
+      "amount": 9800,
+      "type": "Instant ACH",
+      "time": "10m ago",
+      "flagged": true,
+      "reason": "Structuring below $10k CTR"
+    },
+    {
+      "id": "TX-902",
+      "from": "ACC-1105",
+      "to": "ACC-8492",
+      "amount": 9950,
+      "type": "Instant ACH",
+      "time": "8m ago",
+      "flagged": true,
+      "reason": "Structuring below $10k CTR"
+    },
+    {
+      "id": "TX-903",
+      "from": "ACC-1109",
+      "to": "ACC-8492",
+      "amount": 9900,
+      "type": "Instant ACH",
+      "time": "6m ago",
+      "flagged": true,
+      "reason": "Structuring below $10k CTR"
+    },
+    {
+      "id": "TX-904",
+      "from": "ACC-8492",
+      "to": "ACC-9920",
+      "amount": 29500,
+      "type": "Offshore Wire",
+      "time": "2m ago",
+      "flagged": true,
+      "reason": "Rapid Layering to Offshore VASP"
+    },
+    {
+      "id": "TX-880",
+      "from": "ACC-2041",
+      "to": "ACC-7741",
+      "amount": 4200,
+      "type": "Direct Deposit",
+      "time": "1h ago",
+      "flagged": false
+    },
+    {
+      "id": "TX-881",
+      "from": "ACC-3310",
+      "to": "ACC-9011",
+      "amount": 14500,
+      "type": "Commercial ACH",
+      "time": "2h ago",
+      "flagged": false
+    },
+    {
+      "id": "TX-882",
+      "from": "ACC-6102",
+      "to": "ACC-3310",
+      "amount": 82000,
+      "type": "Fedwire",
+      "time": "3h ago",
+      "flagged": false
+    },
+    {
+      "id": "TX-883",
+      "from": "ACC-9011",
+      "to": "ACC-5521",
+      "amount": 45000,
+      "type": "Wire",
+      "time": "4h ago",
+      "flagged": false
+    },
+    {
+      "id": "TX-884",
+      "from": "ACC-4089",
+      "to": "ACC-6102",
+      "amount": 12000,
+      "type": "Transfer",
+      "time": "5h ago",
+      "flagged": false
+    }
+  ],
+  "caseNotes": [],
+  "activityFeed": [],
+  "investigations": {},
+  "decisions": {},
+  "predictions": [],
+  "predictionActive": false
+}

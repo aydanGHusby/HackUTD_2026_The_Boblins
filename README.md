@@ -1,9 +1,9 @@
-# FraudGraph ⚡
+# Paper Trail ⚡
 
-**AI-Powered Financial Fraud Detection & Predictive Intelligence Platform**  
+**AI-Powered Financial Fraud Detection & Predictive Intelligence Platform**
 *Built for HackUTD 2026*
 
-FraudGraph is an enterprise financial fraud detection and prediction platform that helps banks and financial institutions identify suspicious transactions before they become catastrophic losses. 
+Paper Trail is an enterprise financial fraud detection and prediction platform that helps banks and financial institutions identify suspicious transactions before they become catastrophic losses.
 
 Using **NVIDIA Nemotron 3.5 Super (120B)** and a real-time **SpacetimeDB** collaborative architecture, the platform analyzes high-velocity transaction clusters, investigates unusual patterns across account networks, predicts which accounts may be at risk of future fraud, and displays everything on an interactive network graph.
 
@@ -11,7 +11,7 @@ Using **NVIDIA Nemotron 3.5 Super (120B)** and a real-time **SpacetimeDB** colla
 
 ## 🔬 IBM AML Synthetic Dataset Integration
 
-FraudGraph is built directly on the structure of **IBM's Transactions for Anti-Money Laundering (AML)** synthetic dataset:
+Paper Trail is built directly on the structure of **IBM's Transactions for Anti-Money Laundering (AML)** synthetic dataset:
 
 ```
 Timestamp,From_Bank,From_Account,To_Bank,To_Account,Amount_Paid,Payment_Format,Is_Laundering,Pattern_Type
@@ -22,13 +22,13 @@ Timestamp,From_Bank,From_Account,To_Bank,To_Account,Amount_Paid,Payment_Format,I
 
 ### The 3-Phase Evaluation Experiment
 
-1. **Phase 1 — Ingest Ground-Truth Dataset:**  
+1. **Phase 1 — Ingest Ground-Truth Dataset:**
    Import curated IBM synthetic AML transactions and bank accounts into the real-time SpacetimeDB engine, mapping nodes (accounts) and edges (transactions).
 
-2. **Phase 2 — Detect & Investigate ($T \le 09:45\text{ AM}$):**  
+2. **Phase 2 — Detect & Investigate ($T \le 09:45\text{ AM}$):**
    Deterministic anomaly detectors flag sub-$10,000 CTR structuring patterns. **NVIDIA Nemotron** runs automated forensic investigations on the flagged cluster.
 
-3. **Phase 3 — Forecast Emerging Risks & Reveal Ground Truth ($T \ge 10:00\text{ AM}$):**  
+3. **Phase 3 — Forecast Emerging Risks & Reveal Ground Truth ($T \ge 10:00\text{ AM}$):**
    - **Blind Prediction:** Later transactions ($T \ge 10:00\text{ AM}$) are masked from the AI. Nemotron analyzes graph topology and predicts which peripheral accounts will be used next as laundering exit nodes (`ACC-3310` and `ACC-5521`).
    - **Ground Truth Evaluation:** Reveal the future transactions and evaluate Nemotron's early warnings against the actual labeled illicit activity:
      - **Precision:** 100% (2 / 2 flagged accounts confirmed)
