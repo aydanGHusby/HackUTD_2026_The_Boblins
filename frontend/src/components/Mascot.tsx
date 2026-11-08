@@ -71,7 +71,7 @@ export function BrandLogo({ size = 38, className }: { size?: number; className?:
     >
       <MascotPerformance size={size} />
       <span>
-        Paper<span className="text-ocean">View</span>
+        Paper<span className="text-ocean">Trail</span>
       </span>
     </span>
   );
