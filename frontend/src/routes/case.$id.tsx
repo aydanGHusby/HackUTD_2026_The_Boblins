@@ -1,6 +1,6 @@
 import { LoadingStatus } from "@/components/Mascot";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowLeft, ChevronDown, Gavel, Monitor, Minimize2 } from "lucide-react";
 import {
   ActionError,
@@ -8,6 +8,7 @@ import {
   EvidenceInspector,
   nextAction,
 } from "@/components/InvestigationTools";
+import { PresentationView, usePresentationMode } from "@/components/PresentationView";
 import { AgentChat } from "@/components/AgentChat";
 import { LifecycleBar } from "@/components/LifecycleBar";
 import { SignOffForm } from "@/components/SignOffForm";
@@ -82,18 +83,7 @@ function CasePage() {
   const [drawer, setDrawer] = useState<"evidence" | "summary" | "history" | null>("summary");
 
   const [selection, setSelection] = useState<{ text: string; citations: string[] }>();
-  const [presenting, setPresenting] = useState(false);
-  useEffect(() => {
-    document.documentElement.classList.toggle("presentation-mode", presenting);
-    const exit = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPresenting(false);
-    };
-    window.addEventListener("keydown", exit);
-    return () => {
-      document.documentElement.classList.remove("presentation-mode");
-      window.removeEventListener("keydown", exit);
-    };
-  }, [presenting]);
+  const { presenting, setPresenting } = usePresentationMode();
 
   if (!c)
     return (
@@ -137,276 +127,282 @@ function CasePage() {
   };
 
   return (
-    <div className="case-classic courtroom-layout flex min-h-screen flex-col lg:h-screen lg:overflow-hidden">
-      {/* Header */}
-      <header className="edge-lit flex flex-wrap items-center gap-4 border-b border-border bg-card/70 px-6 py-3 backdrop-blur-xl">
-        <Link
-          to="/cases"
-          aria-label="Back to cases"
-          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <RiskScore score={c.riskScore} size="lg" />
-        <div>
-          <h1 className="text-xl font-extrabold tracking-tight">{c.borrower}</h1>
-          <div className="text-xs text-muted-foreground">
-            <span className="font-mono">{c.id}</span> ·{" "}
-            {c.loan && `${money(c.loan.amount)} · ${c.loan.purpose}`}
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {c.triggers.map((t) => (
-            <TriggerTag key={t} trigger={t} />
-          ))}
-        </div>
-        <div className="ml-auto flex items-center gap-3">
-          <Button
-            size="sm"
-            variant="outline"
-            aria-pressed={presenting}
-            onClick={() => setPresenting(!presenting)}
+    <PresentationView active={presenting}>
+      <div className="case-classic courtroom-layout flex min-h-screen flex-col lg:h-screen lg:overflow-hidden">
+        {/* Header */}
+        <header className="edge-lit flex flex-wrap items-center gap-4 border-b border-border bg-card/70 px-6 py-3 backdrop-blur-xl">
+          <Link
+            to="/cases"
+            aria-label="Back to cases"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
           >
-            {presenting ? <Minimize2 className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
-            {presenting ? "Exit presentation" : "Present"}
-          </Button>
-          <StatusBadge status={c.status} />
-          <Avatars users={c.viewers} />
-        </div>
-        <div className="basis-full flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-          <span>
-            Reviewer: <b className="text-foreground">{verdict?.analyst || `${me.name} (you)`}</b>
-            {!verdict && " · not yet decided"}
-          </span>
-          <span>
-            Stage: <b className="text-foreground">{humanize(life?.stage || c.status)}</b>
-          </span>
-          <span>
-            Flagged for:{" "}
-            <b className="text-foreground">
-              {c.triggers.map(humanize).join(", ") || "Manual review"}
-            </b>
-          </span>
-        </div>
-        <div
-          role="status"
-          className="basis-full rounded-xl border border-ocean/25 bg-sky-soft px-3 py-2 text-xs"
-        >
-          <b className="text-ocean">Next action</b>
-          <span className="ml-2">{next}</span>
-          {presenting && <span className="ml-2 text-muted-foreground">Esc exits presentation</span>}
-        </div>
-        {life && <LifecycleBar lifecycle={life} running={running} />}
-      </header>
-
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,1fr)]">
-        {/* Left: canvas + drawer */}
-        <section className="flex min-h-0 flex-col gap-3 overflow-y-auto bg-canvas p-4">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">
-              Network map · 2 hops from {c.loanId}
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <RiskScore score={c.riskScore} size="lg" />
+          <div>
+            <h1 className="text-xl font-extrabold tracking-tight">{c.borrower}</h1>
+            <div className="text-xs text-muted-foreground">
+              <span className="font-mono">{c.id}</span> ·{" "}
+              {c.loan && `${money(c.loan.amount)} · ${c.loan.purpose}`}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {c.triggers.map((t) => (
+              <TriggerTag key={t} trigger={t} />
+            ))}
+          </div>
+          <div className="ml-auto flex items-center gap-3">
+            <Button
+              size="sm"
+              variant="outline"
+              aria-pressed={presenting}
+              onClick={() => setPresenting(!presenting)}
+            >
+              {presenting ? <Minimize2 className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
+              {presenting ? "Exit presentation" : "Present"}
+            </Button>
+            <StatusBadge status={c.status} />
+            <Avatars users={c.viewers} />
+          </div>
+          <div className="basis-full flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+            <span>
+              Reviewer: <b className="text-foreground">{verdict?.analyst || `${me.name} (you)`}</b>
+              {!verdict && " · not yet decided"}
             </span>
-            {highlight.length > 0 && (
-              <button
-                className="font-semibold text-ocean"
-                onClick={() => {
+            <span>
+              Stage: <b className="text-foreground">{humanize(life?.stage || c.status)}</b>
+            </span>
+            <span>
+              Flagged for:{" "}
+              <b className="text-foreground">
+                {c.triggers.map(humanize).join(", ") || "Manual review"}
+              </b>
+            </span>
+          </div>
+          <div
+            role="status"
+            className="basis-full rounded-xl border border-ocean/25 bg-sky-soft px-3 py-2 text-xs"
+          >
+            <b className="text-ocean">Next action</b>
+            <span className="ml-2">{next}</span>
+            {presenting && (
+              <span className="ml-2 text-muted-foreground">Esc exits presentation</span>
+            )}
+          </div>
+          {life && <LifecycleBar lifecycle={life} running={running} />}
+        </header>
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,1fr)]">
+          {/* Left: canvas + drawer */}
+          <section className="flex min-h-0 flex-col gap-3 overflow-y-auto bg-canvas p-4">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">
+                Network map · 2 hops from {c.loanId}
+              </span>
+              {highlight.length > 0 && (
+                <button
+                  className="font-semibold text-ocean"
+                  onClick={() => {
+                    setHighlight([]);
+                    setActive(undefined);
+                  }}
+                >
+                  Clear highlight
+                </button>
+              )}
+            </div>
+            <div className="glass edge-lit overflow-hidden rounded-2xl">
+              <GraphView
+                nodes={graph.nodes}
+                edges={graph.edges}
+                centerId={c.loanId}
+                flagged={graph.flagged}
+                highlight={highlight}
+                height={presenting ? 520 : 440}
+                referenceLabel={label}
+                onInspect={(reference) => {
+                  const node = graph.nodes.find((n) => n.id === reference);
+                  const edge = graph.edges.find((e) => e.id === reference);
+                  inspect(
+                    node?.label ||
+                      (edge
+                        ? `${label(edge.from)} ${humanize(edge.kind)} ${label(edge.to)}`
+                        : reference),
+                    [reference],
+                  );
+                }}
+              />
+            </div>
+
+            {selection && (
+              <EvidenceInspector
+                selection={selection}
+                nodes={graph.nodes}
+                edges={graph.edges}
+                onClose={() => {
+                  setSelection(undefined);
                   setHighlight([]);
                   setActive(undefined);
                 }}
-              >
-                Clear highlight
-              </button>
+              />
             )}
-          </div>
-          <div className="glass edge-lit overflow-hidden rounded-2xl">
-            <GraphView
-              nodes={graph.nodes}
-              edges={graph.edges}
-              centerId={c.loanId}
-              flagged={graph.flagged}
-              highlight={highlight}
-              height={presenting ? 520 : 440}
-              referenceLabel={label}
-              onInspect={(reference) => {
-                const node = graph.nodes.find((n) => n.id === reference);
-                const edge = graph.edges.find((e) => e.id === reference);
-                inspect(
-                  node?.label ||
-                    (edge
-                      ? `${label(edge.from)} ${humanize(edge.kind)} ${label(edge.to)}`
-                      : reference),
-                  [reference],
-                );
-              }}
-            />
-          </div>
-
-          {selection && (
-            <EvidenceInspector
-              selection={selection}
-              nodes={graph.nodes}
-              edges={graph.edges}
-              onClose={() => {
-                setSelection(undefined);
-                setHighlight([]);
-                setActive(undefined);
-              }}
-            />
-          )}
-          <div className="glass edge-lit rounded-2xl">
-            <div className="flex gap-1 border-b border-border p-2">
-              {(["summary", "evidence", "history"] as const).map((d) => (
-                <button
-                  key={d}
-                  aria-expanded={drawer === d}
-                  onClick={() => setDrawer(drawer === d ? null : d)}
-                  className={cn(
-                    "flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold",
-                    drawer === d
-                      ? "bg-primary text-primary-foreground glow-ocean"
-                      : "text-muted-foreground hover:bg-muted",
-                  )}
-                >
-                  {d === "summary"
-                    ? "Where they agree"
-                    : d === "evidence"
-                      ? `Evidence (${evidence.length})`
-                      : "History"}
-                  <ChevronDown className={cn("h-3 w-3 transition", drawer === d && "rotate-180")} />
-                </button>
-              ))}
-            </div>
-            {drawer === "summary" && (
-              <div className="grid gap-3 p-4 md:grid-cols-2">
-                {!crux ? (
-                  <p className="text-sm text-muted-foreground">
-                    Available once both agents finish.
-                  </p>
-                ) : (
-                  <>
-                    <div>
-                      <h3 className="text-xs font-bold text-ocean">Both agents agree</h3>
-                      <ul className="mt-1.5 space-y-1 text-sm">
-                        {crux.agreed.map((a) => (
-                          <li key={a}>• {readable(a)}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-candy-strong">Still disputed</h3>
-                      <ul className="mt-1.5 space-y-2 text-sm">
-                        {crux.disputed.map((d) => (
-                          <li key={d.point}>
-                            {readable(d.point)}
-                            <div className="text-xs text-muted-foreground">
-                              Would be settled by: {readable(d.decidingFact)}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-            {drawer === "evidence" && (
-              <div className="grid gap-2 p-3 md:grid-cols-2">
-                {evidence.length === 0 && (
-                  <p className="p-1 text-sm text-muted-foreground">No evidence filed yet.</p>
-                )}
-                {evidence.map((e) => (
+            <div className="glass edge-lit rounded-2xl">
+              <div className="flex gap-1 border-b border-border p-2">
+                {(["summary", "evidence", "history"] as const).map((d) => (
                   <button
-                    key={e.id}
-                    onClick={() => {
-                      inspect(e.fact, e.citations);
-                      setActive(undefined);
-                    }}
-                    className="rounded-xl border border-border p-3 text-left text-sm hover:border-sky hover:bg-sky-soft"
+                    key={d}
+                    aria-expanded={drawer === d}
+                    onClick={() => setDrawer(drawer === d ? null : d)}
+                    className={cn(
+                      "flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold",
+                      drawer === d
+                        ? "bg-primary text-primary-foreground glow-ocean"
+                        : "text-muted-foreground hover:bg-muted",
+                    )}
                   >
-                    {readable(e.fact)}
+                    {d === "summary"
+                      ? "Where they agree"
+                      : d === "evidence"
+                        ? `Evidence (${evidence.length})`
+                        : "History"}
+                    <ChevronDown
+                      className={cn("h-3 w-3 transition", drawer === d && "rotate-180")}
+                    />
                   </button>
                 ))}
               </div>
-            )}
-            {drawer === "history" && (
-              <ol className="space-y-1 p-4 text-sm">
-                {audit.map((a) => (
-                  <li key={a.id}>
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {dateTime(a.at)}
-                    </span>{" "}
-                    <b>{a.actor}</b> <span className="text-muted-foreground">{a.action}</span>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
-        </section>
+              {drawer === "summary" && (
+                <div className="grid gap-3 p-4 md:grid-cols-2">
+                  {!crux ? (
+                    <p className="text-sm text-muted-foreground">
+                      Available once both agents finish.
+                    </p>
+                  ) : (
+                    <>
+                      <div>
+                        <h3 className="text-xs font-bold text-ocean">Both agents agree</h3>
+                        <ul className="mt-1.5 space-y-1 text-sm">
+                          {crux.agreed.map((a) => (
+                            <li key={a}>• {readable(a)}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold text-candy-strong">Still disputed</h3>
+                        <ul className="mt-1.5 space-y-2 text-sm">
+                          {crux.disputed.map((d) => (
+                            <li key={d.point}>
+                              {readable(d.point)}
+                              <div className="text-xs text-muted-foreground">
+                                Would be settled by: {readable(d.decidingFact)}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              {drawer === "evidence" && (
+                <div className="grid gap-2 p-3 md:grid-cols-2">
+                  {evidence.length === 0 && (
+                    <p className="p-1 text-sm text-muted-foreground">No evidence filed yet.</p>
+                  )}
+                  {evidence.map((e) => (
+                    <button
+                      key={e.id}
+                      onClick={() => {
+                        inspect(e.fact, e.citations);
+                        setActive(undefined);
+                      }}
+                      className="rounded-xl border border-border p-3 text-left text-sm hover:border-sky hover:bg-sky-soft"
+                    >
+                      {readable(e.fact)}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {drawer === "history" && (
+                <ol className="space-y-1 p-4 text-sm">
+                  {audit.map((a) => (
+                    <li key={a.id}>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {dateTime(a.at)}
+                      </span>{" "}
+                      <b>{a.actor}</b> <span className="text-muted-foreground">{a.action}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </section>
 
-        {/* Right: chat + decision */}
-        <aside
-          aria-label="Agent discussion and your decision"
-          className="courtroom-discussion flex min-h-[650px] flex-col lg:min-h-0 border-l border-border bg-card/70 backdrop-blur-xl"
-        >
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h2 className="text-sm font-bold">Agent discussion</h2>
-            {!decided && (
-              <Button size="sm" disabled={running} onClick={() => runTrial(id, me.name)}>
-                {running ? (
-                  <LoadingStatus label="Agents arguing…" size={24} announce={false} />
-                ) : (
-                  <>
-                    <Gavel className="h-3.5 w-3.5" />
-                    {args.length ? "Re-run trial" : "Run trial"}
-                  </>
-                )}
-              </Button>
+          {/* Right: chat + decision */}
+          <aside
+            aria-label="Agent discussion and your decision"
+            className="courtroom-discussion flex min-h-[650px] flex-col lg:min-h-0 border-l border-border bg-card/70 backdrop-blur-xl"
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h2 className="text-sm font-bold">Agent discussion</h2>
+              {!decided && (
+                <Button size="sm" disabled={running} onClick={() => runTrial(id, me.name)}>
+                  {running ? (
+                    <LoadingStatus label="Agents arguing…" size={24} announce={false} />
+                  ) : (
+                    <>
+                      <Gavel className="h-3.5 w-3.5" />
+                      {args.length ? "Re-run trial" : "Run trial"}
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+            {trial && !running && (
+              <div className="p-3">
+                <ActionError
+                  title="Analysis interrupted"
+                  detail={trial}
+                  onRetry={() => runTrial(id, me.name)}
+                />
+              </div>
             )}
-          </div>
-          {trial && !running && (
-            <div className="p-3">
-              <ActionError
-                title="Analysis interrupted"
-                detail={trial}
-                onRetry={() => runTrial(id, me.name)}
+            <div className="min-h-0 flex-1">
+              <AgentChat
+                args={args}
+                questions={questions}
+                notes={notes}
+                active={active}
+                disabled={decided}
+                running={running}
+                onSelect={select}
+                referenceLabel={label}
+                formatText={readable}
+                onAsk={(s, t) => askQuestion(id, me.name, s, t)}
+                onNote={(t) => addNote(id, me.name, t)}
               />
             </div>
-          )}
-          <div className="min-h-0 flex-1">
-            <AgentChat
-              args={args}
-              questions={questions}
-              notes={notes}
-              active={active}
-              disabled={decided}
-              running={running}
-              onSelect={select}
-              referenceLabel={label}
-              formatText={readable}
-              onAsk={(s, t) => askQuestion(id, me.name, s, t)}
-              onNote={(t) => addNote(id, me.name, t)}
-            />
-          </div>
-          {verdict ? (
-            <Decided
-              verdict={verdict}
-              signOff={signOff}
-              life={life}
-              loanId={c.loanId}
-              actor={me.name}
-              needs={signOffNeeded(c.loan, verdict, signOff)}
-            />
-          ) : (
-            <DecisionBox
-              enabled={c.status === "awaiting_verdict"}
-              reviewer={me.name}
-              amount={c.loan?.amount}
-              onSubmit={(d, r) => submitVerdict(id, me.name, d, r)}
-            />
-          )}
-        </aside>
+            {verdict ? (
+              <Decided
+                verdict={verdict}
+                signOff={signOff}
+                life={life}
+                loanId={c.loanId}
+                actor={me.name}
+                needs={signOffNeeded(c.loan, verdict, signOff)}
+              />
+            ) : (
+              <DecisionBox
+                enabled={c.status === "awaiting_verdict"}
+                reviewer={me.name}
+                amount={c.loan?.amount}
+                onSubmit={(d, r) => submitVerdict(id, me.name, d, r)}
+              />
+            )}
+          </aside>
+        </div>
       </div>
-    </div>
+    </PresentationView>
   );
 }
 

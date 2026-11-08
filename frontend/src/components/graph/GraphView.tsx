@@ -1,10 +1,13 @@
 // Interactive SVG network canvas: drag nodes, drag background to pan, wheel/pinch or buttons to zoom.
 // Same props the Cytoscape GraphView will take at handoff.
+import * as Dialog from "@radix-ui/react-dialog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   Landmark,
   Maximize2,
+  Minimize2,
+  RotateCcw,
   Minus,
   Plus,
   User,
@@ -86,6 +89,8 @@ export function GraphView({
   referenceLabel = (id) => id,
   onInspect,
 }: Props) {
+  const [expanded, setExpanded] = useState(false);
+  const expandButton = useRef<HTMLButtonElement>(null);
   const initial = useMemo(() => layout(nodes, edges, centerId), [nodes, edges, centerId]);
   const [pos, setPos] = useState(initial.pos);
   useEffect(() => setPos(initial.pos), [initial]);
@@ -129,7 +134,7 @@ export function GraphView({
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [toSvg, zoomAt]);
+  }, [toSvg, zoomAt, expanded]);
 
   const onPointerDown = (e: React.PointerEvent, id?: string) => {
     e.stopPropagation();
@@ -220,8 +225,11 @@ export function GraphView({
     return kept;
   }, [edges, nodes, pos, centerId, flagged, hl, hover, selected]);
 
-  return (
-    <div className="relative overflow-hidden rounded-md bg-canvas" style={{ height }}>
+  const canvas = (
+    <div
+      className="relative w-full overflow-hidden rounded-md bg-canvas"
+      style={{ height: expanded ? "calc(100dvh - 6rem)" : height }}
+    >
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
@@ -480,7 +488,12 @@ export function GraphView({
             l: "Zoom out",
           },
           {
-            i: <Maximize2 className="h-4 w-4" />,
+            i: expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />,
+            f: () => setExpanded(!expanded),
+            l: expanded ? "Restore graph size" : "Enlarge graph",
+          },
+          {
+            i: <RotateCcw className="h-4 w-4" />,
             f: () => {
               setView({ x: 0, y: 0, k: 1 });
               setPos(initial.pos);
@@ -491,6 +504,7 @@ export function GraphView({
         ].map((b) => (
           <button
             key={b.l}
+            ref={b.l === "Enlarge graph" || b.l === "Restore graph size" ? expandButton : undefined}
             aria-label={b.l}
             title={b.l}
             onClick={b.f}
@@ -526,6 +540,39 @@ export function GraphView({
         <span className="ml-auto">Drag nodes · drag to pan · scroll to zoom · click to focus</span>
       </div>
     </div>
+  );
+  return (
+    <Dialog.Root open={expanded} onOpenChange={setExpanded}>
+      {expanded ? (
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
+          <Dialog.Content
+            className="fixed inset-4 z-50 overflow-hidden rounded-2xl border border-border bg-card text-foreground shadow-2xl"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              expandButton.current?.focus();
+            }}
+          >
+            <div className="flex h-14 items-center justify-between gap-3 border-b border-border px-4">
+              <div>
+                <Dialog.Title className="text-sm font-bold">
+                  Network map · expanded view
+                </Dialog.Title>
+                <Dialog.Description className="text-xs text-muted-foreground">
+                  Drag, zoom and inspect records. Press Escape to restore the case view.
+                </Dialog.Description>
+              </div>
+              <Dialog.Close className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold">
+                Close graph
+              </Dialog.Close>
+            </div>
+            {canvas}
+          </Dialog.Content>
+        </Dialog.Portal>
+      ) : (
+        canvas
+      )}
+    </Dialog.Root>
   );
 }
 
