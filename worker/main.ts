@@ -1,0 +1,75 @@
+// Courtroom worker entry point.
+//   node worker/main.ts --local worker/fixtures/sample-court.json [--out worker/out/court.json]
+//                       [--depth opening|full] [--case CASE-01] [--no-tools]
+//   node worker/main.ts --spacetime            (polls SpacetimeDB forever as the worker identity)
+import { parseArgs } from "node:util";
+import { NvidiaLLM } from "./llm.ts";
+import { CourtWorker } from "./queue.ts";
+import { MemoryStore, SpacetimeStore } from "./store.ts";
+import type { CourtState } from "./store.ts";
+import type { Depth } from "./trial.ts";
+
+const { values } = parseArgs({
+  options: {
+    local: { type: "string" },
+    out: { type: "string", default: "worker/out/court.json" },
+    depth: { type: "string", default: "full" },
+    case: { type: "string", multiple: true },
+    "no-tools": { type: "boolean", default: false },
+    spacetime: { type: "boolean", default: false },
+  },
+});
+
+const depth = values.depth as Depth;
+if (depth !== "opening" && depth !== "full") throw new Error("--depth must be opening or full");
+const log = (msg: string) => console.log(`${new Date().toISOString().slice(11, 19)} ${msg}`);
+const llm = NvidiaLLM.fromEnv(log);
+log(`model ${llm.model}, depth ${depth}, tools ${values["no-tools"] ? "off" : "on"}`);
+
+if (values.spacetime) {
+  const store = SpacetimeStore.fromEnv();
+  const worker = new CourtWorker({ llm, store, depth, useTools: !values["no-tools"], log });
+  const ctrl = new AbortController();
+  process.on("SIGINT", () => ctrl.abort());
+  log("polling SpacetimeDB for queued cases (Ctrl-C to stop)");
+  await worker.runForever({ signal: ctrl.signal });
+} else {
+  if (!values.local) throw new Error("pass --local <json> or --spacetime");
+  const store = MemoryStore.fromFile(values.local, values.out);
+  const worker = new CourtWorker({ llm, store, depth, useTools: !values["no-tools"], log, caseIds: values.case });
+  const started = Date.now();
+  await worker.runUntilIdle();
+  printReport(store.state, values.case);
+  const secs = ((Date.now() - started) / 1000).toFixed(1);
+  console.log(`\n${llm.stats.requests} LLM requests, ${llm.stats.retries} retries, ${secs}s wall time. Output: ${values.out}`);
+  if (worker.failures.length) {
+    console.log(`Failures:\n${worker.failures.map((f) => `  ${f.key}: ${f.error}`).join("\n")}`);
+    process.exitCode = 1;
+  }
+}
+
+function printReport(s: CourtState, only?: string[]): void {
+  for (const c of s.cases) {
+    if (only && !only.includes(c.id)) continue;
+    console.log(`\n=== ${c.id} (${c.loanId}, risk ${c.riskScore}) — ${c.status} ===`);
+    console.log("Evidence:");
+    for (const e of s.evidence.filter((x) => x.caseId === c.id)) console.log(`  • ${e.fact}  [${e.citations.join(", ")}]`);
+    for (const a of s.arguments.filter((x) => x.caseId === c.id)) {
+      console.log(`${a.side} · ${a.round}:`);
+      for (const cl of a.claims) console.log(`  ${cl.verified ? "✓" : "✗"} ${cl.text}  [${cl.citations.join(", ")}]`);
+    }
+    const crux = s.cruxes.find((x) => x.caseId === c.id);
+    if (crux) {
+      console.log("Crux — agreed:");
+      for (const p of crux.agreed) console.log(`  = ${p}`);
+      console.log("Crux — disputed:");
+      for (const d of crux.disputed) console.log(`  ? ${d.point}\n      decided by: ${d.decidingFact}`);
+    }
+    for (const q of s.questions.filter((x) => x.caseId === c.id)) {
+      console.log(`Question ${q.id} to ${q.to}: "${q.text}" → ${q.answerId ?? "unanswered"}`);
+    }
+    const rejected = s.audit.filter((x) => x.caseId === c.id && x.actor === "citation_checker");
+    console.log(`Citation checker: ${rejected.length} rejected`);
+    for (const r of rejected) console.log(`  ✗ ${r.action}`);
+  }
+}

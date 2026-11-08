@@ -5,7 +5,13 @@
   "scripts": {
     "start": "node --env-file=.env server.mjs",
     "dev": "node --env-file=.env --watch server.mjs",
-    "build": "node src/worker.mjs"
+    "build": "node src/worker.mjs",
+    "worker:smoke": "node --env-file-if-exists=.env worker/nemotron-tool-call.mjs",
+    "worker:local": "node --env-file-if-exists=.env worker/main.ts --local worker/fixtures/sample-court.json",
+    "worker:spacetime": "node --env-file-if-exists=.env worker/main.ts --spacetime",
+    "worker:test": "node --test \"worker/test/*.test.ts\""
+  },
+  "engines": {
+    "node": ">=22.18"
   }
 }
-
