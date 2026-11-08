@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/Mascot";
 import { Link } from "@tanstack/react-router";
-import { LayoutGrid, FilePlus2, ArrowUpCircle, Gauge } from "lucide-react";
+import { LayoutGrid, FilePlus2, ArrowUpCircle, Gauge, History } from "lucide-react";
 import { useLiveStatus } from "@/data/hooks";
 import { setIdentity, useIdentity } from "@/data/identity";
 import { AppearancePicker } from "@/components/AppearancePicker";
 
 const nav = [
   { to: "/cases", label: "Cases", icon: LayoutGrid },
+  { to: "/history", label: "History", icon: History },
   { to: "/intake", label: "New loan", icon: FilePlus2 },
   { to: "/escalations", label: "Escalations", icon: ArrowUpCircle },
   { to: "/ops", label: "Operations", icon: Gauge },

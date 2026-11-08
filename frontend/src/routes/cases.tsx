@@ -43,7 +43,7 @@ function Cases() {
   return (
     <div className="mx-auto max-w-6xl p-8">
       <div className="text-xs font-extrabold uppercase tracking-[0.22em] text-ocean">Paper Trail</div>
-      <h1 className="mt-1 text-4xl font-extrabold tracking-tight">Cases<span className="text-candy-strong">.</span></h1>
+      <h1 className="mt-1 text-4xl font-extrabold tracking-tight">Cases</h1>
       <p className="mt-1 text-sm text-muted-foreground">Loans flagged by the risk rules, highest risk first.</p>
 
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">

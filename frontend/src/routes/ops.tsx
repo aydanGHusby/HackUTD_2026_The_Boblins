@@ -63,7 +63,7 @@ function Ops() {
     <div className="mx-auto max-w-6xl p-8">
       <div className="text-xs font-extrabold uppercase tracking-[0.22em] text-ocean">Paper Trail</div>
       <div className="mt-1 flex flex-wrap items-center gap-3">
-        <h1 className="text-4xl font-extrabold tracking-tight">Operations<span className="text-candy-strong">.</span></h1>
+        <h1 className="text-4xl font-extrabold tracking-tight">Operations</h1>
         <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
           live === "online" ? "bg-sky-soft text-ocean" : "bg-muted text-muted-foreground")}>
           <span className={cn("h-1.5 w-1.5 rounded-full", live === "online" ? "bg-ocean" : "animate-pulse bg-muted-foreground")} />

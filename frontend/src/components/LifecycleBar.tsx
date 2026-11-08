@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Check, LockKeyhole, X } from "lucide-react";
 import { LIFECYCLE, type Lifecycle } from "@/lib/lifecycle";
 import { cn } from "@/lib/utils";
@@ -60,7 +61,12 @@ export function LifecycleBar({
           style={{ width: `${percent}%` }}
         />
       </div>
-      <ol aria-label="Loan stages" className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+      {/* One even column per step, so a short (declined) path spreads across the full width */}
+      <ol
+        aria-label="Loan stages"
+        className="lifecycle-steps grid grid-cols-4 gap-2"
+        style={{ "--steps": steps.length } as CSSProperties}
+      >
         {steps.map((step, index) => {
           const done = index < current;
           const here = index === current;
