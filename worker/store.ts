@@ -123,9 +123,10 @@ export class MemoryStore implements CourtStore {
 // ---------------------------------------------------------------------------------------------
 // LoanStateStore — the loan app's SpacetimeDB design (backend-da): the whole shared state is one
 // JSON row in loan_state, changed by apply_loan_ops([{op, table, ...}]) in one transaction.
-// Two gaps in that module today: it has no company/person/collateral lists (the app takes them
-// from its mock data, so pass the same records via `nodes`), and apply_loan_ops rejects unknown
-// tables, so evidence and cruxes are kept in this process only until it accepts them.
+// The module has no company/person/collateral lists (the app takes them from its mock data), so
+// pass the same records via `nodes`. Evidence and cruxes are written to the module's `evidence`
+// and `cruxes` lists; a database still running an older module rejects those tables, and then
+// they are kept in this process only.
 // ---------------------------------------------------------------------------------------------
 
 export interface LoanStateOptions {
@@ -153,9 +154,11 @@ interface LoanState {
 
 export class LoanStateStore implements CourtStore {
   opts: LoanStateOptions;
-  // Kept here because apply_loan_ops has no evidence/cruxes tables yet.
+  // Always cached here; also written to the database when it accepts the tables.
   localEvidence: EvidenceItem[] = [];
   localCruxes: Crux[] = [];
+  // undefined until the first write tells us whether the module has evidence/cruxes tables.
+  agentTables: boolean | undefined;
   // Database round trips, for the performance report.
   stats = { reads: 0, writes: 0, readMs: 0, writeMs: 0 };
   lastRevision = 0;
@@ -221,16 +224,35 @@ export class LoanStateStore implements CourtStore {
     if (status === "in_trial") ops.push({ op: "append", table: "running", item: { caseId, by: this.opts.actor ?? "worker", at: new Date().toISOString() } });
     await this.apply(ops);
   }
+  // Writes to the evidence/cruxes lists, falling back to the local cache on an older module.
+  async applyAgentOps(ops: LoanOp[]): Promise<void> {
+    if (this.agentTables === false) return;
+    try {
+      await this.apply(ops);
+      this.agentTables = true;
+    } catch (err) {
+      if (!/Unknown table/.test((err as Error).message)) throw err;
+      this.agentTables = false;
+    }
+  }
   async clearCaseOutputs(caseId: string): Promise<void> {
     await this.apply([{ op: "remove", table: "arguments", key: "caseId", value: caseId }]);
+    await this.applyAgentOps([
+      { op: "remove", table: "evidence", key: "caseId", value: caseId },
+      { op: "remove", table: "cruxes", key: "caseId", value: caseId },
+    ]);
     this.localEvidence = this.localEvidence.filter((e) => e.caseId !== caseId);
     this.localCruxes = this.localCruxes.filter((c) => c.caseId !== caseId);
   }
   async addEvidence(item: EvidenceItem): Promise<void> {
     this.localEvidence.push(item);
+    await this.applyAgentOps([{ op: "append", table: "evidence", item }]);
   }
   async listEvidence(caseId: string): Promise<EvidenceItem[]> {
-    return this.localEvidence.filter((e) => e.caseId === caseId);
+    // The database copy survives restarts (e.g. answering a question in a later run).
+    const stored = ((await this.load()).evidence as EvidenceItem[] | undefined) ?? [];
+    const byId = new Map([...stored, ...this.localEvidence].map((e) => [e.id, e]));
+    return [...byId.values()].filter((e) => e.caseId === caseId);
   }
   async addArgument(arg: Argument): Promise<void> {
     await this.apply([{ op: "append", table: "arguments", item: arg }]);
@@ -240,6 +262,10 @@ export class LoanStateStore implements CourtStore {
   }
   async setCrux(crux: Crux): Promise<void> {
     this.localCruxes = this.localCruxes.filter((c) => c.caseId !== crux.caseId).concat(crux);
+    await this.applyAgentOps([
+      { op: "remove", table: "cruxes", key: "caseId", value: crux.caseId },
+      { op: "append", table: "cruxes", item: crux },
+    ]);
   }
   async listQuestions(): Promise<Question[]> {
     return (await this.load()).questions;

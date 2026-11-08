@@ -46,7 +46,7 @@ if (values.spacetime) {
 Performance: ${secs.toFixed(1)}s wall time, loan_state now at revision ${store.lastRevision}`);
     console.log(`  Nemotron: ${llm.stats.requests} requests, ${(llm.stats.ms / 1000).toFixed(1)}s total, ${llm.stats.retries} retries, ${tokens()}`);
     console.log(`  SpacetimeDB: ${d.writes} writes (avg ${(d.writeMs / Math.max(1, d.writes)).toFixed(0)}ms), ${d.reads} reads (avg ${(d.readMs / Math.max(1, d.reads)).toFixed(0)}ms), ${((d.writeMs + d.readMs) / 1000).toFixed(1)}s total`);
-    console.log(`  Kept in this process only (module has no table yet): ${store.localEvidence.length} evidence items, ${store.localCruxes.length} crux`);
+    console.log(`  Evidence (${store.localEvidence.length}) and crux (${store.localCruxes.length}): ${store.agentTables ? "written to the database" : "kept in this process only (module has no evidence/cruxes tables; republish it)"}`);
     if (worker.failures.length) {
       console.log(`Failures:\n${worker.failures.map((f) => `  ${f.key}: ${f.error}`).join("\n")}`);
       process.exitCode = 1;
