@@ -94,10 +94,10 @@ The landing page's illustrative network supports node selection, connection high
 
 Hover over the logo to play a short fold-and-throw sequence: the mascot folds a paper, winds up, and sends a plane upward with a dotted trail. The animation finishes even if the pointer leaves, returns to idle, and replays on the next hover. Keyboard focus on the logo link also triggers it. Reduced-motion settings keep the mascot still. The existing loading bob remains separate.
 
-## Temporary loading preview
+## Page loading
 
-At the user's request, page entry currently keeps the mascot loading screen visible for four seconds. Real route data continues to load in the background; this adds no AI requests. `TEMPORARY_PAGE_LOADING_MS` in `src/lib/ui-preview.ts` controls the temporary delay. Set it to `0` when the user asks to return to normal loading. Keep the preview enabled until then.
+Normal page loading has been restored at the user's request. `TEMPORARY_PAGE_LOADING_MS` in `src/lib/ui-preview.ts` is `0`, so route content appears immediately without an artificial delay. Real data and AI operations still show their loading indicators while pending.
 
 The background also includes low-opacity light-blue and pink floating dots. They do not intercept clicks and stop moving under reduced-motion preferences.
 
-The full page/data loading panel now repeats the mascot's fold-and-throw performance every 2.4 seconds. Its paper airplane follows a small loop and twirls during flight. Loading text stays accessible and the scene becomes a still mascot for reduced motion. The four-second temporary page delay and the separate one-shot logo hover are unchanged; compact inline loading indicators keep their smaller bob animation.
+Full page/data loading panels use the original bobbing mascot and pixel dots again. The looping airplane loading scene was removed. The separate one-shot logo hover animation and pastel background dots remain. Loading text stays accessible and motion stops under reduced-motion preferences.

@@ -98,21 +98,6 @@ function MascotPerformance({ size }: { size: number }) {
   );
 }
 
-export function PaperPlaneLoader() {
-  return (
-    <span
-      className="plane-loading-scene mascot-performance"
-      data-looping="true"
-      aria-hidden="true"
-      style={{ "--logo-size": "88px", "--performance-cycle": "2400ms" } as CSSProperties}
-    >
-      <span className="plane-loading-orbit" />
-      <MascotPerformance size={88} />
-      <span className="plane-loading-ground" />
-    </span>
-  );
-}
-
 export function LoadingStatus({
   label,
   size = 26,
@@ -143,10 +128,7 @@ export function LoadingStatus({
 export function LoadingPanel({ label, hint }: { label: string; hint?: string | undefined }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-      <PaperPlaneLoader />
-      <span role="status" aria-live="polite" className="text-sm font-medium">
-        {label}
-      </span>
+      <LoadingStatus label={label} size={58} className="flex-col gap-3 text-sm font-medium" />
       {hint && <p className="max-w-md text-xs leading-relaxed text-muted-foreground">{hint}</p>}
     </div>
   );
