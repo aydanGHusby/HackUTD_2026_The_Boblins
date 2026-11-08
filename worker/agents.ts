@@ -23,6 +23,7 @@ export async function runClerk(llm: LLM, opts: { index: GraphIndex; brief: strin
     { role: "user", content: clerkTask(opts.brief, opts.useTools) },
   ];
   let toolCalls: ClerkResult["toolCalls"] = [];
+  let history = messages;
   let drafts: DraftClaim[];
   if (opts.useTools) {
     const loop = await runToolLoop(llm, {
@@ -32,12 +33,25 @@ export async function runClerk(llm: LLM, opts: { index: GraphIndex; brief: strin
       maxTurns: 8,
     });
     toolCalls = loop.calls.map(({ name, args }) => ({ name, args }));
-    drafts = await askForJson(llm, loop.messages, validateEvidence, { firstReply: loop.content });
+    history = loop.messages;
+    drafts = await askForJson(llm, history, validateEvidence, { firstReply: loop.content });
   } else {
-    drafts = await askForJson(llm, messages, validateEvidence);
+    drafts = await askForJson(llm, history, validateEvidence);
+    history = [...history, { role: "assistant", content: JSON.stringify({ evidence: drafts.map((d) => ({ fact: d.text, citations: d.citations })) }) }];
   }
   // The clerk's file must be clean: facts with a bad citation are dropped, not kept as unverified.
-  const checked = checkClaims(opts.index, drafts);
+  let checked = checkClaims(opts.index, drafts);
+  if (checked.rejected.length) {
+    // One retry with the checker's reasons (live runs showed Nemotron citing tool names as ids).
+    const problems = checked.rejected.map((r) => `- "${r.text}": ${r.reasons.join("; ")}`).join("\n");
+    const retry = await askForJson(llm, [...history, {
+      role: "user",
+      content: `The citation checker rejected these facts:\n${problems}\nCitations must be node or edge ids from the tool results, never tool names. Reply with the full corrected evidence JSON.`,
+    }], validateEvidence).catch(() => null);
+    const rechecked = retry && checkClaims(opts.index, retry);
+    const verified = (r: typeof checked) => r.claims.length - r.rejected.length;
+    if (rechecked && verified(rechecked) > verified(checked)) checked = rechecked;
+  }
   const facts = checked.claims.filter((c) => c.verified).map(({ text, citations }) => ({ text, citations }));
   return { facts, dropped: checked.rejected, toolCalls };
 }

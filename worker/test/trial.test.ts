@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildIndex } from "../../shared/graph.ts";
-import { runAdvocate } from "../agents.ts";
+import { runAdvocate, runClerk } from "../agents.ts";
 import type { LLM } from "../llm.ts";
 import { CourtWorker } from "../queue.ts";
 import { MemoryStore } from "../store.ts";
@@ -45,6 +45,25 @@ test("an advocate citing an evidence id gets that evidence's graph ids", async (
     index, side: "prosecution", round: "opening", brief: "", evidence, prior: [], allowed: new Set(["col1", "e3", "e4"]),
   });
   assert.deepEqual(res.claims[0], { text: "double pledge", citations: ["col1", "e3", "e4"], verified: true });
+});
+
+test("the clerk gets one retry when it cites a tool name instead of ids", async () => {
+  const index = buildIndex(loadFixture());
+  const replies = [
+    '{"evidence":[{"fact":"col1 backs two loans","citations":["loans_using_collateral"]},{"fact":"c1 borrows L-1001","citations":["c1","e1"]}]}',
+    '{"evidence":[{"fact":"col1 backs two loans","citations":["col1","e3","e4"]},{"fact":"c1 borrows L-1001","citations":["c1","e1"]}]}',
+  ];
+  const prompts: string[] = [];
+  const llm: LLM = {
+    chat: async (req) => {
+      prompts.push(req.messages.at(-1)!.content ?? "");
+      return { content: replies.shift()!, toolCalls: [] };
+    },
+  };
+  const res = await runClerk(llm, { index, brief: "", useTools: false });
+  assert.equal(res.facts.length, 2);
+  assert.deepEqual(res.dropped, []);
+  assert.match(prompts[1], /unknown id loans_using_collateral/);
 });
 
 test("opening depth runs one round and skips the crux", async () => {
