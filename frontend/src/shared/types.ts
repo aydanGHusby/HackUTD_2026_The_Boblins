@@ -1,4 +1,4 @@
-// Shared contracts — single source of truth. Mirrors shared/types.ts in the FraudGraph plan.
+// Shared contracts — single source of truth. Mirrors shared/types.ts in the Paper View plan.
 
 // ---- The graph ----
 export type NodeKind = "company" | "person" | "collateral" | "loan";

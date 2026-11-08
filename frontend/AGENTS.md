@@ -29,6 +29,6 @@ use the editor.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
 
-## FraudGraph frontend
+## Paper View frontend
 - Components read data only through hooks in `src/data/hooks.ts` (mock store today); at the SpacetimeDB handoff only that file changes. Why: lets frontend build in parallel with backend.
 - `src/shared/types.ts` mirrors the team's shared contracts; change only by team agreement.

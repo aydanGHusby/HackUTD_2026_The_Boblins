@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Activity, Clock, Search, ShieldAlert, Wallet } from "lucide-react";
 import { Avatars, Empty, Panel, RiskScore, StatusBadge, TriggerTag } from "@/components/ui-kit";
 import { useCases, useDataStatus } from "@/data/hooks";
+import { BriefcaseFilter } from "@/components/BriefcaseFilter";
 import { triggerDescription } from "@/lib/case-presentation";
 import { humanize, money } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -11,9 +12,9 @@ import type { CaseStatus } from "@/shared/types";
 export const Route = createFileRoute("/cases")({
   head: () => ({
     meta: [
-      { title: "Cases · FraudGraph" },
+      { title: "Cases · Paper View" },
       { name: "description", content: "Flagged commercial loans ranked by network risk." },
-      { property: "og:title", content: "Cases · FraudGraph" },
+      { property: "og:title", content: "Cases · Paper View" },
       { property: "og:description", content: "Flagged commercial loans ranked by network risk." },
     ],
   }),
@@ -88,7 +89,7 @@ function Cases() {
   return (
     <div className="mx-auto max-w-6xl p-4 sm:p-8">
       <div className="text-xs font-extrabold uppercase tracking-[0.22em] text-ocean">
-        FraudGraph
+        Paper View
       </div>
       <h1 className="mt-1 text-4xl font-extrabold tracking-tight">Cases</h1>
       <p className="mt-1 text-sm text-muted-foreground">
@@ -117,23 +118,8 @@ function Cases() {
       </div>
 
       <div className="mt-8 flex flex-wrap items-center gap-3">
-        <div className="liquid-glass-pill flex flex-wrap gap-1 rounded-2xl p-1">
-          {filters.map((f) => (
-            <button
-              key={f}
-              aria-pressed={status === f}
-              onClick={() => setStatus(f)}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-semibold",
-                status === f
-                  ? "bg-primary text-primary-foreground glass-specular"
-                  : "text-muted-foreground transition-colors hover:text-foreground",
-              )}
-            >
-              {filterLabel[f]}
-            </button>
-          ))}
-        </div>
+        <BriefcaseFilter label="Filter cases by status" value={status} onChange={setStatus}
+          options={filters.map(f=>({value:f,label:filterLabel[f] || f,count:f==='all'?cases.length:cases.filter(c=>c.status===f).length}))} />
         <label className="liquid-glass-pill ml-auto flex items-center gap-2 rounded-full px-3 py-1.5 text-sm focus-within:ring-2 focus-within:ring-ring">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input

@@ -26,7 +26,7 @@ export function AppSidebar() {
         <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Network aria-hidden className="h-4 w-4" />
         </span>
-        Fraud<span className="text-ocean">Graph</span>
+        Paper<span className="text-ocean">View</span>
       </Link>
       <nav aria-label="Main" className="flex flex-col gap-1">
         {nav.map(({ to, label, icon: Icon }) => (

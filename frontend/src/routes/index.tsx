@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "FraudGraph · See the network behind the loan" },
+      { title: "Paper View · See the network behind the loan" },
       {
         name: "description",
         content:
-          "FraudGraph flags commercial loans with network problems, lets two agents argue both sides, and leaves the decision to a person with the evidence in front of them.",
+          "Paper View flags commercial loans with network problems, lets two agents argue both sides, and leaves the decision to a person with the evidence in front of them.",
       },
-      { property: "og:title", content: "FraudGraph · See the network behind the loan" },
+      { property: "og:title", content: "Paper View · See the network behind the loan" },
       {
         property: "og:description",
         content:
@@ -53,7 +53,7 @@ function Landing() {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-candy text-on-candy glow-candy">
             <NetworkMark />
           </span>
-          Fraud<span className="text-ocean">Graph</span>
+          Paper<span className="text-ocean">View</span>
         </div>
         <Link
           to="/cases"
@@ -73,7 +73,7 @@ function Landing() {
           </h1>
           <p className="mt-5 text-base leading-relaxed text-muted-foreground">
             A flagged loan is rarely one bad borrower. It is a shared address, a warehouse pledged
-            twice, the same director on two companies. FraudGraph lays the whole network on the
+            twice, the same director on two companies. Paper View lays the whole network on the
             table, has two agents argue both sides of it, and hands you the decision with the
             evidence still visible.
           </p>
@@ -130,7 +130,7 @@ function Landing() {
 
       <footer className="mt-auto flex flex-wrap items-center gap-3 border-t border-border pt-5 text-xs text-muted-foreground">
         <span>
-          FraudGraph · every decision is logged with the analyst who made it and the reason they
+          Paper View · every decision is logged with the analyst who made it and the reason they
           gave.
         </span>
         <Link

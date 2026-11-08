@@ -42,7 +42,7 @@ export const Route = createFileRoute("/case/$id")({
     search["mode"] === "score" ? { mode: "score" } : {},
   head: ({ params }) => ({
     meta: [
-      { title: `${params.id} · FraudGraph` },
+      { title: `${params.id} · Paper View` },
       {
         name: "description",
         content: "Review the connections, inspect the evidence, and choose the next step.",
