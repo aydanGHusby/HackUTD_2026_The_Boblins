@@ -811,3 +811,14 @@
 }
 .appearance-popover { max-height: min(690px,calc(100dvh - 32px)); }
 .appearance-popover[data-state="open"] { animation:pv-route-enter 160ms ease-out; }
+
+/* Presentation stays a real, interactive case review; Escape restores the workspace. */
+.presentation-mode .app-sidebar, .presentation-mode .atmosphere { display: none; }
+.presentation-mode .courtroom-layout { font-size: 17px; }
+.presentation-mode .agent-messages { padding: 1.5rem; }
+.presentation-mode .agent-messages .text-sm { font-size: 1rem; line-height: 1.6; }
+.presentation-mode .courtroom-layout > header { padding-inline: 1.5rem; }
+.presentation-mode .courtroom-layout > .grid { grid-template-columns: minmax(0, 1.1fr) minmax(380px, 1fr); }
+@media (max-width: 900px) {
+  .presentation-mode .courtroom-layout > .grid { grid-template-columns: minmax(0, 1fr); }
+}

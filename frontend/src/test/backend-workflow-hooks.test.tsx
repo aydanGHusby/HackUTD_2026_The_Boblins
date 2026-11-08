@@ -8,7 +8,9 @@ vi.mock("@/data/spacetime", () => ({
   resetLoanState: service.reset,
 }));
 vi.mock("@/agents/trial", () => ({ argueFn: vi.fn() }));
+import { argueFn } from "@/agents/trial";
 import {
+  askQuestion,
   addNote,
   advanceLoan,
   fundLoan,
@@ -66,6 +68,14 @@ it("uses the canonical backend operations and respects sign-off before closing a
   await act(async () => {});
   expect(result.current.live).toBe("online");
   expect(result.current.c?.borrower).toBe("Harbor Freight Logistics LLC");
+  vi.mocked(argueFn).mockRejectedValueOnce(new Error("NVIDIA 429"));
+  await act(async () => {
+    await expect(askQuestion("CASE-01", "Aydan", "defense", "Explain the lien")).rejects.toThrow(
+      "NVIDIA 429",
+    );
+  });
+  expect(shared.questions).toHaveLength(0);
+  expect(shared.audit.some((event: any) => event.action.includes("could not answer"))).toBe(true);
   await act(async () =>
     submitVerdict(
       "CASE-01",

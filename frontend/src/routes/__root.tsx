@@ -54,8 +54,14 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
           This page didn't load
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Try loading this page again, or return home to open another case.
         </p>
+        <details className="mt-4 text-left text-xs text-muted-foreground">
+          <summary className="cursor-pointer">Technical details</summary>
+          <p className="mt-2 break-words">
+            {error instanceof Error ? error.message : "Unexpected page error"}
+          </p>
+        </details>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {

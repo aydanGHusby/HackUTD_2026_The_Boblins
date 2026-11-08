@@ -1,7 +1,13 @@
 import { LoadingStatus } from "@/components/Mascot";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { ArrowLeft, ChevronDown, Gavel, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, ChevronDown, Gavel, Monitor, Minimize2 } from "lucide-react";
+import {
+  ActionError,
+  DecisionBox,
+  EvidenceInspector,
+  nextAction,
+} from "@/components/InvestigationTools";
 import { AgentChat } from "@/components/AgentChat";
 import { LifecycleBar } from "@/components/LifecycleBar";
 import { SignOffForm } from "@/components/SignOffForm";
@@ -34,7 +40,7 @@ import { dateTime, humanize, money } from "@/lib/format";
 import { signOffNeeded } from "@/lib/approval";
 import type { Lifecycle } from "@/lib/lifecycle";
 import { cn } from "@/lib/utils";
-import type { Claim, Decision } from "@/shared/types";
+import type { Claim } from "@/shared/types";
 
 export const Route = createFileRoute("/case/$id")({
   head: ({ params }) => ({
@@ -75,15 +81,51 @@ function CasePage() {
   const [highlight, setHighlight] = useState<string[]>([]);
   const [drawer, setDrawer] = useState<"evidence" | "summary" | "history" | null>("summary");
 
+  const [selection, setSelection] = useState<{ text: string; citations: string[] }>();
+  const [presenting, setPresenting] = useState(false);
+  useEffect(() => {
+    document.documentElement.classList.toggle("presentation-mode", presenting);
+    const exit = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPresenting(false);
+    };
+    window.addEventListener("keydown", exit);
+    return () => {
+      document.documentElement.classList.remove("presentation-mode");
+      window.removeEventListener("keydown", exit);
+    };
+  }, [presenting]);
+
   if (!c)
     return (
       <div className="p-8">
         <Empty title={`Case ${id} not found`} />
       </div>
     );
+  const label = (ref: string): string => {
+    const node = graph.nodes.find((n) => n.id === ref);
+    if (node) return node.label;
+    const edge = graph.edges.find((e) => e.id === ref);
+    const nodeName = (id: string) => graph.nodes.find((n) => n.id === id)?.label || id;
+    return edge ? `${nodeName(edge.from)} → ${nodeName(edge.to)} (${humanize(edge.kind)})` : ref;
+  };
+  const readable = (text: string) =>
+    text.replace(/\b[A-Za-z][A-Za-z0-9_-]*\b/g, (token) => label(token));
+  const inspect = (text: string, citations: string[]) => {
+    setSelection({ text: readable(text), citations });
+    const ids = new Set(citations);
+    graph.edges.forEach((edge) => {
+      if (ids.has(edge.id)) {
+        ids.add(edge.from);
+        ids.add(edge.to);
+      }
+    });
+    setHighlight([...ids]);
+  };
+  const next = nextAction(c.status, running, life, !!signOffNeeded(c.loan, verdict, signOff));
   const decided = c.status === "decided";
   const select = (cl: Claim) => {
     setActive(cl);
+    setSelection({ text: readable(cl.text), citations: cl.citations });
     const ids = new Set(cl.citations);
     graph.edges.forEach((edge) => {
       if (ids.has(edge.id)) {
@@ -119,8 +161,40 @@ function CasePage() {
           ))}
         </div>
         <div className="ml-auto flex items-center gap-3">
+          <Button
+            size="sm"
+            variant="outline"
+            aria-pressed={presenting}
+            onClick={() => setPresenting(!presenting)}
+          >
+            {presenting ? <Minimize2 className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
+            {presenting ? "Exit presentation" : "Present"}
+          </Button>
           <StatusBadge status={c.status} />
           <Avatars users={c.viewers} />
+        </div>
+        <div className="basis-full flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+          <span>
+            Reviewer: <b className="text-foreground">{verdict?.analyst || `${me.name} (you)`}</b>
+            {!verdict && " · not yet decided"}
+          </span>
+          <span>
+            Stage: <b className="text-foreground">{humanize(life?.stage || c.status)}</b>
+          </span>
+          <span>
+            Flagged for:{" "}
+            <b className="text-foreground">
+              {c.triggers.map(humanize).join(", ") || "Manual review"}
+            </b>
+          </span>
+        </div>
+        <div
+          role="status"
+          className="basis-full rounded-xl border border-ocean/25 bg-sky-soft px-3 py-2 text-xs"
+        >
+          <b className="text-ocean">Next action</b>
+          <span className="ml-2">{next}</span>
+          {presenting && <span className="ml-2 text-muted-foreground">Esc exits presentation</span>}
         </div>
         {life && <LifecycleBar lifecycle={life} running={running} />}
       </header>
@@ -151,10 +225,34 @@ function CasePage() {
               centerId={c.loanId}
               flagged={graph.flagged}
               highlight={highlight}
-              height={440}
+              height={presenting ? 520 : 440}
+              referenceLabel={label}
+              onInspect={(reference) => {
+                const node = graph.nodes.find((n) => n.id === reference);
+                const edge = graph.edges.find((e) => e.id === reference);
+                inspect(
+                  node?.label ||
+                    (edge
+                      ? `${label(edge.from)} ${humanize(edge.kind)} ${label(edge.to)}`
+                      : reference),
+                  [reference],
+                );
+              }}
             />
           </div>
 
+          {selection && (
+            <EvidenceInspector
+              selection={selection}
+              nodes={graph.nodes}
+              edges={graph.edges}
+              onClose={() => {
+                setSelection(undefined);
+                setHighlight([]);
+                setActive(undefined);
+              }}
+            />
+          )}
           <div className="glass edge-lit rounded-2xl">
             <div className="flex gap-1 border-b border-border p-2">
               {(["summary", "evidence", "history"] as const).map((d) => (
@@ -190,7 +288,7 @@ function CasePage() {
                       <h3 className="text-xs font-bold text-ocean">Both agents agree</h3>
                       <ul className="mt-1.5 space-y-1 text-sm">
                         {crux.agreed.map((a) => (
-                          <li key={a}>• {a}</li>
+                          <li key={a}>• {readable(a)}</li>
                         ))}
                       </ul>
                     </div>
@@ -199,9 +297,9 @@ function CasePage() {
                       <ul className="mt-1.5 space-y-2 text-sm">
                         {crux.disputed.map((d) => (
                           <li key={d.point}>
-                            {d.point}
+                            {readable(d.point)}
                             <div className="text-xs text-muted-foreground">
-                              Would be settled by: {d.decidingFact}
+                              Would be settled by: {readable(d.decidingFact)}
                             </div>
                           </li>
                         ))}
@@ -220,12 +318,12 @@ function CasePage() {
                   <button
                     key={e.id}
                     onClick={() => {
-                      setHighlight(e.citations);
+                      inspect(e.fact, e.citations);
                       setActive(undefined);
                     }}
                     className="rounded-xl border border-border p-3 text-left text-sm hover:border-sky hover:bg-sky-soft"
                   >
-                    {e.fact}
+                    {readable(e.fact)}
                   </button>
                 ))}
               </div>
@@ -266,8 +364,12 @@ function CasePage() {
             )}
           </div>
           {trial && !running && (
-            <div className="border-b border-border bg-candy-soft px-4 py-2 text-xs text-candy-strong">
-              Trial stopped: {trial}
+            <div className="p-3">
+              <ActionError
+                title="Analysis interrupted"
+                detail={trial}
+                onRetry={() => runTrial(id, me.name)}
+              />
             </div>
           )}
           <div className="min-h-0 flex-1">
@@ -279,6 +381,8 @@ function CasePage() {
               disabled={decided}
               running={running}
               onSelect={select}
+              referenceLabel={label}
+              formatText={readable}
               onAsk={(s, t) => askQuestion(id, me.name, s, t)}
               onNote={(t) => addNote(id, me.name, t)}
             />
@@ -295,6 +399,8 @@ function CasePage() {
           ) : (
             <DecisionBox
               enabled={c.status === "awaiting_verdict"}
+              reviewer={me.name}
+              amount={c.loan?.amount}
               onSubmit={(d, r) => submitVerdict(id, me.name, d, r)}
             />
           )}
@@ -326,11 +432,22 @@ function Decided({
         verdict.decision === "fraud" ? "bg-candy-soft" : "bg-sky-soft",
       )}
     >
-      <div className="font-bold">Decision: {humanize(verdict.decision)}</div>
+      <div role="status" className="font-bold">
+        Decision recorded: {humanize(verdict.decision)}
+      </div>
       <div className="text-xs text-muted-foreground">
         {verdict.analyst} · {dateTime(verdict.decidedAt)}
       </div>
-      <p className="mt-1">{verdict.reasoning}</p>
+      <p className="mt-1 whitespace-pre-wrap break-words">{verdict.reasoning}</p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {needs
+          ? "Next: a different senior reviewer must sign off."
+          : life?.next
+            ? `Next: ${life.next.label.toLowerCase()}.`
+            : life?.stage === "declined"
+              ? "This loan was declined. The decision is recorded in History."
+              : "Review the current loan stage above for its status."}
+      </p>
       {signOff && (
         <p className="mt-1 text-xs">
           Senior sign-off: <b>{humanize(signOff.decision)}</b> by {signOff.reviewer}
@@ -364,61 +481,6 @@ function Decided({
       {life?.stage === "monitored" && (
         <p className="mt-2 text-xs font-semibold text-ocean">Funded · under monitoring</p>
       )}
-    </div>
-  );
-}
-
-function DecisionBox({
-  enabled,
-  onSubmit,
-}: {
-  enabled: boolean;
-  onSubmit: (d: Decision, r: string) => void;
-}) {
-  const [decision, setDecision] = useState<Decision>();
-  const [reason, setReason] = useState("");
-  const opts: { d: Decision; label: string; on: string }[] = [
-    { d: "fraud", label: "Fraud", on: "border-candy-strong bg-candy-soft text-candy-strong" },
-    { d: "not_fraud", label: "Not fraud", on: "border-ocean bg-sky-soft text-ocean" },
-    { d: "escalate", label: "Escalate", on: "border-warning bg-muted text-foreground" },
-  ];
-  return (
-    <div className="space-y-2 border-t border-border bg-muted/50 p-4">
-      <div className="text-xs font-bold">
-        {enabled ? "Your decision" : "Decision unlocks when the agents finish"}
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        {opts.map((o) => (
-          <button
-            key={o.d}
-            disabled={!enabled}
-            onClick={() => setDecision(o.d)}
-            className={cn(
-              "rounded-xl border-2 border-border bg-card py-2 text-sm font-semibold disabled:opacity-40",
-              decision === o.d && o.on,
-            )}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-      <textarea
-        aria-label="Decision reasoning"
-        maxLength={5000}
-        disabled={!enabled}
-        rows={2}
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-        placeholder="Reasoning (required)"
-        className="w-full resize-none rounded-xl border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-      />
-      <Button
-        className="w-full"
-        disabled={!enabled || !decision || reason.trim().length < 5}
-        onClick={() => decision && onSubmit(decision, reason.trim())}
-      >
-        Submit decision
-      </Button>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { ActionError } from "@/components/InvestigationTools";
 import { LoadingStatus, Mascot } from "@/components/Mascot";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, ChevronDown, Loader2, SendHorizonal, ShieldCheck } from "lucide-react";
@@ -21,6 +22,8 @@ type Item =
   | { kind: "note"; at: string; n: Note; key: string };
 
 interface Props {
+  referenceLabel?: (id: string) => string;
+  formatText?: (text: string) => string;
   args: Argument[];
   questions: Question[];
   notes: Note[];
@@ -33,6 +36,8 @@ interface Props {
 }
 
 export function AgentChat({
+  referenceLabel = (id) => id,
+  formatText = (text) => text,
   args,
   questions,
   notes,
@@ -145,6 +150,8 @@ export function AgentChat({
               claim={it.claim}
               active={active === it.claim}
               onClick={() => onSelect(it.claim)}
+              referenceLabel={referenceLabel}
+              formatText={formatText}
             />
           );
         })}
@@ -228,9 +235,12 @@ export function AgentChat({
             />
           )}
           {error && (
-            <p role="alert" className="mt-2 text-xs text-candy-strong">
-              {error}
-            </p>
+            <ActionError
+              title="Message could not be sent"
+              detail={error}
+              onRetry={() => void send()}
+              retryLabel="Retry message"
+            />
           )}
         </div>
       )}
@@ -244,7 +254,11 @@ function ClaimBubble({
   claim,
   active,
   onClick,
+  referenceLabel,
+  formatText,
 }: {
+  referenceLabel: (id: string) => string;
+  formatText: (text: string) => string;
   side: Side;
   round: string;
   claim: Claim;
@@ -276,7 +290,7 @@ function ClaimBubble({
               active && "ring-2 ring-ocean glow-ocean",
             )}
           >
-            {claim.text}
+            {formatText(claim.text)}
             <div className="mt-1.5 flex flex-wrap items-center gap-1">
               <span className="flex items-center gap-0.5 text-[10px] font-semibold text-success">
                 <ShieldCheck className="h-3 w-3" /> verified sources
@@ -286,11 +300,11 @@ function ClaimBubble({
                   key={c}
                   className="rounded bg-card px-1 font-mono text-[10px] text-muted-foreground"
                 >
-                  {c}
+                  {referenceLabel(c)}
                 </span>
               ))}
               <span className="ml-1 text-[10px] text-ocean">
-                {active ? "shown on map" : "click to show on map"}
+                {active ? "shown on map" : "inspect evidence and map"}
               </span>
             </div>
           </button>
@@ -302,7 +316,7 @@ function ClaimBubble({
             </button>
             {open && (
               <p className="mt-1.5 line-through">
-                {claim.text}{" "}
+                {formatText(claim.text)}{" "}
                 <span className="no-underline">(missing: {claim.citations.join(", ")})</span>
               </p>
             )}

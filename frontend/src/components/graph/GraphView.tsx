@@ -22,6 +22,7 @@ interface Props {
   flagged?: string[];
   highlight?: string[];
   height?: number;
+  onInspect?: (id: string) => void;
   referenceLabel?: (id: string) => string;
 }
 type Pt = { x: number; y: number };
@@ -83,6 +84,7 @@ export function GraphView({
   highlight = [],
   height = 480,
   referenceLabel = (id) => id,
+  onInspect,
 }: Props) {
   const initial = useMemo(() => layout(nodes, edges, centerId), [nodes, edges, centerId]);
   const [pos, setPos] = useState(initial.pos);
@@ -154,8 +156,10 @@ export function GraphView({
   };
   const onPointerUp = () => {
     const d = drag.current;
-    if (d && !d.moved)
+    if (d && !d.moved) {
       setSelected(d.kind === "node" ? (d.id === selected ? undefined : d.id) : undefined);
+      if (d.id) onInspect?.(d.id);
+    }
     drag.current = null;
     setDragging(undefined);
   };
@@ -298,6 +302,30 @@ export function GraphView({
             return (
               <g key={e.id} className={cn("transition-opacity", faded && "opacity-20")}>
                 <line
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Inspect relationship: ${humanize(e.kind)} between ${referenceLabel(e.from)} and ${referenceLabel(e.to)}`}
+                  stroke="transparent"
+                  strokeWidth={16}
+                  x1={a.x}
+                  y1={a.y}
+                  x2={b.x}
+                  y2={b.y}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onInspect?.(e.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onInspect?.(e.id);
+                    }
+                  }}
+                  className="cursor-pointer"
+                />
+                <line
+                  pointerEvents="none"
                   x1={a.x}
                   y1={a.y}
                   x2={b.x}
@@ -337,6 +365,7 @@ export function GraphView({
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     setSelected(n.id === selected ? undefined : n.id);
+                    onInspect?.(n.id);
                   }
                 }}
                 transform={`translate(${p.x},${p.y})`}

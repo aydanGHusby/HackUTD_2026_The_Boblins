@@ -13,13 +13,15 @@ The sidebar reports the backend's actual connection mode. The canonical backend 
 ## Review a case
 
 1. Choose a name and Analyst role, then open Cases. Select a loan to open the courtroom.
-2. The network map supports drag/pan/zoom and citation highlighting. Expand Where they agree, Evidence, or History below it.
+2. The case header summarizes the loan, current reviewer and flagged issues. Next action reflects the real review stage. The network map supports drag/pan/zoom; click a claim, evidence card, node or connection to inspect its source records. Expand Where they agree, Evidence, or History below it.
 3. Run trial to call the backend's Nemotron agents. Opening and rebuttal rounds appear as they are recorded. Ask either agent a follow-up question or leave a team note. Verified-source badges check reference IDs, not independent truth.
-4. Choose Fraud, Not fraud, or Escalate and enter reasoning. The canonical backend's decision semantics and audit behavior are retained.
+4. Choose Fraud, Not fraud, or Escalate and enter reasoning. Review the confirmation showing your verdict, reasoning and next step, then confirm submission. The recorded decision shows who submitted it and when. The canonical backend's decision semantics and audit behavior are retained.
 5. The stage bar follows Applied → Checked → AI review → Decided → Closed → Funded → Monitored. A declined case stops on its decline branch. Stages do not advance on a timer.
 6. Approved loans over $1M and escalated decisions require a senior sign-off. A different reviewer must sign off; the original analyst cannot approve their own decision. Once permitted, use Mark closed, then Fund loan. Funding proceeds to monitoring through the backend's existing actions.
 
 ## Interface details
+
+Use **Present** in the case header to hide navigation and enlarge the map and agent discussion. **Exit presentation** or Escape restores the workspace. Presentation remains interactive and never advances the workflow. Analysis errors provide a retry action, with technical details collapsed; failed messages retain their draft for retry. Source records are synthetic demo records; matching references establish record presence, not the truth of an AI claim.
 
 Use **Appearance** in the sidebar or home-page header to choose White, Off-white, Cream, Light gray, Stone, Charcoal, Black, Dark slate, Soft blue, Mint, Lavender or Warm sand. Text, panels and the network canvas adapt to the selected background. Preferences save in this browser, restore before the first paint and synchronize between open tabs. Existing light/dark preferences are preserved on first use. Arrow keys navigate the palette choices.
 
