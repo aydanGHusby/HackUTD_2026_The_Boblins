@@ -1,8 +1,11 @@
-// Mock identity. At handoff, identity comes from the SpacetimeDB connection.
+// Demo profile only; role selection is not authenticated access control.
 import { useEffect, useState } from "react";
 
 export type Role = "analyst" | "senior_reviewer";
-export interface Identity { name: string; role: Role }
+export interface Identity {
+  name: string;
+  role: Role;
+}
 const KEY = "fraudgraph.identity";
 const listeners = new Set<() => void>();
 
@@ -16,11 +19,26 @@ export function useIdentity(): Identity {
   useEffect(() => {
     const read = () => {
       const raw = localStorage.getItem(KEY);
-      setId(raw ? JSON.parse(raw) : { name: "Analyst", role: "analyst" });
+      try {
+        const saved = raw ? JSON.parse(raw) : null;
+        setId(
+          saved &&
+            typeof saved.name === "string" &&
+            ["analyst", "senior_reviewer"].includes(saved.role)
+            ? saved
+            : { name: "Analyst", role: "analyst" },
+        );
+      } catch {
+        setId({ name: "Analyst", role: "analyst" });
+      }
     };
     read();
     listeners.add(read);
-    return () => { listeners.delete(read); };
+    window.addEventListener("storage", read);
+    return () => {
+      listeners.delete(read);
+      window.removeEventListener("storage", read);
+    };
   }, []);
   return id;
 }

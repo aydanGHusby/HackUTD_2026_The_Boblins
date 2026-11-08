@@ -51,7 +51,7 @@ function CasePage() {
   const select = (cl: Claim) => { setActive(cl); setHighlight(cl.citations); };
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="case-classic flex h-screen flex-col">
       {/* Header */}
       <header className="edge-lit flex flex-wrap items-center gap-4 border-b border-border bg-card/70 px-6 py-3 backdrop-blur-xl">
         <Link to="/cases" aria-label="Back to cases" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"><ArrowLeft className="h-4 w-4" /></Link>
