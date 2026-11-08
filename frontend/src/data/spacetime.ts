@@ -1,13 +1,15 @@
 // Server-side bridge to the shared SpacetimeDB database (module in spacetimedb/src/index.ts).
 // Same HTTP approach as the root app's src/spacetime-bridge.mjs.
 import { createServerFn } from "@tanstack/react-start";
+import { serverEnv } from "@/lib/server-env";
 
-const base = () => process.env["SPACETIMEDB_URL"] || "http://127.0.0.1:3108";
-const root = () => `${base()}/v1/database/${encodeURIComponent(process.env["SPACETIMEDB_DATABASE"] || "fraudgraph-local")}`;
+// Defaults to the local database; set SPACETIMEDB_URL / SPACETIMEDB_DATABASE in .env to use maincloud.
+const base = () => serverEnv("SPACETIMEDB_URL") || "http://127.0.0.1:3108";
+const root = () => `${base()}/v1/database/${encodeURIComponent(serverEnv("SPACETIMEDB_DATABASE") || "fraudgraph-local")}`;
 
 async function request(path: string, body: string) {
   const res = await fetch(root() + path, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body, signal: AbortSignal.timeout(5000),
+    method: "POST", headers: { "Content-Type": "application/json" }, body, signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) throw new Error(`SpacetimeDB ${res.status}: ${(await res.text()).slice(0, 200)}`);
   return res;

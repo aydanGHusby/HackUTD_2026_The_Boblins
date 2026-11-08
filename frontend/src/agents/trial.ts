@@ -1,5 +1,6 @@
 // Nemotron courtroom agents. The handler runs on the server, so the NVIDIA key never reaches the browser.
 import { createServerFn } from "@tanstack/react-start";
+import { serverEnv } from "@/lib/server-env";
 import type { Claim, Edge, EvidenceItem, GraphNode, Round, Side } from "@/shared/types";
 
 export interface CaseFile {
@@ -67,20 +68,13 @@ function runTool(name: string, args: Record<string, unknown>, file: CaseFile) {
 const BASE = "https://integrate.api.nvidia.com/v1";
 
 function config() {
-  if (!process.env["NVIDIA_API_KEY"]) {
-    // Dev convenience: read the repo's .env (frontend/ or the root one above it).
-    for (const path of [".env", "../.env"]) {
-      try { process.loadEnvFile(path); } catch { /* not there */ }
-      if (process.env["NVIDIA_API_KEY"]) break;
-    }
-  }
-  const key = process.env["NVIDIA_API_KEY"];
+  const key = serverEnv("NVIDIA_API_KEY");
   if (!key) throw new Error("NVIDIA_API_KEY is not set. Add it to .env.");
   return {
     key,
-    model: process.env["NVIDIA_MODEL"] || "nvidia/nemotron-3.5-super-vl-120b-a12b",
+    model: serverEnv("NVIDIA_MODEL") || "nvidia/nemotron-3.5-super-vl-120b-a12b",
     // Thinking makes each call ~3x slower; off by default so a full trial fits in a live demo.
-    thinking: process.env["NEMOTRON_THINKING"] === "on",
+    thinking: serverEnv("NEMOTRON_THINKING") === "on",
   };
 }
 
