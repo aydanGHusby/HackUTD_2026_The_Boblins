@@ -5,7 +5,11 @@
   "scripts": {
     "start": "node --env-file=.env server.mjs",
     "dev": "node --env-file=.env --watch server.mjs",
-    "build": "node src/worker.mjs"
+    "build": "node src/worker.mjs",
+    "db:start": "node scripts/spacetime.mjs start",
+    "db:publish": "node scripts/spacetime.mjs publish",
+    "test:shared": "node scripts/verify-shared.mjs",
+    "prestart": "node src/worker.mjs",
+    "predev": "node src/worker.mjs"
   }
 }
-
