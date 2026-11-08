@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 export function Mascot({
@@ -28,9 +29,63 @@ export function Mascot({
   );
 }
 export function BrandLogo({ size = 38, className }: { size?: number; className?: string }) {
+  const root = useRef<HTMLSpanElement>(null);
+  const running = useRef(false);
+  const [playing, setPlaying] = useState(false);
+  const play = useCallback(() => {
+    if (running.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    running.current = true;
+    setPlaying(true);
+  }, []);
+  const finish = useCallback(() => {
+    running.current = false;
+    setPlaying(false);
+  }, []);
+  useEffect(() => {
+    // The surrounding logo link remains the only keyboard focus target.
+    const link = root.current?.closest("a");
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onMotionChange = () => {
+      if (motion.matches) finish();
+    };
+    link?.addEventListener("focus", play);
+    motion.addEventListener("change", onMotionChange);
+    return () => {
+      link?.removeEventListener("focus", play);
+      motion.removeEventListener("change", onMotionChange);
+    };
+  }, [play, finish]);
   return (
-    <span className={cn("inline-flex items-center gap-2 font-bold tracking-tight", className)}>
-      <Mascot size={size} />
+    <span
+      ref={root}
+      onMouseEnter={play}
+      data-playing={playing || undefined}
+      onAnimationEnd={(event) => {
+        if (event.animationName === "mascot-logo-act") finish();
+      }}
+      className={cn(
+        "brand-logo inline-flex items-center gap-2 font-bold tracking-tight",
+        className,
+      )}
+      style={{ "--logo-size": `${size}px` } as CSSProperties}
+    >
+      <span className="brand-logo-stage" aria-hidden="true">
+        <span className="brand-logo-character">
+          <Mascot size={size} />
+          <span className="brand-logo-paper-patch" />
+        </span>
+        <span className="brand-logo-folding-paper">
+          <span className="brand-logo-fold" />
+          <span className="brand-logo-crease" />
+        </span>
+        <span className="brand-logo-hand brand-logo-hand-left" />
+        <span className="brand-logo-hand brand-logo-hand-right" />
+        <span className="brand-logo-flight">
+          <span className="brand-logo-plane">
+            <span className="brand-logo-plane-wing" />
+          </span>
+        </span>
+      </span>
       <span>
         Paper<span className="text-ocean">View</span>
       </span>

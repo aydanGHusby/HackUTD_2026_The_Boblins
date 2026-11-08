@@ -52,9 +52,13 @@ function Landing() {
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-8 py-6">
       <header className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
+        <Link
+          to="/"
+          aria-label="Paper View home"
+          className="flex items-center gap-2 rounded-lg text-lg font-extrabold tracking-tight"
+        >
           <BrandLogo size={46} />
-        </div>
+        </Link>
         <Link
           to="/cases"
           className="text-sm font-semibold text-muted-foreground hover:text-foreground"
