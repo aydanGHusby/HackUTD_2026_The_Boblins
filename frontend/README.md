@@ -99,3 +99,5 @@ Hover over the logo to play a short fold-and-throw sequence: the mascot folds a 
 At the user's request, page entry currently keeps the mascot loading screen visible for four seconds. Real route data continues to load in the background; this adds no AI requests. `TEMPORARY_PAGE_LOADING_MS` in `src/lib/ui-preview.ts` controls the temporary delay. Set it to `0` when the user asks to return to normal loading. Keep the preview enabled until then.
 
 The background also includes low-opacity light-blue and pink floating dots. They do not intercept clicks and stop moving under reduced-motion preferences.
+
+The full page/data loading panel now repeats the mascot's fold-and-throw performance every 2.4 seconds. Its paper airplane follows a small loop and twirls during flight. Loading text stays accessible and the scene becomes a still mascot for reduced motion. The four-second temporary page delay and the separate one-shot logo hover are unchanged; compact inline loading indicators keep their smaller bob animation.

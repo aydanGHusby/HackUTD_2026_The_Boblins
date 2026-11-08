@@ -553,13 +553,13 @@
 .brand-logo-plane { position: absolute; inset: 0; background: #4169fa; clip-path: polygon(0 10%,100% 0,34% 100%,28% 47%); }
 .brand-logo-plane-wing { position: absolute; inset: 0; background: #c9d6ff; clip-path: polygon(0 10%,100% 0,28% 47%); }
 .brand-logo-flight::after { content: ''; position: absolute; top: 64%; right: 90%; width: 34px; border-top: 2px dashed currentColor; opacity: 0; transform: rotate(-12deg); transform-origin: right center; }
-.brand-logo[data-playing] .brand-logo-character { animation: mascot-logo-act 2700ms ease-in-out both; }
-.brand-logo[data-playing] .brand-logo-folding-paper { animation: mascot-paper-fold 2700ms ease-in-out both; }
-.brand-logo[data-playing] .brand-logo-fold { animation: mascot-fold-wing 2700ms ease-in-out both; }
-.brand-logo[data-playing] .brand-logo-hand-left { animation: mascot-left-fold 2700ms ease-in-out both; }
-.brand-logo[data-playing] .brand-logo-hand-right { animation: mascot-right-throw 2700ms ease-in-out both; }
-.brand-logo[data-playing] .brand-logo-flight { animation: mascot-plane-flight 2700ms cubic-bezier(.22,.65,.34,1) both; }
-.brand-logo[data-playing] .brand-logo-flight::after { animation: mascot-flight-trail 2700ms linear both; }
+:is(.brand-logo[data-playing],.mascot-performance[data-looping]) .brand-logo-character { animation: mascot-logo-act var(--performance-cycle,2700ms) ease-in-out both; }
+:is(.brand-logo[data-playing],.mascot-performance[data-looping]) .brand-logo-folding-paper { animation: mascot-paper-fold var(--performance-cycle,2700ms) ease-in-out both; }
+:is(.brand-logo[data-playing],.mascot-performance[data-looping]) .brand-logo-fold { animation: mascot-fold-wing var(--performance-cycle,2700ms) ease-in-out both; }
+:is(.brand-logo[data-playing],.mascot-performance[data-looping]) .brand-logo-hand-left { animation: mascot-left-fold var(--performance-cycle,2700ms) ease-in-out both; }
+:is(.brand-logo[data-playing],.mascot-performance[data-looping]) .brand-logo-hand-right { animation: mascot-right-throw var(--performance-cycle,2700ms) ease-in-out both; }
+:is(.brand-logo[data-playing],.mascot-performance[data-looping]) .brand-logo-flight { animation: mascot-plane-flight var(--performance-cycle,2700ms) cubic-bezier(.22,.65,.34,1) both; }
+:is(.brand-logo[data-playing],.mascot-performance[data-looping]) .brand-logo-flight::after { animation: mascot-flight-trail var(--performance-cycle,2700ms) linear both; }
 @keyframes mascot-logo-act {
   0%,100% { transform: translateY(0) rotate(0) scale(1); }
   12% { transform: translateY(-2px) rotate(-4deg) scale(1.18); }
@@ -589,12 +589,12 @@
 }
 @keyframes mascot-flight-trail { 0%,48%,90%,100% { opacity: 0; } 57%,75% { opacity: .5; } }
 @media (prefers-reduced-motion:reduce) {
-  .brand-logo[data-playing] .brand-logo-character { animation: none !important; transform: none !important; }
+  :is(.brand-logo[data-playing],.mascot-performance[data-looping]) .brand-logo-character { animation: none !important; transform: none !important; }
   .brand-logo-folding-paper, .brand-logo-hand, .brand-logo-flight { display: none !important; }
 }
 .brand-logo-character { display: block; position: relative; width: 100%; height: 100%; }
 .brand-logo-paper-patch { position: absolute; left: 57%; top: 44%; width: 21%; height: 23%; background: #fffcf9; opacity: 0; clip-path: polygon(0 0,72% 0,100% 25%,100% 78%,65% 100%,0 100%); pointer-events: none; }
-.brand-logo[data-playing] .brand-logo-paper-patch { animation: mascot-hide-held-paper 2700ms linear both; }
+:is(.brand-logo[data-playing],.mascot-performance[data-looping]) .brand-logo-paper-patch { animation: mascot-hide-held-paper var(--performance-cycle,2700ms) linear both; }
 @keyframes mascot-hide-held-paper { 0%,3%,98%,100% { opacity: 0; } 8%,94% { opacity: 1; } }
 @media (prefers-reduced-motion:reduce) { .brand-logo-paper-patch { display: none !important; } }
 
@@ -609,3 +609,34 @@
   70% { transform: translate3d(calc(var(--drift-x) * -.45),calc(var(--drift-y) * .4),0); }
 }
 @media (prefers-reduced-motion:reduce) { .pastel-floating-dot { animation: none !important; } }
+
+/* Full loading scene repeats the fold/toss without replaying the hover interaction. */
+.plane-loading-scene { position: relative; display: block; width: min(280px,70vw); height: 170px; overflow: hidden; pointer-events: none; }
+.plane-loading-scene .brand-logo-stage { position: absolute; left: 28px; bottom: 12px; z-index: 2; }
+.plane-loading-scene[data-looping] .brand-logo-character,
+.plane-loading-scene[data-looping] .brand-logo-folding-paper,
+.plane-loading-scene[data-looping] .brand-logo-fold,
+.plane-loading-scene[data-looping] .brand-logo-hand,
+.plane-loading-scene[data-looping] .brand-logo-flight,
+.plane-loading-scene[data-looping] .brand-logo-paper-patch,
+.plane-loading-scene[data-looping] .brand-logo-flight::after { animation-iteration-count: infinite; }
+.plane-loading-scene[data-looping] .brand-logo-flight { animation-name: loading-plane-loop; animation-timing-function: linear; }
+.plane-loading-scene[data-looping] .brand-logo-plane { animation: loading-plane-twirl var(--performance-cycle) ease-in-out infinite; transform-origin: center; }
+.plane-loading-orbit { position: absolute; top: 20px; left: 100px; width: 90px; height: 70px; border: 1px dashed color-mix(in oklch,var(--ocean) 16%,transparent); border-radius: 50%; transform: rotate(-18deg); }
+.plane-loading-ground { position: absolute; bottom: 10px; left: 29px; width: 90px; height: 5px; border-radius: 50%; background: color-mix(in oklch,var(--ocean) 8%,transparent); }
+@keyframes loading-plane-loop {
+  0%,42% { opacity: 0; transform: translate(0,0) rotate(-18deg) scale(.65); }
+  46% { opacity: 1; transform: translate(0,-3px) rotate(-18deg) scale(.72); }
+  55% { opacity: 1; transform: translate(30px,-37px) rotate(-35deg) scale(.72); }
+  62% { opacity: 1; transform: translate(74px,-70px) rotate(-75deg) scale(.68); }
+  68% { opacity: 1; transform: translate(105px,-47px) rotate(50deg) scale(.66); }
+  74% { opacity: 1; transform: translate(78px,-22px) rotate(150deg) scale(.65); }
+  80% { opacity: 1; transform: translate(48px,-48px) rotate(235deg) scale(.64); }
+  86% { opacity: 1; transform: translate(88px,-80px) rotate(325deg) scale(.6); }
+  95%,100% { opacity: 0; transform: translate(156px,-100px) rotate(345deg) scale(.4); }
+}
+@keyframes loading-plane-twirl { 0%,55% { transform: rotateY(0); } 85%,100% { transform: rotateY(360deg); } }
+@media (prefers-reduced-motion:reduce) {
+  .plane-loading-scene .brand-logo-character, .plane-loading-scene .brand-logo-plane { animation: none !important; transform: none !important; }
+  .plane-loading-orbit { display: none; }
+}

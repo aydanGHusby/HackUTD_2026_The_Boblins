@@ -69,29 +69,50 @@ export function BrandLogo({ size = 38, className }: { size?: number; className?:
       )}
       style={{ "--logo-size": `${size}px` } as CSSProperties}
     >
-      <span className="brand-logo-stage" aria-hidden="true">
-        <span className="brand-logo-character">
-          <Mascot size={size} />
-          <span className="brand-logo-paper-patch" />
-        </span>
-        <span className="brand-logo-folding-paper">
-          <span className="brand-logo-fold" />
-          <span className="brand-logo-crease" />
-        </span>
-        <span className="brand-logo-hand brand-logo-hand-left" />
-        <span className="brand-logo-hand brand-logo-hand-right" />
-        <span className="brand-logo-flight">
-          <span className="brand-logo-plane">
-            <span className="brand-logo-plane-wing" />
-          </span>
-        </span>
-      </span>
+      <MascotPerformance size={size} />
       <span>
         Paper<span className="text-ocean">View</span>
       </span>
     </span>
   );
 }
+function MascotPerformance({ size }: { size: number }) {
+  return (
+    <span className="brand-logo-stage" aria-hidden="true">
+      <span className="brand-logo-character">
+        <Mascot size={size} />
+        <span className="brand-logo-paper-patch" />
+      </span>
+      <span className="brand-logo-folding-paper">
+        <span className="brand-logo-fold" />
+        <span className="brand-logo-crease" />
+      </span>
+      <span className="brand-logo-hand brand-logo-hand-left" />
+      <span className="brand-logo-hand brand-logo-hand-right" />
+      <span className="brand-logo-flight">
+        <span className="brand-logo-plane">
+          <span className="brand-logo-plane-wing" />
+        </span>
+      </span>
+    </span>
+  );
+}
+
+export function PaperPlaneLoader() {
+  return (
+    <span
+      className="plane-loading-scene mascot-performance"
+      data-looping="true"
+      aria-hidden="true"
+      style={{ "--logo-size": "88px", "--performance-cycle": "2400ms" } as CSSProperties}
+    >
+      <span className="plane-loading-orbit" />
+      <MascotPerformance size={88} />
+      <span className="plane-loading-ground" />
+    </span>
+  );
+}
+
 export function LoadingStatus({
   label,
   size = 26,
@@ -122,7 +143,10 @@ export function LoadingStatus({
 export function LoadingPanel({ label, hint }: { label: string; hint?: string | undefined }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-      <LoadingStatus label={label} size={58} className="flex-col gap-3 text-sm font-medium" />
+      <PaperPlaneLoader />
+      <span role="status" aria-live="polite" className="text-sm font-medium">
+        {label}
+      </span>
       {hint && <p className="max-w-md text-xs leading-relaxed text-muted-foreground">{hint}</p>}
     </div>
   );
