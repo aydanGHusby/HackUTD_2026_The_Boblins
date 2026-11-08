@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Activity, Clock, Search, ShieldAlert, Wallet } from "lucide-react";
 import { Avatars, Empty, Panel, RiskScore, StatusBadge, TriggerTag } from "@/components/ui-kit";
+import { BriefcaseFilter } from "@/components/BriefcaseFilter";
 import { useCases } from "@/data/hooks";
 import { humanize, money } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/cases")({
 });
 
 const filters: (CaseStatus | "all")[] = ["all", "awaiting_verdict", "in_trial", "queued", "decided"];
-const filterLabel: Record<string, string> = { all: "All", awaiting_verdict: "Needs decision", in_trial: "Debating", queued: "Gathering", decided: "Decided" };
+const filterLabel: Record<CaseStatus | "all", string> ={ all: "All", awaiting_verdict: "Needs decision", in_trial: "Debating", queued: "Gathering", decided: "Decided" };
 
 function Cases() {
   const cases = useCases();
@@ -61,13 +62,9 @@ function Cases() {
         })}
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center gap-3">
-        <div className="liquid-glass-pill flex gap-1 rounded-full p-1">
-          {filters.map((f) => (
-            <button key={f} onClick={() => setStatus(f)}
-              className={cn("rounded-full px-3 py-1 text-xs font-semibold", status === f ? "bg-primary text-primary-foreground glass-specular" : "text-muted-foreground transition-colors hover:text-foreground")}>{filterLabel[f]}</button>
-          ))}
-        </div>
+      <div className="mt-8 flex flex-wrap items-end gap-3">
+        <BriefcaseFilter label="Filter cases by status" value={status} onChange={setStatus}
+          options={filters.map((f) => ({ value: f, label: filterLabel[f], count: f === "all" ? cases.length : cases.filter((c) => c.status === f).length }))} />
         <label className="liquid-glass-pill ml-auto flex items-center gap-2 rounded-full px-3 py-1.5 text-sm focus-within:ring-2 focus-within:ring-ring">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search borrower or trigger" className="w-56 bg-transparent outline-none" />

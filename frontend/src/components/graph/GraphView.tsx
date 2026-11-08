@@ -1,7 +1,7 @@
 // Interactive SVG network canvas: drag nodes, drag background to pan, wheel/pinch or buttons to zoom.
 // Same props the Cytoscape GraphView will take at handoff.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Maximize2, Minus, Plus } from "lucide-react";
+import { Building2, Landmark, Maximize2, Minus, Plus, User, Warehouse, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { humanize, money } from "@/lib/format";
 import type { Edge, GraphNode, NodeKind } from "@/shared/types";
@@ -13,7 +13,8 @@ const W = 800, H = 480, MIN = 0.4, MAX = 3;
 const fill: Record<NodeKind, string> = {
   company: "fill-node-company", person: "fill-node-person", collateral: "fill-node-collateral", loan: "fill-node-loan",
 };
-const icon: Record<NodeKind, string> = { company: "C", person: "P", collateral: "A", loan: "L" };
+const icon: Record<NodeKind, LucideIcon> = { company: Building2, person: User, collateral: Warehouse, loan: Landmark };
+const radius = (id: string, centerId: string) => (id === centerId ? 22 : 17);
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 function layout(nodes: GraphNode[], edges: Edge[], centerId: string) {
@@ -44,6 +45,7 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
   const [view, setView] = useState({ x: 0, y: 0, k: 1 });
   const [selected, setSelected] = useState<string>();
   const [hover, setHover] = useState<string>();
+  const [dragging, setDragging] = useState<string>();
   const svgRef = useRef<SVGSVGElement>(null);
   const viewRef = useRef(view); viewRef.current = view;
   const drag = useRef<{ kind: "node" | "pan"; id?: string; start: Pt; origin: Pt; moved: boolean } | null>(null);
@@ -86,7 +88,7 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
     if (!d) return;
     const p = toSvg(e.clientX, e.clientY);
     const dx = p.x - d.start.x, dy = p.y - d.start.y;
-    if (Math.abs(dx) + Math.abs(dy) > 2) d.moved = true;
+    if (!d.moved && Math.abs(dx) + Math.abs(dy) > 2) { d.moved = true; if (d.id) setDragging(d.id); }
     if (d.kind === "node" && d.id) {
       const id = d.id;
       setPos((s) => ({ ...s, [id]: { x: d.origin.x + dx / view.k, y: d.origin.y + dy / view.k } }));
@@ -96,6 +98,7 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
     const d = drag.current;
     if (d && !d.moved) setSelected(d.kind === "node" ? (d.id === selected ? undefined : d.id) : undefined);
     drag.current = null;
+    setDragging(undefined);
   };
 
   const hl = new Set(highlight);
@@ -119,7 +122,7 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
     for (const n of nodes) {
       const p = pos[n.id];
       if (!p) continue;
-      const r = n.id === centerId ? 20 : 15;
+      const r = radius(n.id, centerId);
       taken.push({ x: p.x, y: p.y, w: r * 2 + 14, h: r * 2 + 14 });
       const name = n.label.length > 26 ? n.label.slice(0, 25) + "…" : n.label;
       taken.push({ x: p.x, y: p.y + r + 14, w: name.length * 6.3 + 8, h: 16 });
@@ -147,7 +150,7 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
   return (
     <div className="relative overflow-hidden rounded-md bg-canvas" style={{ height }}>
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet"
-        className="h-full w-full touch-none select-none cursor-grab active:cursor-grabbing"
+        className={cn("h-full w-full touch-none select-none", dragging ? "cursor-grabbing" : "cursor-grab active:cursor-grabbing")}
         onPointerDown={(e) => onPointerDown(e)} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}>
         <defs>
           <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
@@ -158,6 +161,15 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
             <stop offset="65%" style={{ stopColor: "var(--glow-ocean)", stopOpacity: 0.07 }} />
             <stop offset="100%" style={{ stopColor: "var(--glow-ocean)", stopOpacity: 0 }} />
           </radialGradient>
+          {/* Top-lit sheen laid over each node disc so it reads as a lit object, not a flat dot. */}
+          <linearGradient id="node-sheen" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="white" stopOpacity={0.38} />
+            <stop offset="55%" stopColor="white" stopOpacity={0.06} />
+            <stop offset="100%" stopColor="black" stopOpacity={0.18} />
+          </linearGradient>
+          <filter id="node-lift" x="-60%" y="-60%" width="220%" height="220%">
+            <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="black" floodOpacity="0.45" />
+          </filter>
         </defs>
         <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
           <rect x={-2000} y={-2000} width={4800} height={4400} fill="url(#grid)" />
@@ -187,15 +199,23 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
           {nodes.map((n) => {
             const p = pos[n.id];
             if (!p) return null;
-            const r = n.id === centerId ? 20 : 15;
-            const isHl = hl.has(n.id), isSel = n.id === selected;
+            const r = radius(n.id, centerId);
+            const isHl = hl.has(n.id), isSel = n.id === selected, isDrag = n.id === dragging, isHover = n.id === hover;
+            const Icon = icon[n.kind], s = Math.round(r * 0.95);
             return (
               <g key={n.id} transform={`translate(${p.x},${p.y})`}
                 onPointerDown={(e) => onPointerDown(e, n.id)} onPointerEnter={() => setHover(n.id)} onPointerLeave={() => setHover(undefined)}
-                className={cn("cursor-pointer transition-opacity", dim(n.id) && "opacity-30")}>
+                className={cn("transition-opacity", isDrag ? "cursor-grabbing" : "cursor-grab", dim(n.id) && "opacity-30")}>
                 {(isHl || isSel) && <circle r={r + 7} className={cn("fill-none", isSel ? "stroke-foreground" : "stroke-primary graph-pulse")} strokeWidth={2} />}
-                <circle r={r} className={cn(fill[n.kind], "stroke-background")} strokeWidth={3} />
-                <text textAnchor="middle" dy="0.35em" className="pointer-events-none fill-primary-foreground text-[11px] font-bold">{icon[n.kind]}</text>
+                {/* Inner group scales on hover/drag; the outer translate stays exact so edges never drift. */}
+                <g style={{ transform: `scale(${isDrag ? 1.15 : isHover ? 1.07 : 1})`, transition: "transform 160ms cubic-bezier(.2,.8,.2,1)" }}
+                  filter={isDrag ? "url(#node-lift)" : undefined}>
+                  <circle r={r + 4} className={cn(fill[n.kind], "opacity-20")} />
+                  <circle r={r} className={cn(fill[n.kind], "stroke-background")} strokeWidth={2.5} />
+                  <circle r={r - 1.5} fill="url(#node-sheen)" pointerEvents="none" />
+                  <circle r={r - 1.5} className="fill-none stroke-white/25" strokeWidth={1} pointerEvents="none" />
+                  <Icon x={-s / 2} y={-s / 2} width={s} height={s} strokeWidth={2} className="pointer-events-none text-white" aria-hidden />
+                </g>
                 <text y={r + 14} textAnchor="middle" strokeWidth={4} strokeLinejoin="round"
                   className="pointer-events-none fill-canvas stroke-canvas text-[11px] font-medium">
                   {n.label.length > 26 ? n.label.slice(0, 25) + "…" : n.label}
@@ -232,7 +252,9 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
 
       {info && (
         <div className="liquid-glass pointer-events-none absolute left-3 top-3 max-w-xs rounded-xl p-3 text-xs">
-          <div className="font-mono text-muted-foreground">{icon[info.kind]} {info.kind} · {info.id} · hop {initial.dist.get(info.id) ?? "?"}</div>
+          <div className="flex items-center gap-1.5 font-mono text-muted-foreground">
+            <KindDot kind={info.kind} size={18} /> {info.kind} · {info.id} · hop {initial.dist.get(info.id) ?? "?"}
+          </div>
           <div className="mt-1 font-medium text-foreground">{info.label}</div>
           <NodeDetails node={info} />
         </div>
@@ -240,12 +262,23 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
 
       <div className="pointer-events-none absolute bottom-2 left-3 right-3 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
         {(Object.keys(fill) as NodeKind[]).map((k) => (
-          <span key={k} className="flex items-center gap-1"><svg width="8" height="8"><circle cx="4" cy="4" r="4" className={fill[k]} /></svg>{k}</span>
+          <span key={k} className="flex items-center gap-1.5"><KindDot kind={k} size={16} />{k}</span>
         ))}
         <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-candy-strong" />flagged</span>
         <span className="ml-auto">Drag nodes · drag to pan · scroll to zoom · click to focus</span>
       </div>
     </div>
+  );
+}
+
+/** Small colored disc with the node kind's icon, for the legend and the info card. */
+function KindDot({ kind, size }: { kind: NodeKind; size: number }) {
+  const Icon = icon[kind], h = size / 2, s = Math.round(size * 0.6);
+  return (
+    <svg width={size} height={size} aria-hidden className="shrink-0">
+      <circle cx={h} cy={h} r={h} className={fill[kind]} />
+      <Icon x={h - s / 2} y={h - s / 2} width={s} height={s} strokeWidth={2.25} className="text-white" />
+    </svg>
   );
 }
 
