@@ -10,12 +10,18 @@ export const companies: Company[] = [
   { id: "c3", name: "Crestview Manufacturing", address: "18 Mill Rd, Akron OH", registeredOn: "2009-04-21", annualRevenue: 14_500_000 },
   { id: "c4", name: "Northwind Produce Co", address: "901 Market St, Fresno CA", registeredOn: "2016-11-03", annualRevenue: 6_800_000 },
   { id: "c5", name: "Atlas Ridge Ventures", address: "5 Summit Pl, Denver CO", registeredOn: "2026-06-30", annualRevenue: 90_000 },
+  // Fraud ring for the demo: one director, one address, one warehouse pledged twice (CASE-06).
+  { id: "c6", name: "Meridian Cold Storage LLC", address: "1450 Commerce Way, Suite 210, Irving TX", registeredOn: "2026-03-02", annualRevenue: 410_000 },
+  { id: "c7", name: "Pinecrest Freight Partners LLC", address: "1450 Commerce Way Suite 210 Irving, TX", registeredOn: "2026-02-11", annualRevenue: 520_000 },
+  { id: "c8", name: "Silverline Distribution Co", address: "1450 Commerce Way, Suite 210, Irving TX", registeredOn: "2026-04-19", annualRevenue: 380_000 },
+  { id: "c9", name: "Northgate Logistics Holdings", address: "1450 Commerce Way, Suite 210, Irving TX", registeredOn: "2026-10-21", annualRevenue: 0 },
 ];
 
 export const people: Person[] = [
   { id: "p1", name: "Daniel Okafor", netWorth: 850_000 },
   { id: "p2", name: "Marisa Kell", netWorth: 4_200_000 },
   { id: "p3", name: "Victor Lune", netWorth: 310_000 },
+  { id: "p4", name: "Raymond Voss", netWorth: 1_100_000 },
 ];
 
 export const collateral: Collateral[] = [
@@ -23,6 +29,8 @@ export const collateral: Collateral[] = [
   { id: "col2", kind: "equipment", value: 3_100_000, description: "CNC line #4" },
   { id: "col3", kind: "receivables", value: 900_000, description: "Q3 receivables, grocery chains" },
   { id: "col4", kind: "inventory", value: 400_000, description: "Mining equipment inventory" },
+  { id: "col5", kind: "real_estate", value: 3_200_000, description: "Cold-storage warehouse, 1450 Commerce Way" },
+  { id: "col6", kind: "equipment", value: 900_000, description: "Refrigerated trailer fleet (12 units)" },
 ];
 
 export const loans: Loan[] = [
@@ -31,6 +39,9 @@ export const loans: Loan[] = [
   { id: "L-1003", borrowerId: "c3", amount: 2_500_000, purpose: "Equipment refinance", createdOn: "2026-10-28", status: "under_review" },
   { id: "L-1004", borrowerId: "c4", amount: 750_000, purpose: "Seasonal inventory", createdOn: "2026-10-20", status: "escalated" },
   { id: "L-1005", borrowerId: "c5", amount: 3_000_000, purpose: "Acquisition", createdOn: "2026-11-05", status: "intake" },
+  { id: "L-1006", borrowerId: "c6", amount: 2_600_000, purpose: "Equipment financing", createdOn: "2026-11-06", status: "under_review" },
+  { id: "L-1007", borrowerId: "c7", amount: 1_900_000, purpose: "Working capital", createdOn: "2026-09-15", status: "approved" },
+  { id: "L-1008", borrowerId: "c8", amount: 1_400_000, purpose: "Fleet purchase", createdOn: "2026-10-02", status: "approved" },
 ];
 
 export const edges: Edge[] = [
@@ -54,6 +65,21 @@ export const edges: Edge[] = [
   { id: "e18", from: "c5", to: "L-1005", kind: "borrower_of" },
   { id: "e19", from: "p3", to: "c5", kind: "director_of" },
   { id: "e20", from: "col4", to: "L-1005", kind: "pledged_to" },
+  // Fraud ring for the demo: one director, one address, one warehouse pledged twice (CASE-06).
+  { id: "e21", from: "c6", to: "L-1006", kind: "borrower_of" },
+  { id: "e22", from: "c7", to: "L-1007", kind: "borrower_of" },
+  { id: "e23", from: "c8", to: "L-1008", kind: "borrower_of" },
+  { id: "e24", from: "col5", to: "L-1007", kind: "pledged_to" },
+  { id: "e25", from: "col5", to: "L-1006", kind: "pledged_to", detail: "Warehouse already pledged to L-1007" },
+  { id: "e26", from: "col6", to: "L-1008", kind: "pledged_to" },
+  { id: "e27", from: "p4", to: "c6", kind: "director_of" },
+  { id: "e28", from: "p4", to: "c7", kind: "director_of" },
+  { id: "e29", from: "p4", to: "c8", kind: "owns", detail: "100%" },
+  { id: "e30", from: "p4", to: "c9", kind: "director_of" },
+  { id: "e31", from: "c6", to: "c8", kind: "shares_address", detail: "1450 Commerce Way" },
+  { id: "e32", from: "p4", to: "L-1006", kind: "guarantees" },
+  { id: "e33", from: "p4", to: "L-1007", kind: "guarantees" },
+  { id: "e34", from: "p4", to: "L-1008", kind: "guarantees" },
 ];
 
 export const cases: Case[] = [
@@ -62,6 +88,7 @@ export const cases: Case[] = [
   { id: "CASE-03", loanId: "L-1003", riskScore: 47, triggers: ["guarantor_overexposure"], status: "decided" },
   { id: "CASE-04", loanId: "L-1004", riskScore: 58, triggers: ["guarantor_overexposure"], status: "decided" },
   { id: "CASE-05", loanId: "L-1005", riskScore: 72, triggers: ["new_company_large_loan"], status: "queued" },
+  { id: "CASE-06", loanId: "L-1006", riskScore: 96, triggers: ["duplicate_collateral", "new_company_large_loan", "amount_vs_revenue"], status: "queued" },
 ];
 
 export const flaggedEdges: Record<string, string[]> = {
@@ -70,6 +97,7 @@ export const flaggedEdges: Record<string, string[]> = {
   "CASE-03": ["e13"],
   "CASE-04": ["e17"],
   "CASE-05": ["e18"],
+  "CASE-06": ["e24", "e25", "e27", "e28", "e29", "e31"],
 };
 
 export const evidence: EvidenceItem[] = [

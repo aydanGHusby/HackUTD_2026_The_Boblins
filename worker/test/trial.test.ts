@@ -122,8 +122,8 @@ test("the worker runs at most two trials at once, highest risk first", async () 
   await worker.runUntilIdle();
 
   assert.equal(maxInTrial, 2);
-  assert.deepEqual(order.slice(0, 2), ["CASE-01", "CASE-02"]); // risk 91, 84
-  assert.deepEqual(order, ["CASE-01", "CASE-02", "CASE-05", "CASE-04", "CASE-03"]);
+  assert.deepEqual(order.slice(0, 2), ["CASE-06", "CASE-01"]); // risk 96, 91
+  assert.deepEqual(order, ["CASE-06", "CASE-01", "CASE-02", "CASE-05", "CASE-04", "CASE-03"]);
   assert.ok(store.state.cases.every((c) => c.status === "awaiting_verdict"));
   // The fixture's question for CASE-01 was answered once its trial finished.
   assert.ok(store.state.questions[0].answerId);
@@ -162,4 +162,15 @@ test("the code clerk finds a shared address even when no edge records it", async
   await runTrial("CASE-01", { llm: new FakeLLM(), store, depth: "opening", useTools: false });
   const facts = store.state.evidence.map((e) => e.fact).join("\n");
   assert.match(facts, /Bayline Holdings Inc is registered at the same address .*, a link not recorded anywhere else/);
+});
+
+test("the code clerk exposes the CASE-06 fraud ring across all four companies", async () => {
+  const store = new MemoryStore(loadFixture());
+  await runTrial("CASE-06", { llm: new FakeLLM(), store, depth: "opening", useTools: false });
+  const facts = store.state.evidence.filter((e) => e.caseId === "CASE-06").map((e) => e.fact).join("\n");
+  assert.match(facts, /col5 \(\$3,200,000\) also secures L-1007; together the loans total \$4,500,000, coverage 0\.71x/);
+  assert.match(facts, /Raymond Voss guarantees \$5,900,000 across 3 loan\(s\).*covers only 0\.19x/);
+  // Pinecrest's address is written differently and no edge records it: the clerk still links it.
+  assert.match(facts, /Pinecrest Freight Partners LLC is registered at the same address .*, a link not recorded anywhere else/);
+  assert.match(facts, /Connected group: .*Northgate Logistics Holdings owe \$5,900,000 across 3 loans/);
 });
