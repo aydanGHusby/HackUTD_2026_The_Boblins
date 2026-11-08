@@ -1,14 +1,24 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, MessagesSquare, Radar, ShieldCheck } from "lucide-react";
+import { ReviewEntry } from "@/components/ReviewEntry";
+import { setIdentity } from "@/data/identity";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "FraudGraph · See the network behind the loan" },
-      { name: "description", content: "FraudGraph flags commercial loans with network problems, lets two agents argue both sides, and leaves the decision to a person with the evidence in front of them." },
+      {
+        name: "description",
+        content:
+          "FraudGraph flags commercial loans with network problems, lets two agents argue both sides, and leaves the decision to a person with the evidence in front of them.",
+      },
       { property: "og:title", content: "FraudGraph · See the network behind the loan" },
-      { property: "og:description", content: "Risk rules flag the loan, two agents argue both sides, you decide with the evidence in front of you." },
+      {
+        property: "og:description",
+        content:
+          "Risk rules flag the loan, two agents argue both sides, you decide with the evidence in front of you.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -35,6 +45,7 @@ const points = [
 ];
 
 function Landing() {
+  const navigate = useNavigate();
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-8 py-6">
       <header className="flex items-center justify-between">
@@ -42,45 +53,62 @@ function Landing() {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-candy text-on-candy glow-candy">
             <NetworkMark />
           </span>
-          Fraud<span className="text-sky">Graph</span>
+          Fraud<span className="text-ocean">Graph</span>
         </div>
-        <Link to="/cases" className="text-sm font-semibold text-muted-foreground hover:text-foreground">
+        <Link
+          to="/cases"
+          className="text-sm font-semibold text-muted-foreground hover:text-foreground"
+        >
           Open cases
         </Link>
       </header>
 
       <main className="flex flex-col items-center gap-12 py-14 lg:flex-row lg:gap-16 lg:py-20">
         <div className="max-w-xl">
-          <div className="text-xs font-extrabold uppercase tracking-[0.22em] text-ocean">Fraud review, not fraud guessing</div>
+          <div className="text-xs font-extrabold uppercase tracking-[0.22em] text-ocean">
+            Fraud review, not fraud guessing
+          </div>
           <h1 className="mt-4 text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
             See the network<span className="text-candy-strong"> behind the loan.</span>
           </h1>
           <p className="mt-5 text-base leading-relaxed text-muted-foreground">
-            A flagged loan is rarely one bad borrower. It is a shared address, a warehouse pledged twice,
-            the same director on two companies. FraudGraph lays the whole network on the table, has two
-            agents argue both sides of it, and hands you the decision with the evidence still visible.
+            A flagged loan is rarely one bad borrower. It is a shared address, a warehouse pledged
+            twice, the same director on two companies. FraudGraph lays the whole network on the
+            table, has two agents argue both sides of it, and hands you the decision with the
+            evidence still visible.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button asChild size="lg" className="gap-2">
-              <Link to="/cases">Get started <ArrowRight className="h-4 w-4" /></Link>
+              <a href="#review-entry">
+                Get started <ArrowRight className="h-4 w-4" />
+              </a>
             </Button>
             <Button asChild size="lg" variant="ghost">
               <Link to="/intake">Run a new loan</Link>
             </Button>
           </div>
+          <ReviewEntry
+            onEnter={(identity) => {
+              setIdentity(identity);
+              navigate({ to: identity.role === "senior_reviewer" ? "/escalations" : "/cases" });
+            }}
+          />
           <p className="mt-4 text-xs text-muted-foreground">
-            Mock data for now — the screens are the point, not the numbers.
+            Synthetic financial records stored in SpacetimeDB. AI reviews run through NVIDIA
+            Nemotron when configured.
           </p>
         </div>
 
-        <div className="glass edge-lit w-full max-w-md rounded-3xl p-4 lg:max-w-lg">
+        <div className="liquid-glass w-full max-w-md rounded-3xl p-4 lg:max-w-lg">
           <NetworkFigure />
           <div className="mt-3 flex flex-wrap items-center gap-2 px-1 text-[11px] text-foreground/80">
             <span className="rounded-full bg-muted px-2 py-0.5">Loan</span>
             <span className="rounded-full bg-muted px-2 py-0.5">Borrower</span>
             <span className="rounded-full bg-muted px-2 py-0.5">Director</span>
             <span className="rounded-full bg-muted px-2 py-0.5">Collateral</span>
-            <span className="ml-auto rounded-full bg-candy-soft px-2 py-0.5 font-semibold text-candy-strong">Flagged link</span>
+            <span className="ml-auto rounded-full bg-candy-soft px-2 py-0.5 font-semibold text-candy-strong">
+              Flagged link
+            </span>
           </div>
         </div>
       </main>
@@ -101,8 +129,14 @@ function Landing() {
       </section>
 
       <footer className="mt-auto flex flex-wrap items-center gap-3 border-t border-border pt-5 text-xs text-muted-foreground">
-        <span>FraudGraph · every decision is logged with the analyst who made it and the reason they gave.</span>
-        <Link to="/cases" className="ml-auto inline-flex items-center gap-1 font-semibold text-foreground hover:text-sky">
+        <span>
+          FraudGraph · every decision is logged with the analyst who made it and the reason they
+          gave.
+        </span>
+        <Link
+          to="/cases"
+          className="ml-auto inline-flex items-center gap-1 font-semibold text-foreground hover:text-ocean"
+        >
           Open cases <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </footer>
@@ -134,8 +168,20 @@ function NetworkFigure() {
       </defs>
 
       <circle cx="260" cy="205" r="180" fill="url(#lg-aura)" />
-      <circle cx="260" cy="205" r="58" className="fill-none stroke-glow-ocean/30" strokeWidth="1.5" />
-      <circle cx="260" cy="205" r="42" className="fill-none stroke-glow-ocean/60 graph-pulse" strokeWidth="2" />
+      <circle
+        cx="260"
+        cy="205"
+        r="58"
+        className="fill-none stroke-glow-ocean/30"
+        strokeWidth="1.5"
+      />
+      <circle
+        cx="260"
+        cy="205"
+        r="42"
+        className="fill-none stroke-glow-ocean/60 graph-pulse"
+        strokeWidth="2"
+      />
 
       <g className="stroke-muted-foreground/40" strokeWidth="1.4">
         <line x1="120" y1="110" x2="392" y2="96" />
@@ -144,36 +190,135 @@ function NetworkFigure() {
         <line x1="404" y1="286" x2="260" y2="205" />
         <line x1="120" y1="110" x2="260" y2="205" />
       </g>
-      <line x1="392" y1="96" x2="404" y2="286" className="stroke-candy-strong halo-candy graph-flow" strokeWidth="2.5" strokeDasharray="8 6" />
+      <line
+        x1="392"
+        y1="96"
+        x2="404"
+        y2="286"
+        className="stroke-candy-strong halo-candy graph-flow"
+        strokeWidth="2.5"
+        strokeDasharray="8 6"
+      />
 
       <g>
-        <circle cx="260" cy="205" r="24" className="fill-node-loan stroke-background" strokeWidth="3" />
-        <text x="260" y="210" textAnchor="middle" className="fill-primary-foreground text-[13px] font-bold">L</text>
+        <circle
+          cx="260"
+          cy="205"
+          r="24"
+          className="fill-node-loan stroke-background"
+          strokeWidth="3"
+        />
+        <text
+          x="260"
+          y="210"
+          textAnchor="middle"
+          className="fill-primary-foreground text-[13px] font-bold"
+        >
+          L
+        </text>
       </g>
       <g>
-        <circle cx="120" cy="110" r="17" className="fill-node-person stroke-background" strokeWidth="3" />
-        <text x="120" y="115" textAnchor="middle" className="fill-primary-foreground text-[12px] font-bold">P</text>
+        <circle
+          cx="120"
+          cy="110"
+          r="17"
+          className="fill-node-person stroke-background"
+          strokeWidth="3"
+        />
+        <text
+          x="120"
+          y="115"
+          textAnchor="middle"
+          className="fill-primary-foreground text-[12px] font-bold"
+        >
+          P
+        </text>
       </g>
       <g>
-        <circle cx="392" cy="96" r="17" className="fill-node-company stroke-background" strokeWidth="3" />
-        <text x="392" y="101" textAnchor="middle" className="fill-primary-foreground text-[12px] font-bold">C</text>
+        <circle
+          cx="392"
+          cy="96"
+          r="17"
+          className="fill-node-company stroke-background"
+          strokeWidth="3"
+        />
+        <text
+          x="392"
+          y="101"
+          textAnchor="middle"
+          className="fill-primary-foreground text-[12px] font-bold"
+        >
+          C
+        </text>
       </g>
       <g>
-        <circle cx="404" cy="286" r="17" className="fill-node-company stroke-background" strokeWidth="3" />
-        <text x="404" y="291" textAnchor="middle" className="fill-primary-foreground text-[12px] font-bold">C</text>
+        <circle
+          cx="404"
+          cy="286"
+          r="17"
+          className="fill-node-company stroke-background"
+          strokeWidth="3"
+        />
+        <text
+          x="404"
+          y="291"
+          textAnchor="middle"
+          className="fill-primary-foreground text-[12px] font-bold"
+        >
+          C
+        </text>
       </g>
       <g>
-        <circle cx="112" cy="318" r="17" className="fill-node-collateral stroke-background" strokeWidth="3" />
-        <text x="112" y="323" textAnchor="middle" className="fill-primary-foreground text-[12px] font-bold">A</text>
+        <circle
+          cx="112"
+          cy="318"
+          r="17"
+          className="fill-node-collateral stroke-background"
+          strokeWidth="3"
+        />
+        <text
+          x="112"
+          y="323"
+          textAnchor="middle"
+          className="fill-primary-foreground text-[12px] font-bold"
+        >
+          A
+        </text>
       </g>
 
-      <text x="260" y="252" textAnchor="middle" className="fill-foreground text-[12px] font-medium">L-1001</text>
-      <text x="120" y="145" textAnchor="middle" className="fill-foreground text-[12px] font-medium">Director</text>
-      <text x="392" y="131" textAnchor="middle" className="fill-foreground text-[12px] font-medium">Borrower</text>
-      <text x="404" y="321" textAnchor="middle" className="fill-foreground text-[12px] font-medium">Borrower</text>
-      <text x="112" y="353" textAnchor="middle" className="fill-foreground text-[12px] font-medium">Collateral</text>
-      <text x="418" y="196" textAnchor="middle" strokeWidth="5" strokeLinejoin="round" className="fill-canvas stroke-canvas text-[11px] font-semibold">same address</text>
-      <text x="418" y="196" textAnchor="middle" className="fill-candy-strong text-[11px] font-semibold">same address</text>
+      <text x="260" y="252" textAnchor="middle" className="fill-foreground text-[12px] font-medium">
+        L-1001
+      </text>
+      <text x="120" y="145" textAnchor="middle" className="fill-foreground text-[12px] font-medium">
+        Director
+      </text>
+      <text x="392" y="131" textAnchor="middle" className="fill-foreground text-[12px] font-medium">
+        Borrower
+      </text>
+      <text x="404" y="321" textAnchor="middle" className="fill-foreground text-[12px] font-medium">
+        Borrower
+      </text>
+      <text x="112" y="353" textAnchor="middle" className="fill-foreground text-[12px] font-medium">
+        Collateral
+      </text>
+      <text
+        x="418"
+        y="196"
+        textAnchor="middle"
+        strokeWidth="5"
+        strokeLinejoin="round"
+        className="fill-canvas stroke-canvas text-[11px] font-semibold"
+      >
+        same address
+      </text>
+      <text
+        x="418"
+        y="196"
+        textAnchor="middle"
+        className="fill-candy-strong text-[11px] font-semibold"
+      >
+        same address
+      </text>
     </svg>
   );
 }

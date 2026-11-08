@@ -37,7 +37,9 @@ Timestamp,From_Bank,From_Account,To_Bank,To_Account,Amount_Paid,Payment_Format,I
      - **Lead Time:** **+45 Minutes early warning** before the $42,000 and $85,000 illicit transfers executed!
 
 ---
-
+cd /Users/aydahusby/Documents/Codex/2026-11-07/new-chat/finch
+npm run build
+PORT=3109 npm start
 ## 🌟 Key Features
 
 - **Interactive Financial Network Graph:**

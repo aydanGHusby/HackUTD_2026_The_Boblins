@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { handleReviewAPI } from './src/review-api.mjs';
 import worker from './dist/server/index.js';
 import { readSharedState, applySharedAction } from './src/spacetime-bridge.mjs';
 
@@ -24,6 +25,8 @@ const server = http.createServer(async (req, res) => {
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers.host || `${HOST}:${PORT}`;
     const url = new URL(req.url, `${protocol}://${host}`);
+
+    if (await handleReviewAPI(req, res, url)) return;
 
     if (url.pathname === '/api/shared' || url.pathname === '/api/events') {
       if (req.method !== 'GET' && req.headers.origin !== url.origin) {

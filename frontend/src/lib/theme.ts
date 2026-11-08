@@ -27,9 +27,9 @@ export function setTheme(theme: Theme) {
 
 /**
  * Runs in <head> before paint so the page never flashes the wrong theme.
- * Falls back to the visitor's own system preference when nothing was chosen yet.
+ * Defaults to dark (the analyst dashboard is designed dark-first) until the visitor picks a theme.
  */
-export const THEME_SCRIPT = `(function(){try{var k="${THEME_KEY}";var t=localStorage.getItem(k);if(t!=="dark"&&t!=="light"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.classList.toggle("dark",t==="dark");}catch(e){}})();`;
+export const THEME_SCRIPT = `(function(){try{var k="${THEME_KEY}";var t=localStorage.getItem(k);if(t!=="dark"&&t!=="light"){t="dark";}document.documentElement.classList.toggle("dark",t==="dark");}catch(e){document.documentElement.classList.add("dark");}})();`;
 
 export function useTheme() {
   const theme = useSyncExternalStore(subscribe, getTheme, () => "light" as Theme);

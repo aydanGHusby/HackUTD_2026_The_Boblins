@@ -1,144 +1,296 @@
-// Every component reads data through these hooks. Today they read an in-memory mock store;
-// at the SpacetimeDB handoff only this file (and actions below) changes.
-import { useSyncExternalStore } from "react";
-import * as mock from "@/mock/mockData";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { createCasePresentation } from "@/lib/case-presentation";
+import { connectWorkspace } from "@/data/connection";
+import { money } from "@/lib/format";
 import type {
-  Argument, AuditEvent, Case, Decision, GraphNode, Note, Question, Side, SignOff, Verdict, Edge, Loan,
+  Argument,
+  AuditEvent,
+  Case,
+  Decision,
+  GraphNode,
+  Note,
+  Question,
+  Side,
+  SignOff,
+  Verdict,
+  Edge,
+  Loan,
+  Company,
+  Person,
+  Collateral,
+  Crux,
+  EvidenceItem,
+  Presence,
 } from "@/shared/types";
 
 type Store = {
-  cases: Case[]; loans: Loan[]; edges: Edge[]; arguments: Argument[]; questions: Question[];
-  verdicts: Verdict[]; notes: Note[]; audit: AuditEvent[]; signOffs: SignOff[];
+  transport: "native" | "bridge" | "connecting";
+  cases: Case[];
+  loans: Loan[];
+  edges: Edge[];
+  arguments: Argument[];
+  questions: Question[];
+  verdicts: Verdict[];
+  notes: Note[];
+  audit: AuditEvent[];
+  signOffs: SignOff[];
+  companies: Company[];
+  people: Person[];
+  collateral: Collateral[];
+  cruxes: Crux[];
+  evidence: EvidenceItem[];
+  flaggedEdges: Record<string, string[]>;
+  viewers: Presence[];
+  connected: boolean;
+  loaded: boolean;
+  error: string;
 };
-
-let store: Store = {
-  cases: [...mock.cases], loans: [...mock.loans], edges: [...mock.edges],
-  arguments: [...mock.argumentsList], questions: [...mock.questions], verdicts: [...mock.verdicts],
-  notes: [...mock.notes], audit: [...mock.audit], signOffs: [],
+const initial: Store = {
+  transport: "connecting",
+  cases: [],
+  loans: [],
+  edges: [],
+  arguments: [],
+  questions: [],
+  verdicts: [],
+  notes: [],
+  audit: [],
+  signOffs: [],
+  companies: [],
+  people: [],
+  collateral: [],
+  cruxes: [],
+  evidence: [],
+  flaggedEdges: {},
+  viewers: [],
+  connected: false,
+  loaded: false,
+  error: "",
 };
+let store: Store = initial;
+let revision = -1;
 const listeners = new Set<() => void>();
-const subscribe = (l: () => void) => { listeners.add(l); return () => listeners.delete(l); };
-const set = (patch: Partial<Store>) => { store = { ...store, ...patch }; listeners.forEach((l) => l()); };
-const useStore = () => useSyncExternalStore(subscribe, () => store, () => store);
-
-const now = () => new Date().toISOString();
-const uid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 8)}`;
-const log = (caseId: string, actor: string, action: string) =>
-  ({ id: uid("au"), caseId, actor, action, at: now() }) satisfies AuditEvent;
-
-// ---- lookups ----
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+};
+const set = (patch: Partial<Store>) => {
+  store = { ...store, ...patch };
+  listeners.forEach((listener) => listener());
+};
+const useStore = () =>
+  useSyncExternalStore(
+    subscribe,
+    () => store,
+    () => initial,
+  );
+type Snapshot = {
+  revision: number;
+  state: Omit<Store, "viewers" | "connected" | "loaded" | "error" | "transport">;
+};
+function receive(snapshot: Snapshot) {
+  if (snapshot.revision < revision) return;
+  revision = snapshot.revision;
+  set({ ...snapshot.state, connected: true, loaded: true, error: "" });
+}
+async function request(path: string, body?: unknown): Promise<Snapshot> {
+  const response = await fetch(
+    path,
+    body === undefined
+      ? undefined
+      : {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+  );
+  const result = await response.json();
+  if (!response.ok) throw Error(result.error || "The backend could not save this change.");
+  receive(result);
+  return result;
+}
+export function useConnection(user: string, pathname: string) {
+  const s = useStore();
+  useEffect(() => {
+    const caseId = pathname.startsWith("/case/") ? decodeURIComponent(pathname.slice(6)) : "";
+    return connectWorkspace(
+      user,
+      caseId,
+      (data) => {
+        if (data.type === "snapshot") receive(data);
+        if (data.type === "transport") set({ transport: data.transport });
+        if (data.type === "presence") set({ viewers: data.viewers });
+        if (data.type === "unavailable")
+          set({
+            connected: false,
+            error: "SpacetimeDB is unavailable. Keep the database and backend terminals running.",
+          });
+        if (data.type === "heartbeat") set({ connected: true, error: "" });
+      },
+      (error) => set({ connected: false, error }),
+    );
+  }, [user, pathname]);
+  return { connected: s.connected, loaded: s.loaded, error: s.error, transport: s.transport };
+}
+export const useDataStatus = () => {
+  const s = useStore();
+  return { loaded: s.loaded, connected: s.connected, error: s.error };
+};
+const action = async (kind: string, payload: unknown, actionId = crypto.randomUUID()) => {
+  await request("/api/workspace", { kind, payload, actionId });
+  return actionId;
+};
 export function nodeById(id: string, loans: Loan[] = store.loans): GraphNode | undefined {
-  const c = mock.companies.find((x) => x.id === id);
-  if (c) return { id, kind: "company", label: c.name, data: c };
-  const p = mock.people.find((x) => x.id === id);
-  if (p) return { id, kind: "person", label: p.name, data: p };
-  const col = mock.collateral.find((x) => x.id === id);
-  if (col) return { id, kind: "collateral", label: col.description, data: col };
-  const l = loans.find((x) => x.id === id);
-  if (l) return { id, kind: "loan", label: l.id, data: l };
+  const company = store.companies.find((x) => x.id === id);
+  if (company) return { id, kind: "company", label: company.name, data: company };
+  const person = store.people.find((x) => x.id === id);
+  if (person) return { id, kind: "person", label: person.name, data: person };
+  const collateral = store.collateral.find((x) => x.id === id);
+  if (collateral)
+    return { id, kind: "collateral", label: collateral.description, data: collateral };
+  const loan = loans.find((x) => x.id === id);
+  if (loan)
+    return {
+      id,
+      kind: "loan",
+      label: money(loan.amount) + " loan · " + borrowerName(loan),
+      data: loan,
+    };
   return undefined;
 }
-export const borrowerName = (loan?: Loan) => mock.companies.find((c) => c.id === loan?.borrowerId)?.name ?? "Unknown";
-
-// ---- read hooks ----
+export const borrowerName = (loan?: Loan) =>
+  store.companies.find((c) => c.id === loan?.borrowerId)?.name ?? "Unknown";
 export function useCases() {
   const s = useStore();
-  return s.cases.map((c) => {
-    const loan = s.loans.find((l) => l.id === c.loanId);
-    return { ...c, loan, borrower: borrowerName(loan), viewers: mock.presence.filter((p) => p.caseId === c.id).map((p) => p.user) };
-  });
+  return s.cases.map((c) => ({
+    ...c,
+    loan: s.loans.find((l) => l.id === c.loanId),
+    borrower: borrowerName(s.loans.find((l) => l.id === c.loanId)),
+    viewers: s.viewers.filter((p) => p.caseId === c.id).map((p) => p.user),
+  }));
 }
 export function useCase(id: string) {
-  const s = useStore();
-  const c = s.cases.find((x) => x.id === id);
-  if (!c) return undefined;
-  const loan = s.loans.find((l) => l.id === c.loanId);
-  return { ...c, loan, borrower: borrowerName(loan), viewers: mock.presence.filter((p) => p.caseId === id).map((p) => p.user) };
+  return useCases().find((c) => c.id === id);
 }
-export function useSubgraph(caseId: string) {
+const emptyIds: string[] = [];
+export function useSubgraph(caseId: string, extraIds: string[] = emptyIds) {
   const s = useStore();
-  const c = s.cases.find((x) => x.id === caseId);
-  if (!c) return { nodes: [] as GraphNode[], edges: [] as Edge[], flagged: [] as string[] };
-  const ids = new Set([c.loanId]);
-  for (let hop = 0; hop < 2; hop++) {
-    for (const e of s.edges) if (ids.has(e.from) || ids.has(e.to)) { ids.add(e.from); ids.add(e.to); }
-  }
-  const edges = s.edges.filter((e) => ids.has(e.from) && ids.has(e.to));
-  const nodes = [...ids].map((id) => nodeById(id, s.loans)).filter(Boolean) as GraphNode[];
-  return { nodes, edges, flagged: mock.flaggedEdges[caseId] ?? [] };
+  return useMemo(() => {
+    const c = s.cases.find((x) => x.id === caseId);
+    if (!c) return { nodes: [] as GraphNode[], edges: [] as Edge[], flagged: [] as string[] };
+    const ids = new Set([c.loanId]);
+    for (let hop = 0; hop < 2; hop++) {
+      const frontier = new Set(ids);
+      for (const e of s.edges)
+        if (frontier.has(e.from) || frontier.has(e.to)) {
+          ids.add(e.from);
+          ids.add(e.to);
+        }
+    }
+    for (const id of extraIds) {
+      ids.add(id);
+      const edge = s.edges.find((e) => e.id === id);
+      if (edge) {
+        ids.add(edge.from);
+        ids.add(edge.to);
+      }
+    }
+    return {
+      nodes: [...ids].map((id) => nodeById(id, s.loans)).filter(Boolean) as GraphNode[],
+      edges: s.edges.filter((e) => ids.has(e.from) && ids.has(e.to)),
+      flagged: s.flaggedEdges[caseId] || [],
+    };
+  }, [
+    s.cases,
+    s.edges,
+    s.loans,
+    s.companies,
+    s.people,
+    s.collateral,
+    s.flaggedEdges,
+    caseId,
+    extraIds,
+  ]);
 }
-export const useArguments = (caseId: string) => useStore().arguments.filter((a) => a.caseId === caseId);
-export const useCrux = (caseId: string) => mock.cruxes.find((c) => c.caseId === caseId);
-export const useEvidence = (caseId: string) => mock.evidence.filter((e) => e.caseId === caseId);
-export const useQuestions = (caseId: string) => useStore().questions.filter((q) => q.caseId === caseId);
-export const useNotes = (caseId: string) => useStore().notes.filter((n) => n.caseId === caseId);
-export const useAudit = (caseId: string) =>
-  useStore().audit.filter((a) => a.caseId === caseId).sort((a, b) => a.at.localeCompare(b.at));
-export const useVerdict = (caseId: string) => useStore().verdicts.find((v) => v.caseId === caseId);
-export const useSignOff = (caseId: string) => useStore().signOffs.find((v) => v.caseId === caseId);
+export function useCasePresentation(caseId: string) {
+  const s = useStore();
+  return useMemo(
+    () => createCasePresentation(s, caseId),
+    [s.cases, s.companies, s.people, s.collateral, s.loans, s.edges, s.evidence, s.audit, caseId],
+  );
+}
+export const useArguments = (id: string) => useStore().arguments.filter((a) => a.caseId === id);
+export const useCrux = (id: string) => useStore().cruxes.find((c) => c.caseId === id);
+export const useEvidence = (id: string) => useStore().evidence.filter((e) => e.caseId === id);
+export const useQuestions = (id: string) => useStore().questions.filter((q) => q.caseId === id);
+export const useNotes = (id: string) => useStore().notes.filter((n) => n.caseId === id);
+export const useAudit = (id: string) =>
+  useStore()
+    .audit.filter((a) => a.caseId === id)
+    .sort((a, b) => a.at.localeCompare(b.at));
+export const useVerdict = (id: string) => useStore().verdicts.find((v) => v.caseId === id);
+export const useSignOff = (id: string) => useStore().signOffs.find((v) => v.caseId === id);
 export function useEscalations() {
   const s = useStore();
   return s.verdicts
     .filter((v) => v.decision === "escalate" && !s.signOffs.some((o) => o.caseId === v.caseId))
-    .map((v) => {
-      const c = s.cases.find((x) => x.id === v.caseId)!;
+    .flatMap((verdict) => {
+      const c = s.cases.find((c) => c.id === verdict.caseId);
+      if (!c) return [];
       const loan = s.loans.find((l) => l.id === c.loanId);
-      return { verdict: v, case: c, loan, borrower: borrowerName(loan) };
+      return [{ verdict, case: c, loan, borrower: borrowerName(loan) }];
     });
 }
-export const useIntakeOptions = () => ({ companies: mock.companies, people: mock.people, collateral: mock.collateral });
+export const useIntakeOptions = () => {
+  const s = useStore();
+  return { companies: s.companies, people: s.people, collateral: s.collateral };
+};
+export const submitVerdict = (
+  caseId: string,
+  actor: string,
+  decision: Decision,
+  reasoning: string,
+) => action("verdict", { caseId, actor, decision, reasoning });
+export const addNote = (caseId: string, actor: string, text: string) =>
+  action("note", { caseId, actor, text });
+export const signOff = (
+  caseId: string,
+  actor: string,
+  decision: "fraud" | "not_fraud",
+  reasoning: string,
+) => action("signoff", { caseId, actor, decision, reasoning });
+export const analyzeCase = (caseId: string) => request("/api/workspace/analyze", { caseId });
+export async function askQuestion(caseId: string, actor: string, to: Side, text: string) {
+  const questionId = await action("question", { caseId, actor, to, text });
+  await request("/api/workspace/analyze", { caseId, questionId });
+}
+export async function answerQuestion(caseId: string, questionId: string) {
+  await request("/api/workspace/analyze", { caseId, questionId });
+}
+export async function submitLoan(
+  input: {
+    borrowerId: string;
+    amount: number;
+    purpose: string;
+    collateralIds: string[];
+    guarantorIds: string[];
+  },
+  actor: string,
+) {
+  const id = await action("loan", { input, actor });
+  const loanId = "L-" + id;
+  const c = store.cases.find((c) => c.loanId === loanId);
+  return { loanId, caseId: c?.id, triggers: c?.triggers || [] };
+}
 
-// ---- actions (become reducer calls) ----
-export function submitVerdict(caseId: string, analyst: string, decision: Decision, reasoning: string) {
-  const loanId = store.cases.find((c) => c.id === caseId)?.loanId;
-  const loanStatus: Loan["status"] = decision === "fraud" ? "declined" : decision === "not_fraud" ? "approved" : "escalated";
-  set({
-    verdicts: [...store.verdicts.filter((v) => v.caseId !== caseId), { caseId, analyst, decision, reasoning, decidedAt: now() }],
-    cases: store.cases.map((c) => (c.id === caseId ? { ...c, status: "decided" } : c)),
-    loans: store.loans.map((l) => (l.id === loanId ? { ...l, status: loanStatus } : l)),
-    audit: [...store.audit, log(caseId, analyst, `verdict: ${decision}`)],
-  });
-}
-export function askQuestion(caseId: string, askedBy: string, to: Side, text: string) {
-  set({
-    questions: [...store.questions, { id: uid("q"), caseId, askedBy, to, text }],
-    audit: [...store.audit, log(caseId, askedBy, `asked ${to} a question`)],
-  });
-}
-export function addNote(caseId: string, author: string, text: string) {
-  set({
-    notes: [...store.notes, { id: uid("n"), caseId, author, text, at: now() }],
-    audit: [...store.audit, log(caseId, author, "added a note")],
-  });
-}
-export function signOff(caseId: string, reviewer: string, decision: "fraud" | "not_fraud", reasoning: string) {
-  set({
-    signOffs: [...store.signOffs, { caseId, reviewer, decision, reasoning, at: now() }],
-    audit: [...store.audit, log(caseId, reviewer, `senior sign-off: ${decision}`)],
-  });
-}
-export function submitLoan(input: { borrowerId: string; amount: number; purpose: string; collateralIds: string[]; guarantorIds: string[] }, actor: string) {
-  const loanId = `L-${1000 + store.loans.length + 1}`;
-  const borrower = mock.companies.find((c) => c.id === input.borrowerId);
-  const newEdges: Edge[] = [
-    { id: uid("e"), from: input.borrowerId, to: loanId, kind: "borrower_of" },
-    ...input.collateralIds.map((id) => ({ id: uid("e"), from: id, to: loanId, kind: "pledged_to" as const })),
-    ...input.guarantorIds.map((id) => ({ id: uid("e"), from: id, to: loanId, kind: "guarantees" as const })),
-  ];
-  // Placeholder risk rules — real ones live in the SpacetimeDB module.
-  const triggers: string[] = [];
-  if (input.collateralIds.some((id) => store.edges.some((e) => e.from === id && e.kind === "pledged_to"))) triggers.push("duplicate_collateral");
-  if (borrower && Date.now() - new Date(borrower.registeredOn).getTime() < 365 * 864e5 && input.amount > 1_000_000) triggers.push("new_company_large_loan");
-  if (borrower && input.amount > borrower.annualRevenue * 3) triggers.push("amount_vs_revenue");
-  const riskScore = Math.min(100, 20 + triggers.length * 30);
-  const loan: Loan = { id: loanId, borrowerId: input.borrowerId, amount: input.amount, purpose: input.purpose, createdOn: now().slice(0, 10), status: triggers.length ? "under_review" : "approved" };
-  const patch: Partial<Store> = { loans: [...store.loans, loan], edges: [...store.edges, ...newEdges] };
-  let caseId: string | undefined;
-  if (triggers.length) {
-    caseId = `CASE-${String(store.cases.length + 1).padStart(2, "0")}`;
-    patch.cases = [...store.cases, { id: caseId, loanId, riskScore, triggers, status: "queued" }];
-    patch.audit = [...store.audit, log(caseId, actor, `submitted loan ${loanId}; risk rules opened case (score ${riskScore})`)];
-  }
-  set(patch);
-  return { loanId, caseId, triggers };
-}
+export const requestInformation = (caseId: string, actor: string, text: string) =>
+  action("information_request", { caseId, actor, text });
+
+export const submitScoreVerdict = (
+  caseId: string,
+  actor: string,
+  decision: Decision,
+  reasoning: string,
+) => action("verdict", { caseId, actor, decision, reasoning, reviewMode: "score" });

@@ -5,15 +5,15 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold cursor-pointer transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground glow-ocean hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground glow-candy hover:bg-destructive/90",
+        default: "bg-primary text-primary-foreground glass-specular hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground glass-specular hover:bg-destructive/90",
         outline:
-          "border border-input glass text-foreground hover:bg-accent hover:text-accent-foreground",
-        secondary: "glass text-secondary-foreground hover:bg-accent",
+          "liquid-glass-pill text-foreground hover:brightness-110",
+        secondary: "liquid-glass-pill text-secondary-foreground hover:brightness-110",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },

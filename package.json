@@ -10,6 +10,10 @@
     "db:publish": "node scripts/spacetime.mjs publish",
     "test:shared": "node scripts/verify-shared.mjs",
     "prestart": "node src/worker.mjs",
-    "predev": "node src/worker.mjs"
+    "predev": "node src/worker.mjs",
+    "dev:api": "PORT=3112 node --env-file=.env server.mjs",
+    "dev:ui": "npm --prefix frontend run dev -- --host 127.0.0.1 --port 3111",
+    "db:publish:review": "node scripts/spacetime.mjs publish-review",
+    "dev:app": "node scripts/dev-app.mjs"
   }
 }

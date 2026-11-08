@@ -86,9 +86,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "FraudGraph" },
-      { name: "description", content: "Network-based fraud review for commercial loans, with AI agents arguing both sides." },
+      {
+        name: "description",
+        content:
+          "Network-based fraud review for commercial loans, with AI agents arguing both sides.",
+      },
       { property: "og:title", content: "FraudGraph" },
-      { property: "og:description", content: "Network-based fraud review for commercial loans, with AI agents arguing both sides." },
+      {
+        property: "og:description",
+        content:
+          "Network-based fraud review for commercial loans, with AI agents arguing both sides.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
@@ -100,7 +108,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600;700&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -133,7 +144,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <div className="flex min-h-screen">
+      <div className="app-shell flex min-h-screen">
         <Atmosphere />
         {!isLanding && <AppSidebar />}
         <main className="min-w-0 flex-1">

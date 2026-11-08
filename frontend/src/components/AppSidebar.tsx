@@ -1,3 +1,5 @@
+import { useConnection } from "@/data/hooks";
+import { useRouterState } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { LayoutGrid, FilePlus2, ArrowUpCircle, Network, Moon, Sun } from "lucide-react";
 import { setIdentity, useIdentity } from "@/data/identity";
@@ -12,42 +14,100 @@ const nav = [
 
 export function AppSidebar() {
   const me = useIdentity();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const connection = useConnection(me.name, pathname);
   const { theme, setTheme } = useTheme();
   return (
-    <aside className="sticky top-0 z-10 flex h-screen w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/85 p-4 text-sidebar-foreground backdrop-blur-xl">
-      <Link to="/cases" className="mb-8 flex items-center gap-2 px-2 text-lg font-extrabold tracking-tight text-sidebar-accent-foreground">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-candy text-on-candy glow-candy"><Network className="h-4 w-4" /></span>
-        Fraud<span className="text-sky">Graph</span>
+    <aside className="app-sidebar liquid-glass sticky top-3 z-10 m-3 mr-0 flex h-[calc(100vh-1.5rem)] w-56 shrink-0 flex-col rounded-2xl p-4 text-sidebar-foreground">
+      <Link
+        to="/cases"
+        className="mb-8 flex items-center gap-2 px-2 text-lg font-bold tracking-tight text-sidebar-accent-foreground"
+      >
+        <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <Network aria-hidden className="h-4 w-4" />
+        </span>
+        Fraud<span className="text-ocean">Graph</span>
       </Link>
-      <nav className="flex flex-col gap-1">
+      <nav aria-label="Main" className="flex flex-col gap-1">
         {nav.map(({ to, label, icon: Icon }) => (
-          <Link key={to} to={to} activeOptions={{ exact: true }}
-            className="flex items-center gap-2.5 rounded-full px-3 py-2 text-sm font-medium hover:bg-sidebar-accent"
-            activeProps={{ className: "bg-sidebar-primary text-sidebar-primary-foreground glow-ocean hover:bg-sidebar-primary" }}>
-            <Icon className="h-4 w-4" /> {label}
+          <Link
+            key={to}
+            to={to}
+            activeOptions={{ exact: true }}
+            className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-200 hover:bg-sidebar-accent"
+            activeProps={{
+              className: "liquid-glass-pill text-sidebar-primary-foreground hover:bg-transparent",
+              "aria-current": "page",
+            }}
+          >
+            <Icon aria-hidden className="h-4 w-4" /> {label}
           </Link>
         ))}
       </nav>
-      <div className="mt-auto space-y-2 rounded-2xl border border-sidebar-border bg-sidebar-panel p-3 text-xs backdrop-blur-xl">
+      <div className="mt-auto space-y-2 rounded-lg border border-sidebar-border bg-sidebar-panel p-3 text-xs">
         <div className="flex items-center justify-between gap-2">
           <span className="opacity-80">Theme</span>
           <div className="flex gap-1 rounded-full bg-sidebar p-1">
-            {([["light", Sun, "Light theme"], ["dark", Moon, "Dark theme"]] as const).map(([t, Icon, label]) => (
-              <button key={t} aria-label={label} title={label} aria-pressed={theme === t} onClick={() => setTheme(t)}
-                className={cn("flex h-6 w-6 items-center justify-center rounded-full transition",
-                  theme === t ? "bg-sky text-on-sky" : "opacity-70 hover:bg-sidebar-accent hover:opacity-100")}>
+            {(
+              [
+                ["light", Sun, "Light theme"],
+                ["dark", Moon, "Dark theme"],
+              ] as const
+            ).map(([t, Icon, label]) => (
+              <button
+                key={t}
+                aria-label={label}
+                title={label}
+                aria-pressed={theme === t}
+                onClick={() => setTheme(t)}
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-full transition",
+                  theme === t
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                    : "opacity-70 hover:bg-sidebar-accent hover:opacity-100",
+                )}
+              >
                 <Icon className="h-3.5 w-3.5" />
               </button>
             ))}
           </div>
         </div>
-        <div className="opacity-80">Signed in as</div>
-        <input value={me.name} onChange={(e) => setIdentity({ ...me, name: e.target.value || "Analyst" })}
-          className="w-full rounded-lg bg-sidebar-panel px-2 py-1 text-sm font-semibold text-sidebar-accent-foreground outline-none ring-1 ring-sidebar-border focus:ring-2 focus:ring-sidebar-ring" />
+        <div role="status" className="text-xs">
+          {connection.connected
+            ? connection.transport === "native"
+              ? "● SpacetimeDB live subscription"
+              : "● SpacetimeDB via backend"
+            : "○ Backend disconnected"}
+        </div>
+        {connection.error && (
+          <p className="text-xs" role="alert">
+            {connection.error}
+          </p>
+        )}
+        <Link to="/" className="block text-xs underline">
+          Choose demo profile
+        </Link>
+        <label htmlFor="signed-in-as" className="block opacity-80">
+          Demo identity
+        </label>
+        <input
+          id="signed-in-as"
+          value={me.name}
+          onChange={(e) => setIdentity({ ...me, name: e.target.value || "Analyst" })}
+          className="w-full rounded-lg bg-sidebar-panel px-2 py-1 text-sm font-semibold text-sidebar-accent-foreground outline-none ring-1 ring-sidebar-border focus:ring-2 focus:ring-sidebar-ring"
+        />
         <div className="grid grid-cols-2 gap-1">
           {(["analyst", "senior_reviewer"] as const).map((r) => (
-            <button key={r} onClick={() => setIdentity({ ...me, role: r })}
-              className={me.role === r ? "rounded-full bg-candy py-1 font-semibold text-on-candy" : "rounded-full py-1 hover:bg-sidebar-panel"}>
+            <button
+              key={r}
+              aria-pressed={me.role === r}
+              onClick={() => setIdentity({ ...me, role: r })}
+              className={
+                me.role === r
+                  ? "rounded-md bg-sidebar-primary py-1 font-semibold text-sidebar-primary-foreground"
+                  : "rounded-md py-1 transition-colors hover:bg-sidebar-accent"
+              }
+            >
               {r === "analyst" ? "Analyst" : "Senior"}
             </button>
           ))}
