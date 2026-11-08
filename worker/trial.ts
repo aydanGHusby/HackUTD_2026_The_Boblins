@@ -1,7 +1,8 @@
 // One trial: queued → in_trial → clerk → openings → rebuttals → closings → crux → awaiting_verdict.
 // Agents never decide; the case ends waiting for a human verdict. On failure it goes back to queued.
 import { randomUUID } from "node:crypto";
-import { buildIndex, subgraph } from "../shared/graph.ts";
+import { buildIndex, hasId, subgraph } from "../shared/graph.ts";
+import { formatMetrics, loanMetrics, METRICS_HEADER, metricIds } from "../frontend/src/shared/metrics.ts";
 import type { GraphIndex } from "../shared/graph.ts";
 import type { Argument, Case, EvidenceItem, Question, Round, Side } from "../shared/types.ts";
 import { runAdvocate, runClerk, runCrux } from "./agents.ts";
@@ -37,11 +38,20 @@ interface CaseContext {
 }
 
 async function loadContext(store: CourtStore, c: Case, evidence: EvidenceItem[] = []): Promise<CaseContext> {
-  const index = buildIndex(await store.getGraph());
+  const graph = await store.getGraph();
+  const index = buildIndex(graph);
   if (!index.nodes.has(c.loanId)) throw new Error(`loan ${c.loanId} for ${c.id} is not in the graph`);
   const sub = subgraph(index, [c.loanId], 2);
   const allowed = new Set([...sub.nodeIds, ...sub.edgeIds, ...evidence.flatMap((e) => e.citations)]);
-  return { index, brief: caseBrief(index, c, sub.nodeIds, sub.edgeIds), allowed };
+  let brief = caseBrief(index, c, sub.nodeIds, sub.edgeIds);
+  // Credit metrics span the whole portfolio (a guarantor's other loans), so their ids become citable too.
+  const metrics = loanMetrics(graph, c.loanId);
+  if (metrics) {
+    const text = formatMetrics(metrics);
+    brief += `\n\n${METRICS_HEADER}\n${text}`;
+    for (const id of metricIds(text)) if (hasId(index, id)) allowed.add(id);
+  }
+  return { index, brief, allowed };
 }
 
 export async function runTrial(caseId: string, deps: TrialDeps): Promise<void> {

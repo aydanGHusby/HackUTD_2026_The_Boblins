@@ -3,6 +3,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import * as mock from "@/mock/mockData";
 import { argueFn, type CaseFile } from "@/agents/trial";
+import { formatMetrics, loanMetrics } from "@/shared/metrics";
 import { applyLoanOps, loadLoanState, resetLoanState } from "@/data/spacetime";
 import type {
   Argument, AuditEvent, Case, Claim, Crux, Decision, EvidenceItem, GraphNode, Note, Question, Round, Side, SignOff, Verdict, Edge, Loan,
@@ -230,7 +231,8 @@ function caseFile(caseId: string): CaseFile | undefined {
   if (!c) return undefined;
   const { nodes, edges } = subgraph(store, caseId);
   const loan = store.loans.find((l) => l.id === c.loanId);
-  return { caseId, loanId: c.loanId, borrower: borrowerName(loan), triggers: c.triggers, nodes, edges, evidence: evidenceFor(store, caseId) };
+  const metrics = loanMetrics({ companies: mock.companies, people: mock.people, collateral: mock.collateral, loans: store.loans, edges: store.edges }, c.loanId);
+  return { caseId, loanId: c.loanId, borrower: borrowerName(loan), triggers: c.triggers, nodes, edges, evidence: evidenceFor(store, caseId), ...(metrics ? { metrics: formatMetrics(metrics) } : {}) };
 }
 
 async function argueAndRecord(caseId: string, side: Side, round: Round, extra: { file: CaseFile; opponent?: Claim[]; question?: string }) {
