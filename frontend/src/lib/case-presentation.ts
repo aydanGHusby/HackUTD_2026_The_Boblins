@@ -44,6 +44,11 @@ const triggerDescriptions: Record<string, { title: string; explanation: string }
     title: "Loan is large compared with revenue",
     explanation: "The requested amount exceeds three times the recorded annual revenue.",
   },
+  cross_deal_link: {
+    title: "Linked to other deals",
+    explanation:
+      "The borrower shares a director, owner, guarantor or address with other borrowers. Check the connected loans.",
+  },
   guarantor_overexposure: {
     title: "One person supports several loans",
     explanation:
