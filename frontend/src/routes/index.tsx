@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, MessagesSquare, Radar, ShieldCheck } from "lucide-react";
+import { BrandLogo } from "@/components/Mascot";
 import { NetworkStory } from "@/components/NetworkStory";
 import { MotionReveal } from "@/components/MotionReveal";
 import { ReviewEntry } from "@/components/ReviewEntry";
@@ -52,10 +53,7 @@ function Landing() {
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-8 py-6">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-candy text-on-candy glow-candy">
-            <NetworkMark />
-          </span>
-          Paper<span className="text-ocean">View</span>
+          <BrandLogo size={46} />
         </div>
         <Link
           to="/cases"
@@ -134,16 +132,5 @@ function Landing() {
         </Link>
       </footer>
     </div>
-  );
-}
-
-function NetworkMark() {
-  return (
-    <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden="true">
-      <circle cx="8" cy="3" r="1.8" fill="currentColor" />
-      <circle cx="3" cy="12" r="1.8" fill="currentColor" />
-      <circle cx="13" cy="12" r="1.8" fill="currentColor" />
-      <path d="M8 3 3 12M8 3l5 9M3 12h10" stroke="currentColor" strokeWidth="1.1" fill="none" />
-    </svg>
   );
 }

@@ -1,3 +1,4 @@
+import { LoadingPanel, LoadingStatus } from "@/components/Mascot";
 import { cn } from "@/lib/utils";
 import { riskTone } from "@/lib/format";
 import { triggerDescription } from "@/lib/case-presentation";
@@ -51,18 +52,23 @@ export function StatusBadge({ status }: { status: CaseStatus }) {
             : "bg-sky-soft text-ocean",
       )}
     >
-      <span
-        className={cn(
-          "h-1.5 w-1.5 rounded-full",
-          status === "in_trial" && "animate-pulse",
-          status === "awaiting_verdict"
-            ? "bg-candy-strong"
-            : status === "decided"
-              ? "bg-muted-foreground"
-              : "bg-ocean",
-        )}
-      />
-      {statusText[status]}
+      {status === "in_trial" ? (
+        <LoadingStatus label={statusText[status]} size={18} announce={false} className="text-xs" />
+      ) : (
+        <>
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              status === "awaiting_verdict"
+                ? "bg-candy-strong"
+                : status === "decided"
+                  ? "bg-muted-foreground"
+                  : "bg-ocean",
+            )}
+          />
+          {statusText[status]}
+        </>
+      )}
     </span>
   );
 }
@@ -91,7 +97,16 @@ export function Avatars({ users }: { users: string[] }) {
   );
 }
 
-export function Empty({ title, hint }: { title: string; hint?: string }) {
+export function Empty({
+  title,
+  hint,
+  loading = false,
+}: {
+  title: string;
+  hint?: string;
+  loading?: boolean;
+}) {
+  if (loading) return <LoadingPanel label={title} hint={hint} />;
   return (
     <div className="rounded-xl border border-dashed border-border p-8 text-center">
       <div className="text-sm font-medium">{title}</div>

@@ -118,8 +118,16 @@ function Cases() {
       </div>
 
       <div className="mt-8 flex flex-wrap items-center gap-3">
-        <BriefcaseFilter label="Filter cases by status" value={status} onChange={setStatus}
-          options={filters.map(f=>({value:f,label:filterLabel[f] || f,count:f==='all'?cases.length:cases.filter(c=>c.status===f).length}))} />
+        <BriefcaseFilter
+          label="Filter cases by status"
+          value={status}
+          onChange={setStatus}
+          options={filters.map((f) => ({
+            value: f,
+            label: filterLabel[f] || f,
+            count: f === "all" ? cases.length : cases.filter((c) => c.status === f).length,
+          }))}
+        />
         <label className="liquid-glass-pill ml-auto flex items-center gap-2 rounded-full px-3 py-1.5 text-sm focus-within:ring-2 focus-within:ring-ring">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
@@ -136,6 +144,7 @@ function Cases() {
         {rows.length === 0 ? (
           <div className="p-6">
             <Empty
+              loading={!connection.loaded}
               title={!connection.loaded ? "Loading saved cases…" : "No cases match"}
               hint={connection.error}
             />

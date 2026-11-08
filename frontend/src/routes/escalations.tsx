@@ -32,6 +32,7 @@ function Escalations() {
       <div className="mt-6 grid gap-4">
         {items.length === 0 && (
           <Empty
+            loading={!connection.loaded}
             title={!connection.loaded ? "Loading escalations…" : "Nothing waiting for sign-off"}
             hint={connection.error}
           />

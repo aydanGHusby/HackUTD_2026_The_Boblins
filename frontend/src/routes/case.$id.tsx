@@ -1,3 +1,4 @@
+import { LoadingPanel, LoadingStatus } from "@/components/Mascot";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, ArrowUpRight, CheckCircle2, HelpCircle, Search } from "lucide-react";
@@ -103,11 +104,7 @@ function CasePage() {
     );
 
   if (!connection.loaded)
-    return (
-      <div className="p-8" role="status">
-        {connection.error || "Loading shared case…"}
-      </div>
-    );
+    return <LoadingPanel label="Loading shared case…" hint={connection.error} />;
   if (!c)
     return (
       <div className="p-8">
@@ -139,7 +136,12 @@ function CasePage() {
         <span role="status">
           {busy ? (
             <span className="rounded-full bg-sky-soft px-3 py-1 text-xs text-ocean">
-              AI review in progress…
+              <LoadingStatus
+                label="AI review in progress…"
+                size={22}
+                announce={false}
+                className="text-xs"
+              />
             </span>
           ) : (
             <StatusBadge status={c.status} />
@@ -401,9 +403,16 @@ function CasePage() {
               <Button
                 className="w-full"
                 disabled={busy || !connection.connected}
+                aria-busy={busy}
                 onClick={() => run()}
               >
-                {busy ? "Reviewing records…" : args.length ? "Refresh AI review" : "Run AI review"}
+                {busy ? (
+                  <LoadingStatus label="Reviewing records…" size={24} announce={false} />
+                ) : args.length ? (
+                  "Refresh AI review"
+                ) : (
+                  "Run AI review"
+                )}
               </Button>
             )}
             {error && (

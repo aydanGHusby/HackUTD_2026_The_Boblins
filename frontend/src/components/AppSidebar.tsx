@@ -1,3 +1,4 @@
+import { BrandLogo, LoadingStatus } from "@/components/Mascot";
 import { useConnection } from "@/data/hooks";
 import { useRouterState } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
@@ -24,10 +25,7 @@ export function AppSidebar() {
         to="/cases"
         className="mb-8 flex items-center gap-2 px-2 text-lg font-bold tracking-tight text-sidebar-accent-foreground"
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Network aria-hidden className="h-4 w-4" />
-        </span>
-        Paper<span className="text-ocean">View</span>
+        <BrandLogo size={38} />
       </Link>
       <nav aria-label="Main" className="flex flex-col gap-1">
         {nav.map(({ to, label, icon: Icon }) => (
@@ -74,11 +72,15 @@ export function AppSidebar() {
           </div>
         </div>
         <div role="status" className="text-xs">
-          {connection.connected
-            ? connection.transport === "native"
-              ? "● SpacetimeDB live subscription"
-              : "● SpacetimeDB via backend"
-            : "○ Backend disconnected"}
+          {connection.connected ? (
+            connection.transport === "native" ? (
+              "● SpacetimeDB live subscription"
+            ) : (
+              "● SpacetimeDB via backend"
+            )
+          ) : (
+            <LoadingStatus label="Connecting…" size={20} announce={false} className="text-xs" />
+          )}
         </div>
         {connection.error && (
           <p className="text-xs" role="alert">

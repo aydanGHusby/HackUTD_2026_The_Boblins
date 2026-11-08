@@ -1,3 +1,4 @@
+import { LoadingStatus, Mascot } from "@/components/Mascot";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, ChevronDown, SendHorizonal, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -65,7 +66,7 @@ export function AgentChat({
 
   const bottom = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "nearest" });
+    bottom.current?.scrollIntoView?.({ block: "nearest" });
   }, [items.length]);
 
   const [to, setTo] = useState<Side | "note">("prosecution");
@@ -188,13 +189,15 @@ export function AgentChat({
               className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-40"
               disabled={!text.trim() || sending}
             >
-              <SendHorizonal className="h-4 w-4" />
+              {sending ? <Mascot size={26} animated /> : <SendHorizonal className="h-4 w-4" />}
             </button>
           </form>
           {sending && (
-            <p role="status" className="mt-2 text-xs">
-              {to === "note" ? "Saving note…" : "Nemotron is preparing a reply…"}
-            </p>
+            <LoadingStatus
+              label={to === "note" ? "Saving note…" : "Nemotron is preparing a reply…"}
+              size={30}
+              className="mt-3 text-xs"
+            />
           )}
           {error && (
             <p role="alert" className="mt-2 text-xs text-destructive">

@@ -1,3 +1,4 @@
+import { LoadingStatus } from "@/components/Mascot";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -59,11 +60,7 @@ export function SeniorSignOff({
           Dismiss alert
         </Button>
       </div>
-      {pending && (
-        <p role="status" className="mt-2 text-xs">
-          Saving senior review…
-        </p>
-      )}
+      {pending && <LoadingStatus label="Saving senior review…" className="mt-3 text-xs" />}
       {saved && (
         <p role="status" className="mt-2 text-xs">
           Senior review saved.

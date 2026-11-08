@@ -1,3 +1,4 @@
+import { Mascot } from "@/components/Mascot";
 import { useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -125,7 +126,7 @@ export function QuestionWorkspace({
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
             <div className="flex items-center gap-2">
               <span className="assistant-mark">
-                <Sparkles className="h-4 w-4" />
+                <Mascot size={28} />
               </span>
               <div>
                 <h2 className="text-sm font-semibold">Paper View assistant</h2>
@@ -159,7 +160,7 @@ export function QuestionWorkspace({
             {!active.questions.length ? (
               <div className="question-welcome flex h-full flex-col justify-center py-7">
                 <span className="assistant-orbit mx-auto">
-                  <Sparkles className="h-7 w-7" />
+                  <Mascot size={60} />
                 </span>
                 <h2 className="mt-6 text-center text-2xl font-semibold tracking-tight">
                   Every connection starts with a question.

@@ -1,3 +1,4 @@
+import { LoadingStatus } from "@/components/Mascot";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Panel, TriggerTag } from "@/components/ui-kit";
@@ -53,9 +54,14 @@ function Intake() {
         Risk rules run as soon as you submit. Risky loans open a case.
       </p>
       <div role="status" className="mt-3 text-sm text-muted-foreground">
-        {!connection.loaded
-          ? connection.error || "Loading borrowers and collateral…"
-          : connection.error}
+        {!connection.loaded ? (
+          <LoadingStatus
+            label={connection.error || "Loading borrowers and collateral…"}
+            announce={false}
+          />
+        ) : (
+          connection.error
+        )}
       </div>
       <Panel className="mt-6 p-6">
         <form
@@ -146,7 +152,7 @@ function Intake() {
             disabled={pending || !borrowerId || !connection.connected}
             className="justify-self-start"
           >
-            {pending ? "Saving…" : "Submit and run risk rules"}
+            {pending ? <LoadingStatus label="Saving…" size={24} /> : "Submit and run risk rules"}
           </Button>
         </form>
       </Panel>

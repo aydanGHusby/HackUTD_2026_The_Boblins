@@ -87,3 +87,7 @@ Open `/ask-ai` from the sidebar, or use **Ask AI** on a case to carry its contex
 This tab is intentionally frontend-only: it never calls NVIDIA or generates answers. The “AI not connected” badge and reply placeholder make that explicit. The existing case-review AI flow is separate.
 
 The landing page's illustrative network supports node selection, connection highlighting, three exploration steps and keyboard controls. Page entry, scroll reveals, cards, graph nodes and navigation use restrained motion inspired by the reference site's graph-focused presentation. Motion respects `prefers-reduced-motion`; no scrolling is hijacked. Manual browser/projector visual review remains pending.
+
+## Pixel mascot and loading feedback
+
+`public/paper-view-mascot.png` is the transparent, photo-inspired pixel mascot. The shared `Mascot`, `BrandLogo`, `LoadingStatus`, and `LoadingPanel` components in `src/components/Mascot.tsx` keep branding and progress feedback consistent. The mascot appears in the navigation, landing logo, favicon and assistant interface. Real AI review/reply operations, page/data loading, reconnecting, and save operations use a gentle bob and animated pixel dots. Loading text remains accessible, and `prefers-reduced-motion` turns the animation off. The frontend-only Ask AI tab uses the static mascot and continues to make no AI requests.

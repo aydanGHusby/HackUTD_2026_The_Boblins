@@ -1,3 +1,4 @@
+import { LoadingStatus } from "@/components/Mascot";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -116,11 +117,13 @@ export function NextStep({
           }
         }}
       >
-        {pending
-          ? "Saving…"
-          : choice === "request"
-            ? "Save information request"
-            : "Save review decision"}
+        {pending ? (
+          <LoadingStatus label="Saving…" size={24} />
+        ) : choice === "request" ? (
+          "Save information request"
+        ) : (
+          "Save review decision"
+        )}
       </Button>
       {saved && (
         <p role="status" className="mt-2 text-xs text-ocean">
