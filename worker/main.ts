@@ -44,7 +44,7 @@ if (values.spacetime) {
     const d = store.stats;
     console.log(`
 Performance: ${secs.toFixed(1)}s wall time, loan_state now at revision ${store.lastRevision}`);
-    console.log(`  Nemotron: ${llm.stats.requests} requests, ${(llm.stats.ms / 1000).toFixed(1)}s total, ${llm.stats.retries} retries`);
+    console.log(`  Nemotron: ${llm.stats.requests} requests, ${(llm.stats.ms / 1000).toFixed(1)}s total, ${llm.stats.retries} retries, ${tokens()}`);
     console.log(`  SpacetimeDB: ${d.writes} writes (avg ${(d.writeMs / Math.max(1, d.writes)).toFixed(0)}ms), ${d.reads} reads (avg ${(d.readMs / Math.max(1, d.reads)).toFixed(0)}ms), ${((d.writeMs + d.readMs) / 1000).toFixed(1)}s total`);
     console.log(`  Kept in this process only (module has no table yet): ${store.localEvidence.length} evidence items, ${store.localCruxes.length} crux`);
     if (worker.failures.length) {
@@ -65,11 +65,16 @@ Performance: ${secs.toFixed(1)}s wall time, loan_state now at revision ${store.l
   await worker.runUntilIdle();
   printReport(store.state, values.case);
   const secs = ((Date.now() - started) / 1000).toFixed(1);
-  console.log(`\n${llm.stats.requests} LLM requests, ${llm.stats.retries} retries, ${secs}s wall time. Output: ${values.out}`);
+  console.log(`\n${llm.stats.requests} LLM requests, ${llm.stats.retries} retries, ${secs}s wall time. ${tokens()}. Output: ${values.out}`);
   if (worker.failures.length) {
     console.log(`Failures:\n${worker.failures.map((f) => `  ${f.key}: ${f.error}`).join("\n")}`);
     process.exitCode = 1;
   }
+}
+
+function tokens(): string {
+  const { promptTokens: p, completionTokens: c } = llm.stats;
+  return `tokens ${p + c} (prompt ${p}, completion ${c})`;
 }
 
 function printReport(s: CourtState, only?: string[]): void {

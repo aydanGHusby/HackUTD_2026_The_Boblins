@@ -11,6 +11,12 @@ import {
 } from "./prompts.ts";
 import { TOOL_SPECS, runTool } from "./tools.ts";
 
+// Answer budgets (output tokens). Real answers use ~300-650; these only stop a runaway reply.
+// With thinking on, NvidiaLLM adds room for the reasoning on top.
+const CLERK_TOKENS = 1500;
+const ADVOCATE_TOKENS = 800;
+const CRUX_TOKENS = 800;
+
 export interface ClerkResult {
   facts: DraftClaim[];
   dropped: Rejection[];
@@ -30,13 +36,14 @@ export async function runClerk(llm: LLM, opts: { index: GraphIndex; brief: strin
       messages,
       tools: TOOL_SPECS,
       execute: (name, args) => runTool(opts.index, name, args),
-      maxTurns: 8,
+      maxTurns: 4,
+      maxTokens: CLERK_TOKENS,
     });
     toolCalls = loop.calls.map(({ name, args }) => ({ name, args }));
     history = loop.messages;
-    drafts = await askForJson(llm, history, validateEvidence, { firstReply: loop.content });
+    drafts = await askForJson(llm, history, validateEvidence, { firstReply: loop.content, maxTokens: CLERK_TOKENS });
   } else {
-    drafts = await askForJson(llm, history, validateEvidence);
+    drafts = await askForJson(llm, history, validateEvidence, { maxTokens: CLERK_TOKENS });
     history = [...history, { role: "assistant", content: JSON.stringify({ evidence: drafts.map((d) => ({ fact: d.text, citations: d.citations })) }) }];
   }
   // The clerk's file must be clean: facts with a bad citation are dropped, not kept as unverified.
@@ -47,7 +54,7 @@ export async function runClerk(llm: LLM, opts: { index: GraphIndex; brief: strin
     const retry = await askForJson(llm, [...history, {
       role: "user",
       content: `The citation checker rejected these facts:\n${problems}\nCitations must be node or edge ids from the tool results, never tool names. Reply with the full corrected evidence JSON.`,
-    }], validateEvidence).catch(() => null);
+    }], validateEvidence, { maxTokens: CLERK_TOKENS }).catch(() => null);
     const rechecked = retry && checkClaims(opts.index, retry);
     const verified = (r: typeof checked) => r.claims.length - r.rejected.length;
     if (rechecked && verified(rechecked) > verified(checked)) checked = rechecked;
@@ -75,7 +82,7 @@ export async function runAdvocate(llm: LLM, opts: {
     { role: "system", content: opts.side === "prosecution" ? PROSECUTOR_SYSTEM : DEFENDER_SYSTEM },
     { role: "user", content: advocateTask(opts) },
   ];
-  const drafts = await askForJson(llm, messages, validateClaims);
+  const drafts = await askForJson(llm, messages, validateClaims, { maxTokens: ADVOCATE_TOKENS });
   // Advocates sometimes cite an evidence item (ev-…) instead of graph ids; swap in what that item cites.
   const byEvidence = new Map(opts.evidence.map((e) => [e.id, e.citations]));
   const expanded = drafts.map((d) => ({ ...d, citations: d.citations.flatMap((id) => byEvidence.get(id.trim()) ?? [id]) }));
@@ -87,7 +94,7 @@ export async function runCrux(llm: LLM, opts: { caseId: string; brief: string; a
     { role: "system", content: CRUX_SYSTEM },
     { role: "user", content: cruxTask(opts.brief, opts.args) },
   ];
-  const crux = await askForJson(llm, messages, validateCrux);
+  const crux = await askForJson(llm, messages, validateCrux, { maxTokens: CRUX_TOKENS });
   return { caseId: opts.caseId, ...crux };
 }
 

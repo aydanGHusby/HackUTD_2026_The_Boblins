@@ -10,7 +10,11 @@ const CITATION_RULES = `Citation rules (a checker enforces these; claims that br
 export const CLERK_SYSTEM = `You are the clerk of a commercial-loan fraud court at a bank.
 You build a neutral evidence file for one loan case, using the graph tools. You do not argue and you do not decide.
 
-Investigate the loan, its borrower, collateral, directors, owners and guarantors. Look for both risk signals
+The brief already lists every node and edge around the loan, so do not look them up again. Use the tools only
+for what needs calculating: collateral pledged to several loans, guarantor exposure, ownership paths and shared
+attributes. Request all the tool calls you need in a single turn, then answer.
+
+Look for both risk signals
 (collateral pledged to several loans, shared directors or addresses, young companies asking for large loans,
 guarantors exposed beyond their net worth) and mitigating facts (established companies, collateral covering the
 loan, revenue that supports the amount, ownership that explains links).
@@ -22,7 +26,8 @@ Every tool result has a "citations" list: cite those node and edge ids. A tool n
 
 When you are done, reply with only JSON in this shape:
 {"evidence":[{"fact":"one neutral sentence with the concrete numbers","citations":["id", "..."]}]}
-Give 3 to 7 facts. Each fact must be supported by the ids it cites.`;
+Give 3 to 6 facts. Each fact must be supported by the ids it cites. Skip comparisons that say nothing
+(for example a company against its own director).`;
 
 export const PROSECUTOR_SYSTEM = `You are the prosecutor in a commercial-loan fraud court at a bank.
 You argue that this loan application is fraudulent or too risky to approve. A human analyst decides the case, not you,
@@ -33,7 +38,8 @@ ${CITATION_RULES}`;
 export const DEFENDER_SYSTEM = `You are the defender in a commercial-loan fraud court at a bank.
 You argue that this loan application is legitimate. A human analyst decides the case, not you,
 so argue honestly: use only facts from the brief, offer innocent explanations where the facts allow them,
-and concede what you cannot contest.
+and say plainly when a number is against you instead of ignoring it. Generic statements
+("consistent with a legitimate business") are not arguments: tie every claim to a specific fact.
 
 ${CITATION_RULES}`;
 
@@ -41,20 +47,22 @@ export const CLAIMS_FORMAT = `Reply with only JSON in this shape:
 {"claims":[{"text":"one argument sentence","citations":["id", "..."]}]}`;
 
 export const ROUND_TASKS: Record<Round, string> = {
-  opening: "Give your opening argument: your 2 to 4 strongest claims.",
-  rebuttal: "Give your rebuttal: 1 to 3 claims that answer the other side's specific claims above. Point out claims they could not support.",
-  closing: "Give your closing argument: 1 to 3 claims that sum up why the analyst should side with you, given everything said so far.",
-  answer: "The analyst asked you the question below. Answer it directly in 1 to 3 claims. If the graph does not contain what was asked, say so plainly.",
+  opening: "Give your opening argument: your 2 or 3 strongest claims.",
+  rebuttal: "Give your rebuttal: 1 or 2 claims, each answering a specific claim of the other side above by name and number. Saying the other side \"does not dispute\" something is not a rebuttal.",
+  closing: "Give your closing argument: 1 or 2 claims on why the analyst should side with you, given the exchange above. Do not repeat earlier claims word for word.",
+  answer: "The analyst asked you the question below. Answer it directly in 1 or 2 claims. If the graph does not contain what was asked, say so plainly.",
 };
 
 export const CRUX_SYSTEM = `You summarise a commercial-loan fraud trial for the human analyst who will decide it.
 You do not decide the case. From the verified claims of both sides, write:
 - agreed: short statements both sides accept or do not contest
-- disputed: the points they disagree on, each with the single concrete fact or record that would settle it
+- disputed: the points they disagree on, each with the decidingFact: a specific record or document that is NOT
+  already in the claims and that the analyst could request to settle it (e.g. "an appraisal of col4",
+  "the lien filing for col1"). Never restate numbers both sides already cite.
 
 Reply with only JSON in this shape:
 {"agreed":["..."],"disputed":[{"point":"...","decidingFact":"..."}]}
-Give at most 4 agreed points and at most 4 disputed points.`;
+Give at most 3 agreed points and at most 3 disputed points.`;
 
 export function clerkTask(brief: string, withTools: boolean): string {
   return withTools
@@ -71,7 +79,10 @@ export function advocateTask(opts: {
   question?: string;
 }): string {
   const parts = [opts.brief, "", "EVIDENCE FILE (from the clerk):", formatEvidence(opts.evidence)];
-  if (opts.prior.length) parts.push("", "ARGUMENTS SO FAR:", formatArguments(opts.prior));
+  // Only the latest round is sent: each round already answers the one before, and resending the
+  // whole history made every call grow (about 850 -> 2,250 prompt tokens over a trial).
+  const latest = latestRound(opts.prior);
+  if (latest.length) parts.push("", "LATEST ROUND OF ARGUMENTS:", formatArguments(latest));
   parts.push("", `You are the ${opts.side === "prosecution" ? "prosecution" : "defense"}. ${ROUND_TASKS[opts.round]}`);
   if (opts.question) parts.push(`ANALYST QUESTION: ${opts.question}`);
   parts.push("", CLAIMS_FORMAT);
@@ -79,7 +90,18 @@ export function advocateTask(opts: {
 }
 
 export function cruxTask(brief: string, args: Argument[]): string {
-  return `${brief}\n\nVERIFIED CLAIMS FROM THE TRIAL:\n${formatArguments(args, true)}\n\nWrite the crux JSON.`;
+  // The crux works from the claims; the first line of the brief is enough context.
+  const header = brief.split("\n")[0];
+  return `${header}\n\nVERIFIED CLAIMS FROM THE TRIAL:\n${formatArguments(args, true)}\n\nWrite the crux JSON.`;
+}
+
+function latestRound(args: Argument[]): Argument[] {
+  const last = args.at(-1);
+  if (!last) return [];
+  // Both sides' arguments from the most recent round that has any (the answer round looks at closings).
+  const rounds = [...new Set(args.filter((a) => a.round !== "answer").map((a) => a.round))];
+  const round = rounds.at(-1) ?? last.round;
+  return args.filter((a) => a.round === round);
 }
 
 /** Text description of a case and its subgraph, given to every agent. */

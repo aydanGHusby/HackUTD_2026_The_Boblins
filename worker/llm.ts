@@ -64,7 +64,7 @@ export class NvidiaLLM implements LLM {
   nextSlot = 0;
   log: (msg: string) => void;
   // Request count and wall time, for comparing models.
-  stats = { requests: 0, retries: 0, ms: 0 };
+  stats = { requests: 0, retries: 0, ms: 0, promptTokens: 0, completionTokens: 0 };
 
   constructor(opts: NvidiaOptions) {
     this.apiKey = opts.apiKey;
@@ -97,8 +97,8 @@ export class NvidiaLLM implements LLM {
       model: this.model,
       messages: req.messages,
       temperature: req.temperature ?? 0.2,
-      // Thinking needs room to answer after it reasons.
-      max_tokens: req.maxTokens ?? (this.thinking ? 16384 : 4096),
+      // Thinking needs room to reason on top of the answer budget.
+      max_tokens: (req.maxTokens ?? 4096) + (this.thinking ? 12288 : 0),
       chat_template_kwargs: { enable_thinking: this.thinking },
     };
     if (req.tools?.length) {
@@ -144,7 +144,10 @@ export class NvidiaLLM implements LLM {
 
       const json = (await res.json()) as {
         choices?: { finish_reason?: string; message?: { content?: string | null; tool_calls?: ToolCall[] } }[];
+        usage?: { prompt_tokens?: number; completion_tokens?: number };
       };
+      this.stats.promptTokens += json.usage?.prompt_tokens ?? 0;
+      this.stats.completionTokens += json.usage?.completion_tokens ?? 0;
       const choice = json.choices?.[0];
       const msg = choice?.message ?? {};
       if (choice?.finish_reason === "length" && !stripThink(msg.content ?? "") && !msg.tool_calls?.length) {
