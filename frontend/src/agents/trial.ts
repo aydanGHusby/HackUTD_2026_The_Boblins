@@ -80,20 +80,35 @@ function config() {
 
 type Message = { role: string; content: string | null; reasoning_content?: string; tool_calls?: { id: string; function: { name: string; arguments: string } }[]; tool_call_id?: string };
 
+// Answers run ~150-350 tokens; thinking needs room on top or it can use the whole budget and never answer.
+const ANSWER_TOKENS = 800;
+const THINKING_TOKENS = 12288;
+
 async function chat(messages: Message[], withTools: boolean): Promise<Message> {
   const { key, model, thinking } = config();
-  const res = await fetch(`${BASE}/chat/completions`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model, messages, temperature: 0.3, max_tokens: 1500,
-      chat_template_kwargs: { enable_thinking: thinking },
-      ...(withTools ? { tools } : {}),
-    }),
+  const body = JSON.stringify({
+    model, messages, temperature: 0.3, max_tokens: ANSWER_TOKENS + (thinking ? THINKING_TOKENS : 0),
+    chat_template_kwargs: { enable_thinking: thinking },
+    ...(withTools ? { tools } : {}),
   });
-  if (!res.ok) throw new Error(`Nemotron ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const data = await res.json();
-  return data.choices[0].message;
+  // The free tier allows ~40 requests a minute per key (shared with the worker), so 429s back off and retry.
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${BASE}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body,
+      signal: AbortSignal.timeout(120_000),
+    });
+    if ((res.status === 429 || res.status >= 500) && attempt < 4) {
+      const retryAfter = Number(res.headers.get("retry-after"));
+      const wait = retryAfter > 0 ? retryAfter * 1000 : (res.status === 429 ? 5000 : 1000) * 2 ** attempt;
+      await new Promise((r) => setTimeout(r, wait));
+      continue;
+    }
+    if (!res.ok) throw new Error(`Nemotron ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const data = await res.json();
+    return data.choices[0].message;
+  }
 }
 
 function parseClaims(content: string): { text: string; citations: string[] }[] {
@@ -109,21 +124,27 @@ function parseClaims(content: string): { text: string; citations: string[] }[] {
 
 const stance: Record<Side, string> = {
   prosecution: "You are the Risk agent. You argue that this loan application is fraudulent or too risky to approve.",
-  defense: "You are the Legitimacy agent. You argue that this loan application is legitimate and the red flags have innocent explanations.",
+  defense: "You are the Legitimacy agent. You argue that this loan application is legitimate and the red flags have innocent explanations. Never overstate a number (a loan is not fully secured when the collateral is worth less), but don't argue the other side's case either: acknowledge a bad number in a few words, then give the strongest legitimate explanation for it.",
 };
 
 function prompt({ side, round, file, opponent, question }: ArgueInput): Message[] {
-  const index = file.nodes.map((n) => `${n.id} (${n.kind}): ${n.label}`).join("\n");
+  // Each node's own fields (amounts, dates, net worth) inline, so the agents rarely need get_node.
+  const fields = (n: GraphNode) =>
+    Object.entries(n.data).filter(([k]) => k !== "id").map(([k, v]) => `${k}=${typeof v === "string" ? JSON.stringify(v) : v}`).join(" ");
+  const index = file.nodes.map((n) => `${n.id} (${n.kind}): ${fields(n)}`).join("\n");
+  // Listing the edges up front saves most get_node calls (one rebuttal used 17 tool calls without them).
+  const filed = file.evidence.map((e) => `${e.id}: ${e.fact} [${e.citations.join(", ")}]`).join("\n") || "(none)";
+  const links = file.edges.map((e) => `${e.id}: ${e.from} -${e.kind}-> ${e.to}${e.detail ? ` (${e.detail})` : ""}`).join("\n");
   const task =
     round === "answer" ? `An analyst asks you: "${question}". Answer it in 1-2 claims.`
     : round === "opening" ? "Give your opening argument in 2-3 claims."
-    : `Rebut the other side in 1-2 claims. Their claims:\n${(opponent ?? []).map((c) => `- ${c.text} [${c.citations.join(", ")}]`).join("\n") || "(none)"}`;
+    : `Rebut the other side in 1-2 claims, each answering one of their claims by its specific number or fact. Their claims:\n${(opponent ?? []).map((c) => `- ${c.text} [${c.citations.join(", ")}]`).join("\n") || "(none)"}`;
   return [
     {
       role: "system",
       content: `${stance[side]} A human analyst makes the final decision; your job is to give them the strongest honest case for your side.
 Rules:
-- Investigate with the tools before arguing. Every claim must cite the exact node ids, edge ids or evidence ids that support it.
+- The case file below lists every node with its details, every edge and the clerk's evidence, so you rarely need the tools. Every claim must cite the exact node ids, edge ids or evidence ids that support it.
 - Never cite an id you have not seen in this case file. Claims with unknown ids are thrown out by a fact-checker.
 - Be specific: names, dollar amounts, dates. One sentence per claim.
 - When done, reply with only JSON: {"claims":[{"text":"...","citations":["id", "..."]}]}`,
@@ -134,6 +155,12 @@ Rules:
 Nodes in this case:
 ${index}
 
+Edges:
+${links}
+
+Evidence filed by the clerk:
+${filed}
+
 ${task}`,
     },
   ];
@@ -143,7 +170,7 @@ export async function argue(input: ArgueInput): Promise<ArgueResult> {
   const messages = prompt(input);
   let toolCalls = 0;
   for (let step = 0; step < 8; step++) {
-    const reply = await chat(messages, step < 5);
+    const reply = await chat(messages, step < 1);
     if (reply.tool_calls?.length) {
       messages.push({ role: "assistant", content: reply.content ?? "", tool_calls: reply.tool_calls });
       for (const call of reply.tool_calls) {

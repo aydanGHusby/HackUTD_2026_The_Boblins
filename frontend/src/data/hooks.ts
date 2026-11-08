@@ -5,7 +5,7 @@ import * as mock from "@/mock/mockData";
 import { argueFn, type CaseFile } from "@/agents/trial";
 import { applyLoanOps, loadLoanState, resetLoanState } from "@/data/spacetime";
 import type {
-  Argument, AuditEvent, Case, Claim, Decision, GraphNode, Note, Question, Round, Side, SignOff, Verdict, Edge, Loan,
+  Argument, AuditEvent, Case, Claim, Crux, Decision, EvidenceItem, GraphNode, Note, Question, Round, Side, SignOff, Verdict, Edge, Loan,
 } from "@/shared/types";
 
 type Shared = {
@@ -13,6 +13,9 @@ type Shared = {
   verdicts: Verdict[]; notes: Note[]; audit: AuditEvent[]; signOffs: SignOff[];
   presence: { user: string; caseId: string; at: string }[]; // heartbeats from open case pages
   running: { caseId: string; by: string; at: string }[]; // trials in progress, seen by everyone
+  // Written by the courtroom worker (worker/). Missing on databases that predate them.
+  evidence?: EvidenceItem[];
+  cruxes?: Crux[];
 };
 type Store = Shared & {
   trialErrors: Record<string, string>; // local only: caseId → last error message
@@ -139,8 +142,14 @@ function subgraph(s: Store, caseId: string) {
 }
 export const useSubgraph = (caseId: string) => subgraph(useStore(), caseId);
 export const useArguments = (caseId: string) => useStore().arguments.filter((a) => a.caseId === caseId);
-export const useCrux = (caseId: string) => mock.cruxes.find((c) => c.caseId === caseId);
-export const useEvidence = (caseId: string) => mock.evidence.filter((e) => e.caseId === caseId);
+// The worker's evidence and crux for a case when it has run one, else the mock ones.
+function evidenceFor(s: Shared, caseId: string): EvidenceItem[] {
+  const live = (s.evidence ?? []).filter((e) => e.caseId === caseId);
+  return live.length ? live : mock.evidence.filter((e) => e.caseId === caseId);
+}
+export const useCrux = (caseId: string) =>
+  (useStore().cruxes ?? []).find((c) => c.caseId === caseId) ?? mock.cruxes.find((c) => c.caseId === caseId);
+export const useEvidence = (caseId: string) => evidenceFor(useStore(), caseId);
 export const useQuestions = (caseId: string) => useStore().questions.filter((q) => q.caseId === caseId);
 export const useNotes = (caseId: string) => useStore().notes.filter((n) => n.caseId === caseId);
 export const useAudit = (caseId: string) =>
@@ -221,7 +230,7 @@ function caseFile(caseId: string): CaseFile | undefined {
   if (!c) return undefined;
   const { nodes, edges } = subgraph(store, caseId);
   const loan = store.loans.find((l) => l.id === c.loanId);
-  return { caseId, loanId: c.loanId, borrower: borrowerName(loan), triggers: c.triggers, nodes, edges, evidence: mock.evidence.filter((e) => e.caseId === caseId) };
+  return { caseId, loanId: c.loanId, borrower: borrowerName(loan), triggers: c.triggers, nodes, edges, evidence: evidenceFor(store, caseId) };
 }
 
 async function argueAndRecord(caseId: string, side: Side, round: Round, extra: { file: CaseFile; opponent?: Claim[]; question?: string }) {
