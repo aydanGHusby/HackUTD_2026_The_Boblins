@@ -22,9 +22,10 @@ export function AgentChat({ args, questions, notes, active, disabled, onSelect, 
   const items = useMemo<Item[]>(() => {
     const list: Item[] = [];
     args.forEach((a) => a.claims.forEach((claim, i) => list.push({ kind: "claim", at: a.createdAt, side: a.side, round: a.round, claim, key: `${a.id}-${i}` })));
-    questions.forEach((q, i) => list.push({ kind: "question", at: "9999", q, key: q.id + i }));
+    // An answered question sits just before its answer; unanswered ones stay at the bottom.
+    questions.forEach((q, i) => list.push({ kind: "question", at: args.find((a) => a.id === q.answerId)?.createdAt ?? "9999", q, key: q.id + i }));
     notes.forEach((n) => list.push({ kind: "note", at: n.at, n, key: n.id }));
-    return list.sort((a, b) => a.at.localeCompare(b.at));
+    return list.sort((a, b) => a.at.localeCompare(b.at) || Number(b.kind === "question") - Number(a.kind === "question"));
   }, [args, questions, notes]);
 
   const bottom = useRef<HTMLDivElement>(null);

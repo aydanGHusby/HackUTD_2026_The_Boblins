@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown, Gavel, Loader2 } from "lucide-react";
 import { AgentChat } from "@/components/AgentChat";
 import { GraphView } from "@/components/graph/GraphView";
 import { Avatars, Empty, RiskScore, StatusBadge, TriggerTag } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import {
-  addNote, askQuestion, submitVerdict, useArguments, useAudit, useCase, useCrux, useEvidence,
-  useNotes, useQuestions, useSignOff, useSubgraph, useVerdict,
+  addNote, askQuestion, runTrial, submitVerdict, useArguments, useAudit, useCase, useCrux, useEvidence,
+  useNotes, useQuestions, useSignOff, useSubgraph, useTrial, useVerdict,
 } from "@/data/hooks";
 import { useIdentity } from "@/data/identity";
 import { dateTime, humanize, money } from "@/lib/format";
@@ -39,6 +39,8 @@ function CasePage() {
   const audit = useAudit(id);
   const verdict = useVerdict(id);
   const signOff = useSignOff(id);
+  const trial = useTrial(id);
+  const running = trial === "running";
   const [active, setActive] = useState<Claim>();
   const [highlight, setHighlight] = useState<string[]>([]);
   const [drawer, setDrawer] = useState<"evidence" | "summary" | "history" | null>("summary");
@@ -113,11 +115,14 @@ function CasePage() {
         <aside className="flex min-h-0 flex-col border-l border-border bg-card/70 backdrop-blur-xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-bold">Agent discussion</h2>
-            <div className="flex gap-2 text-[11px]">
-              <span className="rounded-full bg-candy-soft px-2 py-0.5 font-semibold text-candy-strong">Risk agent</span>
-              <span className="rounded-full bg-sky-soft px-2 py-0.5 font-semibold text-ocean">Legitimacy agent</span>
-            </div>
+            {!decided && (
+              <Button size="sm" disabled={running} onClick={() => runTrial(id, me.name)}>
+                {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Gavel className="h-3.5 w-3.5" />}
+                {running ? "Agents arguing…" : args.length ? "Re-run trial" : "Run trial"}
+              </Button>
+            )}
           </div>
+          {trial && !running && <div className="border-b border-border bg-candy-soft px-4 py-2 text-xs text-candy-strong">Trial stopped: {trial}</div>}
           <div className="min-h-0 flex-1">
             <AgentChat args={args} questions={questions} notes={notes} active={active} disabled={decided}
               onSelect={select} onAsk={(s, t) => askQuestion(id, me.name, s, t)} onNote={(t) => addNote(id, me.name, t)} />

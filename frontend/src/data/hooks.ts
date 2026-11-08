@@ -2,19 +2,21 @@
 // at the SpacetimeDB handoff only this file (and actions below) changes.
 import { useSyncExternalStore } from "react";
 import * as mock from "@/mock/mockData";
+import { argueFn, type CaseFile } from "@/agents/trial";
 import type {
-  Argument, AuditEvent, Case, Decision, GraphNode, Note, Question, Side, SignOff, Verdict, Edge, Loan,
+  Argument, AuditEvent, Case, Claim, Decision, GraphNode, Note, Question, Round, Side, SignOff, Verdict, Edge, Loan,
 } from "@/shared/types";
 
 type Store = {
   cases: Case[]; loans: Loan[]; edges: Edge[]; arguments: Argument[]; questions: Question[];
   verdicts: Verdict[]; notes: Note[]; audit: AuditEvent[]; signOffs: SignOff[];
+  trials: Record<string, "running" | string>; // caseId → running, or the last error message
 };
 
 let store: Store = {
   cases: [...mock.cases], loans: [...mock.loans], edges: [...mock.edges],
   arguments: [...mock.argumentsList], questions: [...mock.questions], verdicts: [...mock.verdicts],
-  notes: [...mock.notes], audit: [...mock.audit], signOffs: [],
+  notes: [...mock.notes], audit: [...mock.audit], signOffs: [], trials: {},
 };
 const listeners = new Set<() => void>();
 const subscribe = (l: () => void) => { listeners.add(l); return () => listeners.delete(l); };
@@ -55,8 +57,7 @@ export function useCase(id: string) {
   const loan = s.loans.find((l) => l.id === c.loanId);
   return { ...c, loan, borrower: borrowerName(loan), viewers: mock.presence.filter((p) => p.caseId === id).map((p) => p.user) };
 }
-export function useSubgraph(caseId: string) {
-  const s = useStore();
+function subgraph(s: Store, caseId: string) {
   const c = s.cases.find((x) => x.id === caseId);
   if (!c) return { nodes: [] as GraphNode[], edges: [] as Edge[], flagged: [] as string[] };
   const ids = new Set([c.loanId]);
@@ -67,6 +68,7 @@ export function useSubgraph(caseId: string) {
   const nodes = [...ids].map((id) => nodeById(id, s.loans)).filter(Boolean) as GraphNode[];
   return { nodes, edges, flagged: mock.flaggedEdges[caseId] ?? [] };
 }
+export const useSubgraph = (caseId: string) => subgraph(useStore(), caseId);
 export const useArguments = (caseId: string) => useStore().arguments.filter((a) => a.caseId === caseId);
 export const useCrux = (caseId: string) => mock.cruxes.find((c) => c.caseId === caseId);
 export const useEvidence = (caseId: string) => mock.evidence.filter((e) => e.caseId === caseId);
@@ -75,6 +77,7 @@ export const useNotes = (caseId: string) => useStore().notes.filter((n) => n.cas
 export const useAudit = (caseId: string) =>
   useStore().audit.filter((a) => a.caseId === caseId).sort((a, b) => a.at.localeCompare(b.at));
 export const useVerdict = (caseId: string) => useStore().verdicts.find((v) => v.caseId === caseId);
+export const useTrial = (caseId: string) => useStore().trials[caseId];
 export const useSignOff = (caseId: string) => useStore().signOffs.find((v) => v.caseId === caseId);
 export function useEscalations() {
   const s = useStore();
@@ -99,11 +102,74 @@ export function submitVerdict(caseId: string, analyst: string, decision: Decisio
     audit: [...store.audit, log(caseId, analyst, `verdict: ${decision}`)],
   });
 }
-export function askQuestion(caseId: string, askedBy: string, to: Side, text: string) {
+export async function askQuestion(caseId: string, askedBy: string, to: Side, text: string) {
+  const qid = uid("q");
   set({
-    questions: [...store.questions, { id: uid("q"), caseId, askedBy, to, text }],
+    questions: [...store.questions, { id: qid, caseId, askedBy, to, text }],
     audit: [...store.audit, log(caseId, askedBy, `asked ${to} a question`)],
   });
+  const file = caseFile(caseId);
+  if (!file) return;
+  try {
+    const arg = await argueAndRecord(caseId, to, "answer", { file, question: text });
+    set({ questions: store.questions.map((q) => (q.id === qid ? { ...q, answerId: arg.id } : q)) });
+  } catch (err) {
+    set({ audit: [...store.audit, log(caseId, agentActor[to], `could not answer: ${(err as Error).message}`)] });
+  }
+}
+
+// ---- the trial: Nemotron agents argue, the fact-checker filters, the analyst decides ----
+const agentActor: Record<Side, string> = { prosecution: "prosecutor", defense: "defender" };
+
+function caseFile(caseId: string): CaseFile | undefined {
+  const c = store.cases.find((x) => x.id === caseId);
+  if (!c) return undefined;
+  const { nodes, edges } = subgraph(store, caseId);
+  const loan = store.loans.find((l) => l.id === c.loanId);
+  return { caseId, loanId: c.loanId, borrower: borrowerName(loan), triggers: c.triggers, nodes, edges, evidence: mock.evidence.filter((e) => e.caseId === caseId) };
+}
+
+async function argueAndRecord(caseId: string, side: Side, round: Round, extra: { file: CaseFile; opponent?: Claim[]; question?: string }) {
+  const result = await argueFn({ data: { side, round, ...extra } });
+  const arg: Argument = { id: uid("a"), caseId, side, round, claims: result.claims, createdAt: now() };
+  const events = [log(caseId, agentActor[side], `${round} argument (${result.toolCalls} tool calls)`)];
+  if (result.rejected) {
+    const missing = result.claims.filter((c) => !c.verified).flatMap((c) => c.citations);
+    events.push(log(caseId, "citation_checker", `rejected ${result.rejected} claim${result.rejected > 1 ? "s" : ""} (unknown ids: ${missing.join(", ") || "none cited"})`));
+  }
+  set({ arguments: [...store.arguments, arg], audit: [...store.audit, ...events] });
+  return arg;
+}
+
+export async function runTrial(caseId: string, actor: string) {
+  const file = caseFile(caseId);
+  if (!file || store.trials[caseId] === "running") return;
+  set({
+    trials: { ...store.trials, [caseId]: "running" },
+    arguments: store.arguments.filter((a) => a.caseId !== caseId),
+    cases: store.cases.map((c) => (c.id === caseId ? { ...c, status: "in_trial" } : c)),
+    audit: [...store.audit, log(caseId, actor, "started a trial")],
+  });
+  try {
+    const [pro, def] = await Promise.all([
+      argueAndRecord(caseId, "prosecution", "opening", { file }),
+      argueAndRecord(caseId, "defense", "opening", { file }),
+    ]);
+    const verified = (a: Argument) => a.claims.filter((c) => c.verified);
+    await Promise.all([
+      argueAndRecord(caseId, "prosecution", "rebuttal", { file, opponent: verified(def) }),
+      argueAndRecord(caseId, "defense", "rebuttal", { file, opponent: verified(pro) }),
+    ]);
+    const { [caseId]: _, ...rest } = store.trials;
+    set({ trials: rest, cases: store.cases.map((c) => (c.id === caseId ? { ...c, status: "awaiting_verdict" } : c)) });
+  } catch (err) {
+    const message = (err as Error).message;
+    set({
+      trials: { ...store.trials, [caseId]: message },
+      cases: store.cases.map((c) => (c.id === caseId ? { ...c, status: "queued" } : c)),
+      audit: [...store.audit, log(caseId, "trial", `stopped: ${message}`)],
+    });
+  }
 }
 export function addNote(caseId: string, author: string, text: string) {
   set({
