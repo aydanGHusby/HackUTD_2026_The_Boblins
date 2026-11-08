@@ -14,6 +14,7 @@ import { Route as AskAiRouteImport } from './routes/ask-ai'
 import { Route as CasesRouteImport } from './routes/cases'
 import { Route as EscalationsRouteImport } from './routes/escalations'
 import { Route as IntakeRouteImport } from './routes/intake'
+import { Route as OpsRouteImport } from './routes/ops'
 import { Route as QueueRouteImport } from './routes/queue'
 import { Route as CaseIdRouteImport } from './routes/case.$id'
 
@@ -42,6 +43,11 @@ const IntakeRoute = IntakeRouteImport.update({
   path: '/intake',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OpsRoute = OpsRouteImport.update({
+  id: '/ops',
+  path: '/ops',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QueueRoute = QueueRouteImport.update({
   id: '/queue',
   path: '/queue',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/cases': typeof CasesRoute
   '/escalations': typeof EscalationsRoute
   '/intake': typeof IntakeRoute
+  '/ops': typeof OpsRoute
   '/queue': typeof QueueRoute
   '/case/$id': typeof CaseIdRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/cases': typeof CasesRoute
   '/escalations': typeof EscalationsRoute
   '/intake': typeof IntakeRoute
+  '/ops': typeof OpsRoute
   '/queue': typeof QueueRoute
   '/case/$id': typeof CaseIdRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/cases': typeof CasesRoute
   '/escalations': typeof EscalationsRoute
   '/intake': typeof IntakeRoute
+  '/ops': typeof OpsRoute
   '/queue': typeof QueueRoute
   '/case/$id': typeof CaseIdRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/cases'
     | '/escalations'
     | '/intake'
+    | '/ops'
     | '/queue'
     | '/case/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/cases'
     | '/escalations'
     | '/intake'
+    | '/ops'
     | '/queue'
     | '/case/$id'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/cases'
     | '/escalations'
     | '/intake'
+    | '/ops'
     | '/queue'
     | '/case/$id'
   fileRoutesById: FileRoutesById
@@ -117,6 +129,7 @@ export interface RootRouteChildren {
   CasesRoute: typeof CasesRoute
   EscalationsRoute: typeof EscalationsRoute
   IntakeRoute: typeof IntakeRoute
+  OpsRoute: typeof OpsRoute
   QueueRoute: typeof QueueRoute
   CaseIdRoute: typeof CaseIdRoute
 }
@@ -158,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntakeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ops': {
+      id: '/ops'
+      path: '/ops'
+      fullPath: '/ops'
+      preLoaderRoute: typeof OpsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/queue': {
       id: '/queue'
       path: '/queue'
@@ -181,6 +201,7 @@ const rootRouteChildren: RootRouteChildren = {
   CasesRoute: CasesRoute,
   EscalationsRoute: EscalationsRoute,
   IntakeRoute: IntakeRoute,
+  OpsRoute: OpsRoute,
   QueueRoute: QueueRoute,
   CaseIdRoute: CaseIdRoute,
 }

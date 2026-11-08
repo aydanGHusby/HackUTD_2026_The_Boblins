@@ -1,4 +1,4 @@
-# FraudGraph shared local case
+# Paper Trail shared local case
 
 The running implementation is the TypeScript module in `src/index.ts`. The earlier `schema.rs` is a design sketch and is not used.
 

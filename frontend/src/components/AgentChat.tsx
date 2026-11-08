@@ -1,6 +1,6 @@
 import { LoadingStatus, Mascot } from "@/components/Mascot";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ChevronDown, SendHorizonal, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ChevronDown, Loader2, SendHorizonal, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { dateTime, humanize } from "@/lib/format";
 import type { Argument, Claim, Note, Question, Side } from "@/shared/types";
@@ -26,11 +26,10 @@ interface Props {
   notes: Note[];
   active?: Claim | undefined;
   disabled: boolean;
-  referenceLabel?: (id: string) => string;
-  plainText?: (text: string) => string;
+  running?: boolean;
   onSelect: (c: Claim) => void;
-  onAsk: (to: Side, text: string) => Promise<unknown>;
-  onNote: (text: string) => Promise<unknown>;
+  onAsk: (to: Side, text: string) => unknown | Promise<unknown>;
+  onNote: (text: string) => unknown | Promise<unknown>;
 }
 
 export function AgentChat({
@@ -39,11 +38,10 @@ export function AgentChat({
   notes,
   active,
   disabled,
+  running,
   onSelect,
   onAsk,
   onNote,
-  referenceLabel = (id) => id,
-  plainText = (text) => text,
 }: Props) {
   const items = useMemo<Item[]>(() => {
     const list: Item[] = [];
@@ -59,15 +57,26 @@ export function AgentChat({
         }),
       ),
     );
-    questions.forEach((q, i) => list.push({ kind: "question", at: "9999", q, key: q.id + i }));
+    // An answered question sits just before its answer; unanswered ones stay at the bottom.
+    questions.forEach((q, i) =>
+      list.push({
+        kind: "question",
+        at: args.find((a) => a.id === q.answerId)?.createdAt ?? "9999",
+        q,
+        key: q.id + i,
+      }),
+    );
     notes.forEach((n) => list.push({ kind: "note", at: n.at, n, key: n.id }));
-    return list.sort((a, b) => a.at.localeCompare(b.at));
+    return list.sort(
+      (a, b) =>
+        a.at.localeCompare(b.at) || Number(b.kind === "question") - Number(a.kind === "question"),
+    );
   }, [args, questions, notes]);
 
   const bottom = useRef<HTMLDivElement>(null);
   useEffect(() => {
     bottom.current?.scrollIntoView?.({ block: "nearest" });
-  }, [items.length]);
+  }, [items.length, running]);
 
   const [to, setTo] = useState<Side | "note">("prosecution");
   const [text, setText] = useState("");
@@ -75,7 +84,7 @@ export function AgentChat({
   const [error, setError] = useState("");
   const send = async () => {
     const t = text.trim();
-    if (!t || sending) return;
+    if (!t || sending || (running && to !== "note")) return;
     setSending(true);
     setError("");
     try {
@@ -83,16 +92,21 @@ export function AgentChat({
       else await onAsk(to, t);
       setText("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not send. Your text is preserved.");
+      setError(e instanceof Error ? e.message : "Could not send. Your draft is preserved.");
     } finally {
       setSending(false);
     }
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
-        {items.length === 0 && (
+    <div className="agent-discussion flex h-full min-h-0 flex-col">
+      <div
+        role="log"
+        aria-label="Agent discussion messages"
+        aria-relevant="additions"
+        className="agent-messages flex-1 space-y-4 overflow-y-auto p-4"
+      >
+        {items.length === 0 && !running && (
           <div className="py-10 text-center text-sm text-muted-foreground">
             The agents haven't started yet.
           </div>
@@ -106,7 +120,7 @@ export function AgentChat({
               >
                 <b>{it.n.author}</b> left a note ·{" "}
                 <span className="text-muted-foreground">{dateTime(it.n.at)}</span>
-                <p className="mt-0.5">{plainText(it.n.text)}</p>
+                <p className="mt-0.5">{it.n.text}</p>
               </div>
             );
           if (it.kind === "question")
@@ -116,7 +130,7 @@ export function AgentChat({
                   <div className="text-[10px] font-semibold opacity-80">
                     {it.q.askedBy} → {agentName[it.q.to]}
                   </div>
-                  {plainText(it.q.text)}
+                  {it.q.text}
                   {!it.q.answerId && (
                     <div className="mt-1 text-[10px] italic opacity-70">waiting for reply…</div>
                   )}
@@ -129,18 +143,30 @@ export function AgentChat({
               side={it.side}
               round={it.round}
               claim={it.claim}
-              plainText={plainText}
-              referenceLabel={referenceLabel}
-              active={active?.text === it.claim.text}
+              active={active === it.claim}
               onClick={() => onSelect(it.claim)}
             />
           );
         })}
+        {/* Claims land one round at a time while a trial runs; this shows the next ones are coming. */}
+        {running && (
+          <div className="msg-in flex items-center gap-2 text-xs text-muted-foreground">
+            <LoadingStatus
+              label={
+                args.length
+                  ? "Agents are writing the next round…"
+                  : "Agents are reading the case file…"
+              }
+              size={26}
+              className="text-xs"
+            />
+          </div>
+        )}
         <div ref={bottom} />
       </div>
 
       {!disabled && (
-        <div className="liquid-glass m-3 mb-0 rounded-2xl p-3">
+        <div className="border-t border-border p-3">
           <div className="mb-2 flex gap-1">
             {(["prosecution", "defense", "note"] as const).map((s) => (
               <button
@@ -169,6 +195,9 @@ export function AgentChat({
             }}
           >
             <textarea
+              aria-label="Message the agent or leave a note"
+              maxLength={5000}
+              disabled={sending || (running && to !== "note")}
               rows={1}
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -187,20 +216,19 @@ export function AgentChat({
               type="submit"
               aria-label="Send"
               className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-40"
-              disabled={!text.trim() || sending}
+              disabled={!text.trim() || sending || (running && to !== "note")}
             >
-              {sending ? <Mascot size={26} animated /> : <SendHorizonal className="h-4 w-4" />}
+              {sending ? <Mascot size={24} animated /> : <SendHorizonal className="h-4 w-4" />}
             </button>
           </form>
           {sending && (
             <LoadingStatus
               label={to === "note" ? "Saving note…" : "Nemotron is preparing a reply…"}
-              size={30}
-              className="mt-3 text-xs"
+              className="mt-2 text-xs"
             />
           )}
           {error && (
-            <p role="alert" className="mt-2 text-xs text-destructive">
+            <p role="alert" className="mt-2 text-xs text-candy-strong">
               {error}
             </p>
           )}
@@ -216,16 +244,12 @@ function ClaimBubble({
   claim,
   active,
   onClick,
-  plainText,
-  referenceLabel,
 }: {
   side: Side;
   round: string;
   claim: Claim;
   active: boolean;
   onClick: () => void;
-  plainText: (text: string) => string;
-  referenceLabel: (id: string) => string;
 }) {
   const [open, setOpen] = useState(false);
   const risk = side === "prosecution";
@@ -252,18 +276,17 @@ function ClaimBubble({
               active && "ring-2 ring-ocean glow-ocean",
             )}
           >
-            {plainText(claim.text)}
+            {claim.text}
             <div className="mt-1.5 flex flex-wrap items-center gap-1">
               <span className="flex items-center gap-0.5 text-[10px] font-semibold text-success">
-                <ShieldCheck className="h-3 w-3" /> sources found
+                <ShieldCheck className="h-3 w-3" /> verified sources
               </span>
               {claim.citations.map((c) => (
                 <span
                   key={c}
-                  title={c}
-                  className="rounded bg-card px-1 text-[10px] text-muted-foreground"
+                  className="rounded bg-card px-1 font-mono text-[10px] text-muted-foreground"
                 >
-                  {referenceLabel(c)}
+                  {c}
                 </span>
               ))}
               <span className="ml-1 text-[10px] text-ocean">
@@ -274,16 +297,13 @@ function ClaimBubble({
         ) : (
           <div className="rounded-2xl rounded-tl-sm border border-dashed border-border px-3.5 py-2 text-xs text-muted-foreground">
             <button className="flex w-full items-center gap-1.5" onClick={() => setOpen(!open)}>
-              <AlertTriangle className="h-3.5 w-3.5 text-warning" /> Hidden: missing source
-              references
+              <AlertTriangle className="h-3.5 w-3.5 text-warning" /> Hidden: failed citation check
               <ChevronDown className={cn("ml-auto h-3.5 w-3.5 transition", open && "rotate-180")} />
             </button>
             {open && (
               <p className="mt-1.5 line-through">
-                {plainText(claim.text)}{" "}
-                <span className="no-underline">
-                  (missing: {claim.citations.map(referenceLabel).join(", ")})
-                </span>
+                {claim.text}{" "}
+                <span className="no-underline">(missing: {claim.citations.join(", ")})</span>
               </p>
             )}
           </div>

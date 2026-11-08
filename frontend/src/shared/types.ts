@@ -1,4 +1,4 @@
-// Shared contracts — single source of truth. Mirrors shared/types.ts in the Paper View plan.
+// Shared contracts — single source of truth. Mirrors shared/types.ts in the Paper Trail plan.
 
 // ---- The graph ----
 export type NodeKind = "company" | "person" | "collateral" | "loan";
@@ -25,7 +25,10 @@ export interface Loan {
   purpose: string;
   createdOn: string;
   status: "intake" | "under_review" | "approved" | "declined" | "escalated";
+  // Lifecycle stage after the decision (closed/funded/monitored). Older rows don't have it; the app derives it.
+  stage?: LoanStage;
 }
+export type LoanStage = "applied" | "checked" | "ai_review" | "decided" | "closed" | "funded" | "monitored" | "declined";
 export interface Edge { id: string; from: string; to: string; kind: EdgeKind; detail?: string }
 
 // ---- Cases and the courtroom ----

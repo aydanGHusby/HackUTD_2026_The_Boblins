@@ -60,7 +60,7 @@ await service("SpacetimeDB", "http://127.0.0.1:3108/v1/health", [
 if (!stopping)
   await service(
     "Backend",
-    "http://localhost:3112/api/workspace",
+    "http://localhost:3112/api/status",
     ["--env-file-if-exists=.env", "server.mjs"],
     { PORT: "3112" },
   );
@@ -81,5 +81,5 @@ if (!stopping)
   );
 if (!stopping)
   console.log(
-    "\nFraudGraph: http://127.0.0.1:3111/\nKeep this terminal open. Ctrl+C stops services started here.",
+    "\nPaper View: http://127.0.0.1:3111/\nKeep this terminal open. Ctrl+C stops services started here.",
   );

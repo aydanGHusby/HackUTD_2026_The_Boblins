@@ -1,4 +1,4 @@
-//! FraudGraph SpacetimeDB Module Schema
+//! Paper Trail SpacetimeDB Module Schema
 //! Real-Time Graph Database and Reducer Architecture for Financial Fraud Detection
 //!
 //! SpacetimeDB maintains the authoritative state of all monitored accounts,

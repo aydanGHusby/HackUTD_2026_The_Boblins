@@ -11,9 +11,15 @@
     "test:shared": "node scripts/verify-shared.mjs",
     "prestart": "node src/worker.mjs",
     "predev": "node src/worker.mjs",
-    "dev:api": "PORT=3112 node --env-file=.env server.mjs",
+    "worker:smoke": "node --env-file-if-exists=.env worker/nemotron-tool-call.mjs",
+    "worker:local": "node --env-file-if-exists=.env worker/main.ts --local worker/fixtures/sample-court.json",
+    "worker:spacetime": "node --env-file-if-exists=.env worker/main.ts --spacetime",
+    "worker:test": "node --test \"worker/test/*.test.ts\"",
+    "dev:app": "node scripts/dev-app.mjs",
     "dev:ui": "npm --prefix frontend run dev -- --host 127.0.0.1 --port 3111",
-    "db:publish:review": "node scripts/spacetime.mjs publish-review",
-    "dev:app": "node scripts/dev-app.mjs"
+    "dev:api": "PORT=3112 node --env-file=.env server.mjs"
+  },
+  "engines": {
+    "node": ">=22.18"
   }
 }

@@ -11,3 +11,6 @@ npm-debug.log*
 .local-spacetime/
 
 spacetimedb/dist/
+
+# Worker output
+worker/out/

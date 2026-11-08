@@ -1,9 +1,9 @@
-# FraudGraph ⚡
+# Paper Trail ⚡
 
 **AI-Powered Financial Fraud Detection & Predictive Intelligence Platform**  
 *Built for HackUTD 2026*
 
-FraudGraph is an enterprise financial fraud detection and prediction platform that helps banks and financial institutions identify suspicious transactions before they become catastrophic losses. 
+Paper Trail is an enterprise financial fraud detection and prediction platform that helps banks and financial institutions identify suspicious transactions before they become catastrophic losses. 
 
 Using **NVIDIA Nemotron 3.5 Super (120B)** and a real-time **SpacetimeDB** collaborative architecture, the platform analyzes high-velocity transaction clusters, investigates unusual patterns across account networks, predicts which accounts may be at risk of future fraud, and displays everything on an interactive network graph.
 
@@ -11,7 +11,7 @@ Using **NVIDIA Nemotron 3.5 Super (120B)** and a real-time **SpacetimeDB** colla
 
 ## 🔬 IBM AML Synthetic Dataset Integration
 
-FraudGraph is built directly on the structure of **IBM's Transactions for Anti-Money Laundering (AML)** synthetic dataset:
+Paper Trail is built directly on the structure of **IBM's Transactions for Anti-Money Laundering (AML)** synthetic dataset:
 
 ```
 Timestamp,From_Bank,From_Account,To_Bank,To_Account,Amount_Paid,Payment_Format,Is_Laundering,Pattern_Type
@@ -37,9 +37,7 @@ Timestamp,From_Bank,From_Account,To_Bank,To_Account,Amount_Paid,Payment_Format,I
      - **Lead Time:** **+45 Minutes early warning** before the $42,000 and $85,000 illicit transfers executed!
 
 ---
-cd /Users/aydahusby/Documents/Codex/2026-11-07/new-chat/finch
-npm run build
-PORT=3109 npm start
+
 ## 🌟 Key Features
 
 - **Interactive Financial Network Graph:**
