@@ -14,6 +14,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppSidebar } from "../components/AppSidebar";
+import { PageLoadingPreview } from "../components/PageLoadingPreview";
 import { Atmosphere } from "../components/Atmosphere";
 import { THEME_SCRIPT } from "../lib/theme";
 
@@ -150,7 +151,9 @@ function RootComponent() {
         {!isLanding && <AppSidebar />}
         <main className="min-w-0 flex-1">
           <div key={pathname} className="route-enter">
-            <Outlet />
+            <PageLoadingPreview>
+              <Outlet />
+            </PageLoadingPreview>
           </div>
         </main>
       </div>

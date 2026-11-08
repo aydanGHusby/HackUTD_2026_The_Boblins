@@ -93,3 +93,9 @@ The landing page's illustrative network supports node selection, connection high
 `public/paper-view-mascot.png` is the transparent, photo-inspired pixel mascot. The shared `Mascot`, `BrandLogo`, `LoadingStatus`, and `LoadingPanel` components in `src/components/Mascot.tsx` keep branding and progress feedback consistent. The mascot appears in the navigation, landing logo, favicon and assistant interface. Real AI review/reply operations, page/data loading, reconnecting, and save operations use a gentle bob and animated pixel dots. Loading text remains accessible, and `prefers-reduced-motion` turns the animation off. The frontend-only Ask AI tab uses the static mascot and continues to make no AI requests.
 
 Hover over the logo to play a short fold-and-throw sequence: the mascot folds a paper, winds up, and sends a plane upward with a dotted trail. The animation finishes even if the pointer leaves, returns to idle, and replays on the next hover. Keyboard focus on the logo link also triggers it. Reduced-motion settings keep the mascot still. The existing loading bob remains separate.
+
+## Temporary loading preview
+
+At the user's request, page entry currently keeps the mascot loading screen visible for four seconds. Real route data continues to load in the background; this adds no AI requests. `TEMPORARY_PAGE_LOADING_MS` in `src/lib/ui-preview.ts` controls the temporary delay. Set it to `0` when the user asks to return to normal loading. Keep the preview enabled until then.
+
+The background also includes low-opacity light-blue and pink floating dots. They do not intercept clicks and stop moving under reduced-motion preferences.
