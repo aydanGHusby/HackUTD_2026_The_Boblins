@@ -758,3 +758,56 @@
 @media (max-width:1023px) { .courtroom-layout { height:auto; } .courtroom-discussion { min-height:750px; } .courtroom-layout .agent-messages { max-height:500px; } }
 /* Carry the courtroom's navy/blue/pink palette through navigation and other screens. */
 .dark { --background:#080b15; --card:#111525; --card-foreground:#eef1f8; --foreground:#eef1f8; --popover:#14192a; --popover-foreground:#eef1f8; --muted:#202438; --muted-foreground:#b5bdcd; --border:#2c3144; --input:#353b50; --primary:#0878de; --primary-foreground:#ffffff; --ocean:#51c7f4; --ocean-soft:#102b45; --sky:#a0d9ff; --sky-soft:#102e48; --candy:#ff9bcf; --candy-strong:#ff9bcf; --candy-soft:#41172f; --on-candy:#281020; --on-sky:#0d2139; --sidebar:#0d1120; --sidebar-panel:#161c2e; --sidebar-border:#2c3144; --sidebar-primary:#0878de; --sidebar-primary-foreground:#ffffff; --canvas:#050810; }
+
+/* User-selected palette wins over fixed app and courtroom surface colors. */
+:root[data-palette], :root[data-palette] .case-classic {
+  --background: var(--palette-background);
+  --foreground: var(--palette-foreground);
+  --card: var(--palette-card);
+  --card-foreground: var(--palette-card-foreground);
+  --popover: var(--palette-popover);
+  --popover-foreground: var(--palette-popover-foreground);
+  --primary: var(--palette-primary);
+  --primary-foreground: var(--palette-primary-foreground);
+  --secondary: var(--palette-secondary);
+  --secondary-foreground: var(--palette-secondary-foreground);
+  --muted: var(--palette-muted);
+  --muted-foreground: var(--palette-muted-foreground);
+  --accent: var(--palette-accent);
+  --accent-foreground: var(--palette-accent-foreground);
+  --border: var(--palette-border);
+  --input: var(--palette-input);
+  --ring: var(--palette-ring);
+  --canvas: var(--palette-canvas);
+  --ocean: var(--palette-ocean);
+  --ocean-soft: var(--palette-ocean-soft);
+  --sky: var(--palette-sky);
+  --sky-soft: var(--palette-sky-soft);
+  --candy: var(--palette-candy);
+  --candy-strong: var(--palette-candy-strong);
+  --candy-soft: var(--palette-candy-soft);
+  --on-candy: var(--palette-on-candy);
+  --on-sky: var(--palette-on-sky);
+  --success: var(--palette-success);
+  --warning: var(--palette-warning);
+  --destructive: var(--palette-destructive);
+  --destructive-foreground: var(--palette-destructive-foreground);
+  --sidebar: var(--palette-sidebar);
+  --sidebar-foreground: var(--palette-sidebar-foreground);
+  --sidebar-primary: var(--palette-sidebar-primary);
+  --sidebar-primary-foreground: var(--palette-sidebar-primary-foreground);
+  --sidebar-accent: var(--palette-sidebar-accent);
+  --sidebar-accent-foreground: var(--palette-sidebar-accent-foreground);
+  --sidebar-border: var(--palette-sidebar-border);
+  --sidebar-ring: var(--palette-sidebar-ring);
+  --sidebar-panel: var(--palette-sidebar-panel);
+  --lg-tint-top: var(--palette-lg-tint-top);
+  --lg-tint-bottom: var(--palette-lg-tint-bottom);
+  --lg-edge: var(--palette-lg-edge);
+  --lg-hairline: var(--palette-lg-hairline);
+  --glow-ocean: var(--palette-glow-ocean);
+  --glow-candy: var(--palette-glow-candy);
+  color-scheme: var(--palette-color-scheme);
+}
+.appearance-popover { max-height: min(690px,calc(100dvh - 32px)); }
+.appearance-popover[data-state="open"] { animation:pv-route-enter 160ms ease-out; }

@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, MessagesSquare, Radar, ShieldCheck } from "lucide-react";
+import { AppearancePicker } from "@/components/AppearancePicker";
 import { BrandLogo } from "@/components/Mascot";
 import { NetworkStory } from "@/components/NetworkStory";
 import { MotionReveal } from "@/components/MotionReveal";
@@ -51,7 +52,7 @@ function Landing() {
   const navigate = useNavigate();
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-8 py-6">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-wrap items-center justify-between gap-4">
         <Link
           to="/"
           aria-label="Paper View home"
@@ -59,12 +60,17 @@ function Landing() {
         >
           <BrandLogo size={46} />
         </Link>
-        <Link
-          to="/cases"
-          className="text-sm font-semibold text-muted-foreground hover:text-foreground"
-        >
-          Open cases
-        </Link>
+        <div className="flex items-center gap-3">
+          <div className="w-40">
+            <AppearancePicker />
+          </div>
+          <Link
+            to="/cases"
+            className="text-sm font-semibold text-muted-foreground hover:text-foreground"
+          >
+            Open cases
+          </Link>
+        </div>
       </header>
 
       <main className="flex flex-col items-center gap-12 py-14 lg:flex-row lg:gap-16 lg:py-20">

@@ -1,6 +1,6 @@
 # Paper View frontend
 
-Paper View uses the canonical `backend` branch's loan data, agent server functions, lifecycle and approval rules. The interface has a dark two-panel courtroom: network/evidence/summary/history on the left; live agent discussion and the human decision on the right. The sidebar also opens the case queue, intake, senior escalations, Operations and the frontend-only Ask AI drafting workspace.
+Paper View uses the canonical `backend` branch's loan data, agent server functions, lifecycle and approval rules. The interface has a two-panel courtroom: network/evidence/summary/history on the left; live agent discussion and the human decision on the right. The sidebar also opens the case queue, intake, senior escalations, Operations and the frontend-only Ask AI drafting workspace.
 
 ## Run locally
 
@@ -20,6 +20,8 @@ The sidebar reports the backend's actual connection mode. The canonical backend 
 6. Approved loans over $1M and escalated decisions require a senior sign-off. A different reviewer must sign off; the original analyst cannot approve their own decision. Once permitted, use Mark closed, then Fund loan. Funding proceeds to monitoring through the backend's existing actions.
 
 ## Interface details
+
+Use **Appearance** in the sidebar or home-page header to choose White, Off-white, Cream, Light gray, Stone, Charcoal, Black, Dark slate, Soft blue, Mint, Lavender or Warm sand. Text, panels and the network canvas adapt to the selected background. Preferences save in this browser, restore before the first paint and synchronize between open tabs. Existing light/dark preferences are preserved on first use. Arrow keys navigate the palette choices.
 
 The pixel mascot is the logo/favicon and appears in real loading states. The logo's paper-plane animation runs on hover or keyboard focus. Pastel background dots and subtle interface motion respect reduced-motion preferences. The artificial loading delay is disabled.
 
