@@ -78,12 +78,19 @@ test("NvidiaLLM sends the thinking switch and explains an answer cut off by thin
     return new Response(JSON.stringify({ choices: [{ finish_reason: "length", message: { content: "" } }] }), { status: 200 });
   }) as typeof fetch;
   try {
-    const off = new NvidiaLLM({ apiKey: "k", model: "m" });
+    const off = new NvidiaLLM({ apiKey: "k", model: "m", requestsPerMinute: 0 });
     await assert.rejects(off.chat({ messages: [] }), /used all 4096 output tokens without answering \(thinking off\)/);
-    const on = new NvidiaLLM({ apiKey: "k", model: "m", thinking: true });
+    const on = new NvidiaLLM({ apiKey: "k", model: "m", thinking: true, requestsPerMinute: 0 });
     await assert.rejects(on.chat({ messages: [] }), /16384/);
     assert.deepEqual(bodies.map((b) => b.chat_template_kwargs), [{ enable_thinking: false }, { enable_thinking: true }]);
   } finally {
     globalThis.fetch = realFetch;
   }
+});
+
+test("pacing spaces request starts evenly", async () => {
+  const llm = new NvidiaLLM({ apiKey: "k", model: "m", requestsPerMinute: 600 }); // one start per 100ms
+  const t = Date.now();
+  await Promise.all([llm.pace(), llm.pace(), llm.pace()]);
+  assert.ok(Date.now() - t >= 190, `three starts took ${Date.now() - t}ms`);
 });

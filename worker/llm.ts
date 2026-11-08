@@ -44,6 +44,9 @@ export interface NvidiaOptions {
   // Nemotron reasoning mode. Off by default: ~3-10x faster, and with it on Lightning can spend its
   // whole output budget thinking and never answer.
   thinking?: boolean;
+  // Client-side pacing: at most this many request starts per minute (build.nvidia.com's free tier
+  // returns 429 at around 40/min per key). 0 disables pacing.
+  requestsPerMinute?: number;
   log?: (msg: string) => void;
 }
 
@@ -57,6 +60,8 @@ export class NvidiaLLM implements LLM {
   maxRetries: number;
   timeoutMs: number;
   thinking: boolean;
+  requestsPerMinute: number;
+  nextSlot = 0;
   log: (msg: string) => void;
   // Request count and wall time, for comparing models.
   stats = { requests: 0, retries: 0, ms: 0 };
@@ -65,9 +70,10 @@ export class NvidiaLLM implements LLM {
     this.apiKey = opts.apiKey;
     this.model = opts.model;
     this.baseUrl = opts.baseUrl ?? NVIDIA_BASE_URL;
-    this.maxRetries = opts.maxRetries ?? 4;
+    this.maxRetries = opts.maxRetries ?? 6;
     this.timeoutMs = opts.timeoutMs ?? 120_000;
     this.thinking = opts.thinking ?? false;
+    this.requestsPerMinute = opts.requestsPerMinute ?? 35;
     this.log = opts.log ?? (() => {});
   }
 
@@ -81,6 +87,7 @@ export class NvidiaLLM implements LLM {
       model: process.env.NVIDIA_MODEL || DEFAULT_MODEL,
       baseUrl: process.env.NVIDIA_BASE_URL || undefined,
       thinking: process.env.NEMOTRON_THINKING === "on",
+      requestsPerMinute: process.env.NVIDIA_RPM ? Number(process.env.NVIDIA_RPM) : undefined,
       log,
     });
   }
@@ -100,6 +107,7 @@ export class NvidiaLLM implements LLM {
     }
 
     for (let attempt = 0; ; attempt++) {
+      await this.pace();
       const started = Date.now();
       let res: Response;
       try {
@@ -123,7 +131,10 @@ export class NvidiaLLM implements LLM {
         const text = await res.text().catch(() => "");
         if (attempt >= this.maxRetries) throw new Error(`NVIDIA API ${res.status} after ${attempt + 1} attempts: ${text.slice(0, 300)}`);
         const retryAfter = Number(res.headers.get("retry-after"));
-        await this.backoff(attempt, `HTTP ${res.status}`, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : undefined);
+        // Rate limits reset per minute, so 429 backs off far longer than a 5xx blip.
+        const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000
+          : res.status === 429 ? Math.min(60_000, 5000 * 2 ** attempt) : undefined;
+        await this.backoff(attempt, `HTTP ${res.status}`, wait);
         continue;
       }
       if (!res.ok) {
@@ -141,6 +152,15 @@ export class NvidiaLLM implements LLM {
       }
       return { content: stripThink(msg.content ?? ""), toolCalls: msg.tool_calls ?? [] };
     }
+  }
+
+  // Space request starts evenly so parallel trials share the per-minute budget.
+  async pace(): Promise<void> {
+    if (!this.requestsPerMinute) return;
+    const now = Date.now();
+    const slot = Math.max(now, this.nextSlot);
+    this.nextSlot = slot + 60_000 / this.requestsPerMinute;
+    if (slot > now) await new Promise((r) => setTimeout(r, slot - now));
   }
 
   async backoff(attempt: number, why: string, ms?: number): Promise<void> {
@@ -228,7 +248,7 @@ export function extractJson(text: string): unknown {
       } catch {}
     }
   }
-  throw new Error("no JSON object or array found in the reply");
+  throw new Error(`no JSON object or array found in the reply: ${JSON.stringify(cleaned.slice(0, 200))}`);
 }
 
 // Scan from `start` to the matching close bracket, respecting strings.
