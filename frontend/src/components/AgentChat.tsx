@@ -304,7 +304,7 @@ function ClaimBubble({
                 </span>
               ))}
               <span className="ml-1 text-[10px] text-ocean">
-                {active ? "shown on map" : "inspect evidence and map"}
+                {active ? "source records open" : "inspect source records"}
               </span>
             </div>
           </button>

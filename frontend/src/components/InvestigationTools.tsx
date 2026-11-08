@@ -11,7 +11,8 @@ export function nextAction(
   life?: Lifecycle,
   needsSenior = false,
 ) {
-  if (running) return "Agents are reviewing the evidence. Follow their discussion below.";
+  if (running)
+    return "Agents are reviewing the evidence. Follow the findings here or open the conversation in Ask AI.";
   if (needsSenior) return "Waiting for a different senior reviewer to sign off.";
   if (life?.stage === "declined")
     return "Review complete. This loan was declined; review the decision and audit history.";

@@ -10,6 +10,7 @@ describe("App routing", () => {
   it("matches a page for / instead of falling back to not found", () => {
     const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
 
+    expect(router.matchRoutes("/ask-ai").at(-1)?.routeId).toBe("/ask-ai");
     const matches = router.matchRoutes("/");
 
     expect(matches.at(-1)?.routeId).not.toBe(rootRouteId);

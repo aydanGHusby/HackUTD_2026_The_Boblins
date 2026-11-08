@@ -10,16 +10,14 @@ import {
   nextAction,
 } from "@/components/InvestigationTools";
 import { PresentationView, usePresentationMode } from "@/components/PresentationView";
-import { AgentChat } from "@/components/AgentChat";
+import { AIFindings } from "@/components/AIFindings";
 import { LifecycleBar } from "@/components/LifecycleBar";
 import { SignOffForm } from "@/components/SignOffForm";
 import { GraphView } from "@/components/graph/GraphView";
 import { Avatars, Empty, RiskScore, StatusBadge, TriggerTag } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import {
-  addNote,
   advanceLoan,
-  askQuestion,
   fundLoan,
   runTrial,
   submitVerdict,
@@ -30,8 +28,6 @@ import {
   useEvidence,
   useLoanLifecycle,
   useLoanMetrics,
-  useNotes,
-  useQuestions,
   useSignOff,
   useSubgraph,
   useTrial,
@@ -73,15 +69,13 @@ function CasePage() {
   const crux = useCrux(id);
   const metrics = useLoanMetrics(id);
   const evidence = useEvidence(id);
-  const questions = useQuestions(id);
-  const notes = useNotes(id);
   const audit = useAudit(id);
   const verdict = useVerdict(id);
   const signOff = useSignOff(id);
   const trial = useTrial(id);
   const life = useLoanLifecycle(c?.loanId);
   const running = trial === "running";
-  const [active, setActive] = useState<Claim>();
+
   const [highlight, setHighlight] = useState<string[]>([]);
   const [drawer, setDrawer] = useState<"evidence" | "summary" | "history" | null>("summary");
 
@@ -117,7 +111,6 @@ function CasePage() {
   const next = nextAction(c.status, running, life, !!signOffNeeded(c.loan, verdict, signOff));
   const decided = c.status === "decided";
   const select = (cl: Claim) => {
-    setActive(cl);
     setSelection({ text: readable(cl.text), citations: cl.citations });
     const ids = new Set(cl.citations);
     graph.edges.forEach((edge) => {
@@ -207,7 +200,6 @@ function CasePage() {
                   className="font-semibold text-ocean"
                   onClick={() => {
                     setHighlight([]);
-                    setActive(undefined);
                   }}
                 >
                   Clear highlight
@@ -245,7 +237,6 @@ function CasePage() {
                 onClose={() => {
                   setSelection(undefined);
                   setHighlight([]);
-                  setActive(undefined);
                 }}
               />
             )}
@@ -287,7 +278,6 @@ function CasePage() {
                       key={e.id}
                       onClick={() => {
                         inspect(e.fact, e.citations);
-                        setActive(undefined);
                       }}
                       className="rounded-xl border border-border p-3 text-left text-sm hover:border-sky hover:bg-sky-soft"
                     >
@@ -311,13 +301,13 @@ function CasePage() {
             </div>
           </section>
 
-          {/* Right: chat + decision */}
+          {/* Right: findings overview + decision */}
           <aside
-            aria-label="Agent discussion and your decision"
+            aria-label="AI findings and your decision"
             className="courtroom-discussion flex min-h-[650px] flex-col lg:min-h-0 border-l border-border bg-card/70 backdrop-blur-xl"
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <h2 className="text-sm font-bold">Agent discussion</h2>
+              <h2 className="text-sm font-bold">AI findings</h2>
               {!decided && (
                 <Button size="sm" disabled={running} onClick={() => runTrial(id, me.name)}>
                   {running ? (
@@ -340,20 +330,23 @@ function CasePage() {
                 />
               </div>
             )}
-            <div className="min-h-0 flex-1">
-              <AgentChat
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <AIFindings
                 args={args}
-                questions={questions}
-                notes={notes}
-                active={active}
-                disabled={decided}
+                crux={crux}
                 running={running}
-                onSelect={select}
-                referenceLabel={label}
                 formatText={readable}
-                onAsk={(s, t) => askQuestion(id, me.name, s, t)}
-                onNote={(t) => addNote(id, me.name, t)}
+                onInspect={select}
               />
+              <div className="px-4 pb-4">
+                <Link
+                  to="/ask-ai"
+                  search={{ case: id }}
+                  className="flex items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
+                >
+                  Discuss this case in Ask AI →
+                </Link>
+              </div>
             </div>
             {verdict ? (
               <Decided

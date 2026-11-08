@@ -1,19 +1,22 @@
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/Mascot";
-import { Link } from "@tanstack/react-router";
-import { LayoutGrid, FilePlus2, ArrowUpCircle, Gauge } from "lucide-react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { LayoutGrid, FilePlus2, ArrowUpCircle, Gauge, MessagesSquare } from "lucide-react";
 import { useLiveStatus } from "@/data/hooks";
 import { setIdentity, useIdentity } from "@/data/identity";
 import { AppearancePicker } from "@/components/AppearancePicker";
 
 const nav = [
   { to: "/cases", label: "Cases", icon: LayoutGrid },
+  { to: "/ask-ai", label: "Ask AI", icon: MessagesSquare },
   { to: "/intake", label: "New loan", icon: FilePlus2 },
   { to: "/escalations", label: "Escalations", icon: ArrowUpCircle },
-  { to: "/ops", label: "Operations", icon: Gauge },
+  { to: "/ops", label: "Operations", icon: Gauge, MessagesSquare },
 ] as const;
 
 export function AppSidebar() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const currentCaseId = pathname.match(/^\/case\/([^/]+)$/)?.[1];
   const me = useIdentity();
   const live = useLiveStatus();
   return (
@@ -29,6 +32,7 @@ export function AppSidebar() {
           <Link
             key={to}
             to={to}
+            search={to === "/ask-ai" && currentCaseId ? { case: currentCaseId } : {}}
             activeOptions={{ exact: true }}
             className="nav-motion flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-200 hover:bg-sidebar-accent"
             activeProps={{
