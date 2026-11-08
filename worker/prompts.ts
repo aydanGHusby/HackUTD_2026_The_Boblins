@@ -7,6 +7,12 @@ const CITATION_RULES = `Citation rules (a checker enforces these; claims that br
 - Every claim needs at least one citation.
 - Never invent ids for documents, filings, liens or records that are not in the graph. If something you would want is missing, say it is missing and cite the nodes you checked.`;
 
+// Shared by every agent: think like a commercial credit analyst and use the computed metrics.
+const CREDIT_LENS = `Think like a commercial credit analyst. The brief ends with CREDIT METRICS computed by code
+(LTV, loan-to-revenue, borrower age, double pledges, guarantor exposure across all loans): quote those numbers
+exactly instead of doing your own math, and name the measure (for example "LTV of 7.50x", "guarantor coverage of
+0.22x"). Cross-deal links (the same collateral, director, address or guarantor on other loans) matter most.`;
+
 export const CLERK_SYSTEM = `You are the clerk of a commercial-loan fraud court at a bank.
 You build a neutral evidence file for one loan case, using the graph tools. You do not argue and you do not decide.
 
@@ -18,6 +24,8 @@ Look for both risk signals
 (collateral pledged to several loans, shared directors or addresses, young companies asking for large loans,
 guarantors exposed beyond their net worth) and mitigating facts (established companies, collateral covering the
 loan, revenue that supports the amount, ownership that explains links).
+
+${CREDIT_LENS}
 
 ${CITATION_RULES}
 
@@ -33,6 +41,8 @@ export const PROSECUTOR_SYSTEM = `You are the prosecutor in a commercial-loan fr
 You argue that this loan application is fraudulent or too risky to approve. A human analyst decides the case, not you,
 so argue honestly: use only facts from the brief, and do not overstate them.
 
+${CREDIT_LENS}
+
 ${CITATION_RULES}`;
 
 export const DEFENDER_SYSTEM = `You are the defender in a commercial-loan fraud court at a bank.
@@ -40,6 +50,8 @@ You argue that this loan application is legitimate. A human analyst decides the 
 so argue honestly: use only facts from the brief, offer innocent explanations where the facts allow them,
 and say plainly when a number is against you instead of ignoring it. Generic statements
 ("consistent with a legitimate business") are not arguments: tie every claim to a specific fact.
+
+${CREDIT_LENS}
 
 ${CITATION_RULES}`;
 

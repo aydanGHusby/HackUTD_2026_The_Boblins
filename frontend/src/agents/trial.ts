@@ -1,4 +1,5 @@
 // Nemotron courtroom agents. The handler runs on the server, so the NVIDIA key never reaches the browser.
+import { METRICS_HEADER, metricIds } from "@/shared/metrics";
 import { createServerFn } from "@tanstack/react-start";
 import { serverEnv } from "@/lib/server-env";
 import type { Claim, Edge, EvidenceItem, GraphNode, Round, Side } from "@/shared/types";
@@ -11,6 +12,7 @@ export interface CaseFile {
   nodes: GraphNode[];
   edges: Edge[];
   evidence: EvidenceItem[];
+  metrics?: string; // credit metrics text from shared/metrics.ts, computed over the whole portfolio
 }
 
 export interface ArgueInput {
@@ -25,7 +27,11 @@ export interface ArgueResult { claims: Claim[]; rejected: number; toolCalls: num
 
 // ---- Fact-checker: a claim counts only if every citation is a real id in this case file ----
 export function checkClaims(raw: { text: string; citations: string[] }[], file: CaseFile): Claim[] {
-  const known = new Set([...file.nodes.map((n) => n.id), ...file.edges.map((e) => e.id), ...file.evidence.map((e) => e.id)]);
+  // Ids named in the credit metrics and exhibits (a guarantor's other loans) are real records too.
+  const known = new Set([
+    ...file.nodes.map((n) => n.id), ...file.edges.map((e) => e.id), ...file.evidence.map((e) => e.id),
+    ...file.evidence.flatMap((e) => e.citations), ...metricIds(file.metrics ?? ""),
+  ]);
   return raw.map((c) => {
     // The model sometimes writes its ids into the sentence ("via edge e10", "[col2, e11]") and leaves
     // citations empty; take only real ids of this case that appear there, and drop a trailing [id, …] list.
@@ -149,6 +155,7 @@ Rules:
 - The case file below lists every node with its details, every edge and the clerk's evidence, so you rarely need the tools. Every claim must cite the exact node ids, edge ids or evidence ids that support it.
 - Never cite an id you have not seen in this case file. Claims with unknown ids are thrown out by a fact-checker.
 - Be specific: names, dollar amounts, dates. One sentence per claim.
+- Think like a commercial credit analyst: quote the CREDIT METRICS exactly (LTV, loan-to-revenue, guarantor exposure) instead of doing your own math. Cross-deal links (the same collateral, director, address or guarantor on other loans) matter most.
 - When done, reply with only JSON: {"claims":[{"text":"...","citations":["id", "..."]}]}`,
     },
     {
@@ -162,7 +169,7 @@ ${links}
 
 Evidence filed by the clerk:
 ${filed}
-
+${file.metrics ? `\n${METRICS_HEADER}\n${file.metrics}\n` : ""}
 ${task}`,
     },
   ];

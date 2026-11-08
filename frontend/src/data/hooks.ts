@@ -3,6 +3,8 @@
 import { useEffect, useSyncExternalStore } from "react";
 import * as mock from "@/mock/mockData";
 import { argueFn, type CaseFile } from "@/agents/trial";
+import { fileExhibits } from "@/shared/clerk";
+import { formatMetrics, loanMetrics } from "@/shared/metrics";
 import { applyLoanOps, loadLoanState, resetLoanState } from "@/data/spacetime";
 import { sameName, signOffNeeded } from "@/lib/approval";
 import { lifecycle, type Lifecycle } from "@/lib/lifecycle";
@@ -164,11 +166,15 @@ function subgraph(s: Store, caseId: string) {
 }
 export const useSubgraph = (caseId: string) => subgraph(useStore(), caseId);
 export const useArguments = (caseId: string) => useStore().arguments.filter((a) => a.caseId === caseId);
-// The worker's evidence and crux for a case when it has run one, else the mock ones.
+// The worker's evidence for a case when it has run one, else the code clerk's exhibits from the records.
 function evidenceFor(s: Shared, caseId: string): EvidenceItem[] {
   const live = (s.evidence ?? []).filter((e) => e.caseId === caseId);
-  return live.length ? live : mock.evidence.filter((e) => e.caseId === caseId);
+  if (live.length) return live;
+  const c = s.cases.find((x) => x.id === caseId);
+  if (!c) return [];
+  return fileExhibits(portfolio(s), c.loanId).map((x, i) => ({ id: `ex${i + 1}`, caseId, fact: x.fact, citations: x.citations }));
 }
+const portfolio = (s: Shared) => ({ companies: mock.companies, people: mock.people, collateral: mock.collateral, loans: s.loans, edges: s.edges });
 export const useCrux = (caseId: string) =>
   (useStore().cruxes ?? []).find((c) => c.caseId === caseId) ?? mock.cruxes.find((c) => c.caseId === caseId);
 export const useEvidence = (caseId: string) => evidenceFor(useStore(), caseId);
@@ -276,7 +282,8 @@ function caseFile(caseId: string): CaseFile | undefined {
   if (!c) return undefined;
   const { nodes, edges } = subgraph(store, caseId);
   const loan = store.loans.find((l) => l.id === c.loanId);
-  return { caseId, loanId: c.loanId, borrower: borrowerName(loan), triggers: c.triggers, nodes, edges, evidence: evidenceFor(store, caseId) };
+  const metrics = loanMetrics(portfolio(store), c.loanId);
+  return { caseId, loanId: c.loanId, borrower: borrowerName(loan), triggers: c.triggers, nodes, edges, evidence: evidenceFor(store, caseId), ...(metrics ? { metrics: formatMetrics(metrics) } : {}) };
 }
 
 async function argueAndRecord(caseId: string, side: Side, round: Round, extra: { file: CaseFile; opponent?: Claim[]; question?: string }) {

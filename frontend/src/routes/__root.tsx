@@ -14,6 +14,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppSidebar } from "../components/AppSidebar";
+import { PageLoadingPreview } from "../components/PageLoadingPreview";
 import { Atmosphere } from "../components/Atmosphere";
 import { THEME_SCRIPT } from "../lib/theme";
 
@@ -86,9 +87,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Paper Trail" },
-      { name: "description", content: "Network-based fraud review for commercial loans, with AI agents arguing both sides." },
+      {
+        name: "description",
+        content:
+          "Network-based fraud review for commercial loans, with AI agents arguing both sides.",
+      },
       { property: "og:title", content: "Paper Trail" },
-      { property: "og:description", content: "Network-based fraud review for commercial loans, with AI agents arguing both sides." },
+      {
+        property: "og:description",
+        content:
+          "Network-based fraud review for commercial loans, with AI agents arguing both sides.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
@@ -98,9 +107,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/paper-view-mascot.png", type: "image/png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -128,16 +140,21 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   // The landing page stands on its own; every screen behind it keeps the app chrome.
-  const isLanding = useRouterState({ select: (s) => s.location.pathname === "/" });
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isLanding = pathname === "/";
 
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <div className="flex min-h-screen">
+      <div className="app-shell flex min-h-screen">
         <Atmosphere />
         {!isLanding && <AppSidebar />}
         <main className="min-w-0 flex-1">
-          <Outlet />
+          <div key={pathname} className="route-enter">
+            <PageLoadingPreview>
+              <Outlet />
+            </PageLoadingPreview>
+          </div>
         </main>
       </div>
     </QueryClientProvider>

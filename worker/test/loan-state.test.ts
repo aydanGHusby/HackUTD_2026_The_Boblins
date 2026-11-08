@@ -53,7 +53,7 @@ test("a trial against loan_state writes arguments, evidence, crux, status and au
   const state = seedState();
   const { fetchImpl, calls } = fakeSpacetime(state);
   const store = new LoanStateStore({ url: "http://db", database: "test", nodes: loadFixture() });
-  await withFetch(fetchImpl, () => runTrial("CASE-05", { llm: new FakeLLM(), store, depth: "full" }));
+  await withFetch(fetchImpl, () => runTrial("CASE-05", { llm: new FakeLLM(), store, depth: "full", clerk: "ai" }));
 
   const c = (state.cases as { id: string; status: string }[]).find((x) => x.id === "CASE-05")!;
   assert.equal(c.status, "awaiting_verdict");
@@ -66,7 +66,7 @@ test("a trial against loan_state writes arguments, evidence, crux, status and au
   assert.equal(store.stats.writes, calls.filter((x) => x === "apply_loan_ops").length);
 
   // A second run replaces, rather than duplicates, the case's evidence and crux.
-  await withFetch(fetchImpl, () => runTrial("CASE-05", { llm: new FakeLLM(), store, depth: "full" }));
+  await withFetch(fetchImpl, () => runTrial("CASE-05", { llm: new FakeLLM(), store, depth: "full", clerk: "ai" }));
   assert.equal((state.evidence as unknown[]).length, 1);
   assert.equal((state.cruxes as unknown[]).length, 1);
   assert.equal((state.arguments as unknown[]).length, 6);
@@ -76,7 +76,7 @@ test("on an older module without evidence/cruxes tables the trial still complete
   const state = seedState();
   const { fetchImpl } = fakeSpacetime(state, OLD_TABLES);
   const store = new LoanStateStore({ url: "http://db", database: "test", nodes: loadFixture() });
-  await withFetch(fetchImpl, () => runTrial("CASE-05", { llm: new FakeLLM(), store, depth: "full" }));
+  await withFetch(fetchImpl, () => runTrial("CASE-05", { llm: new FakeLLM(), store, depth: "full", clerk: "ai" }));
   assert.equal((state.cases as { id: string; status: string }[]).find((x) => x.id === "CASE-05")!.status, "awaiting_verdict");
   assert.equal(store.agentTables, false);
   assert.equal(state.evidence, undefined);
