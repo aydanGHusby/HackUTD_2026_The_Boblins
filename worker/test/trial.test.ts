@@ -1,5 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { buildIndex } from "../../shared/graph.ts";
+import { runAdvocate } from "../agents.ts";
+import type { LLM } from "../llm.ts";
 import { CourtWorker } from "../queue.ts";
 import { MemoryStore } from "../store.ts";
 import { answerQuestion, runTrial } from "../trial.ts";
@@ -32,6 +35,16 @@ test("a full trial reaches awaiting_verdict with evidence, six arguments and a c
   const rejections = s.audit.filter((e) => e.actor === "citation_checker");
   assert.equal(rejections.length, 7); // 1 clerk fact + 6 advocate claims
   assert.ok(rejections.every((e) => e.action.includes(`unknown id ${FAKE_ID}`)));
+});
+
+test("an advocate citing an evidence id gets that evidence's graph ids", async () => {
+  const index = buildIndex(loadFixture());
+  const evidence = [{ id: "ev-1", caseId: "CASE-01", fact: "col1 is pledged twice", citations: ["col1", "e3", "e4"] }];
+  const llm: LLM = { chat: async () => ({ content: '{"claims":[{"text":"double pledge","citations":["ev-1"]}]}', toolCalls: [] }) };
+  const res = await runAdvocate(llm, {
+    index, side: "prosecution", round: "opening", brief: "", evidence, prior: [], allowed: new Set(["col1", "e3", "e4"]),
+  });
+  assert.deepEqual(res.claims[0], { text: "double pledge", citations: ["col1", "e3", "e4"], verified: true });
 });
 
 test("opening depth runs one round and skips the crux", async () => {

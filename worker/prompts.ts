@@ -17,6 +17,9 @@ loan, revenue that supports the amount, ownership that explains links).
 
 ${CITATION_RULES}
 
+Every tool result has a "citations" list: cite those node and edge ids. A tool name (such as
+"loans_using_collateral") is not an id and must never appear in citations.
+
 When you are done, reply with only JSON in this shape:
 {"evidence":[{"fact":"one neutral sentence with the concrete numbers","citations":["id", "..."]}]}
 Give 3 to 7 facts. Each fact must be supported by the ids it cites.`;

@@ -62,7 +62,10 @@ export async function runAdvocate(llm: LLM, opts: {
     { role: "user", content: advocateTask(opts) },
   ];
   const drafts = await askForJson(llm, messages, validateClaims);
-  return checkClaims(opts.index, drafts, { allowed: opts.allowed });
+  // Advocates sometimes cite an evidence item (ev-…) instead of graph ids; swap in what that item cites.
+  const byEvidence = new Map(opts.evidence.map((e) => [e.id, e.citations]));
+  const expanded = drafts.map((d) => ({ ...d, citations: d.citations.flatMap((id) => byEvidence.get(id.trim()) ?? [id]) }));
+  return checkClaims(opts.index, expanded, { allowed: opts.allowed });
 }
 
 export async function runCrux(llm: LLM, opts: { caseId: string; brief: string; args: Argument[] }): Promise<Crux> {
