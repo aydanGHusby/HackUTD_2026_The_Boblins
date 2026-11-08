@@ -7,6 +7,7 @@ import { CLERK_FOUND, fileExhibits, sameAddress } from "@/shared/clerk";
 import { formatMetrics, loanMetrics } from "@/shared/metrics";
 import { applyLoanOps, loadLoanState, resetLoanState } from "@/data/spacetime";
 import { sameName, signOffNeeded } from "@/lib/approval";
+import { crossDealLinks } from "@/lib/crossdeal";
 import { lifecycle, type Lifecycle } from "@/lib/lifecycle";
 import { computeOpsMetrics } from "@/lib/ops";
 import type {
@@ -163,7 +164,9 @@ function subgraph(s: Store, caseId: string) {
   }
   const edges = s.edges.filter((e) => ids.has(e.from) && ids.has(e.to));
   const nodes = [...ids].map((id) => nodeById(id, s.loans)).filter(Boolean) as GraphNode[];
-  return { nodes, edges: [...edges, ...foundAddressLinks(nodes, s.edges)], flagged: mock.flaggedEdges[caseId] ?? [] };
+  // Demo cases have hand-picked red edges; others (e.g. loans submitted live) get their cross-deal links.
+  const flagged = mock.flaggedEdges[caseId] ?? crossDealLinks(portfolio(s), c.loanId).edgeIds;
+  return { nodes, edges: [...edges, ...foundAddressLinks(nodes, s.edges)], flagged };
 }
 // Companies on the map at the same address with no record linking them: the clerk's hidden finds.
 function foundAddressLinks(nodes: GraphNode[], all: Edge[]): Edge[] {
@@ -426,8 +429,17 @@ export function submitLoan(input: { borrowerId: string; amount: number; purpose:
   if (input.collateralIds.some((id) => store.edges.some((e) => e.from === id && e.kind === "pledged_to"))) triggers.push("duplicate_collateral");
   if (borrower && Date.now() - new Date(borrower.registeredOn).getTime() < 365 * 864e5 && input.amount > 1_000_000) triggers.push("new_company_large_loan");
   if (borrower && input.amount > borrower.annualRevenue * 3) triggers.push("amount_vs_revenue");
+  // Cross-deal: run the clerk's link search on the portfolio as it would be with this loan in it.
+  // Double pledges are already their own trigger, so this one is about people and addresses.
+  const createdOn = now().slice(0, 10);
+  const cross = crossDealLinks({
+    ...portfolio(store),
+    loans: [...store.loans, { id: loanId, borrowerId: input.borrowerId, amount: input.amount, createdOn }],
+    edges: [...store.edges, ...newEdges],
+  }, loanId);
+  if (cross.kinds.some((k) => k !== "shared_collateral")) triggers.push("cross_deal_link");
   const riskScore = Math.min(100, 20 + triggers.length * 30);
-  const loan: Loan = { id: loanId, borrowerId: input.borrowerId, amount: input.amount, purpose: input.purpose, createdOn: now().slice(0, 10), status: triggers.length ? "under_review" : "approved" };
+  const loan: Loan = { id: loanId, borrowerId: input.borrowerId, amount: input.amount, purpose: input.purpose, createdOn, status: triggers.length ? "under_review" : "approved" };
   const ops: Op[] = [
     { op: "append", table: "loans", item: loan },
     ...newEdges.map((item): Op => ({ op: "append", table: "edges", item })),
@@ -439,7 +451,11 @@ export function submitLoan(input: { borrowerId: string; amount: number; purpose:
       { op: "append", table: "cases", item: { id: caseId, loanId, riskScore, triggers, status: "queued" } },
       { op: "append", table: "audit", item: log(caseId, actor, `submitted loan ${loanId}; risk rules opened case (score ${riskScore})`) },
     );
+    if (cross.companyIds.length) {
+      const names = cross.companyIds.map((id) => mock.companies.find((c) => c.id === id)?.name ?? id).join(", ");
+      ops.push({ op: "append", table: "audit", item: log(caseId, "risk_rules", `cross-deal links (${cross.kinds.map((k) => k.replace(/_/g, " ")).join(", ")}) to ${names}`) });
+    }
   }
   commit(...ops);
-  return { loanId, caseId, triggers };
+  return { loanId, caseId, triggers, linkedCompanies: cross.companyIds };
 }
