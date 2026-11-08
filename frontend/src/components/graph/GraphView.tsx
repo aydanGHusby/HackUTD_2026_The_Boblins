@@ -1,5 +1,6 @@
 // Interactive SVG network canvas: drag nodes, drag background to pan, wheel/pinch or buttons to zoom.
 // Same props the Cytoscape GraphView will take at handoff.
+import { CLERK_FOUND } from "@/shared/clerk";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -131,7 +132,7 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
       const on = hl.has(e.id) || flagged.includes(e.id) || hover === e.from || hover === e.to ||
         (!!selected && (e.from === selected || e.to === selected));
       if (!on) continue;
-      const label = humanize(e.kind);
+      const label = e.detail === CLERK_FOUND ? "same address · found by clerk" : humanize(e.kind);
       const box = (x: number, y: number): Box => ({ x, y, w: label.length * 6.3 + 10, h: 15 });
       const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
       const spot = [0.34, 0.5, 0.66, 0.2, 0.8]
@@ -174,13 +175,14 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
           {edges.map((e) => {
             const a = pos[e.from], b = pos[e.to];
             if (!a || !b) return null;
-            const isFlag = flagged.includes(e.id), isHl = hl.has(e.id);
+            const isFlag = flagged.includes(e.id), isHl = hl.has(e.id), found = e.detail === CLERK_FOUND;
             const faded = neighbors ? !(neighbors.has(e.from) && neighbors.has(e.to) && (e.from === selected || e.to === selected)) : hasHl && !isHl;
             return (
               <g key={e.id} className={cn("transition-opacity", faded && "opacity-20")}>
                 <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                  className={cn(isHl ? "stroke-primary halo-ocean" : isFlag ? "stroke-candy-strong halo-candy" : "stroke-muted-foreground/40", isFlag && !isHl && "graph-flow")}
-                  strokeWidth={isHl ? 3.5 : isFlag ? 2.5 : 1.25} strokeDasharray={e.kind === "shares_address" ? "5 4" : isFlag ? "8 6" : undefined} />
+                  className={cn(isHl ? "stroke-primary halo-ocean" : isFlag ? "stroke-candy-strong halo-candy" : found ? "stroke-sky" : "stroke-muted-foreground/40", isFlag && !isHl && "graph-flow")}
+                  strokeLinecap={found ? "round" : undefined}
+                  strokeWidth={isHl ? 3.5 : isFlag || found ? 2.5 : 1.25} strokeDasharray={found ? "1 6" : e.kind === "shares_address" ? "5 4" : isFlag ? "8 6" : undefined} />
               </g>
             );
           })}
@@ -243,6 +245,9 @@ export function GraphView({ nodes, edges, centerId, flagged = [], highlight = []
           <span key={k} className="flex items-center gap-1"><svg width="8" height="8"><circle cx="4" cy="4" r="4" className={fill[k]} /></svg>{k}</span>
         ))}
         <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-candy-strong" />flagged</span>
+        {edges.some((e) => e.detail === CLERK_FOUND) && (
+          <span className="flex items-center gap-1"><svg width="14" height="4"><line x1="1" y1="2" x2="13" y2="2" className="stroke-sky" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="1 4" /></svg>found by clerk</span>
+        )}
         <span className="ml-auto">Drag nodes · drag to pan · scroll to zoom · click to focus</span>
       </div>
     </div>

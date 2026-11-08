@@ -3,14 +3,14 @@
 import { useEffect, useSyncExternalStore } from "react";
 import * as mock from "@/mock/mockData";
 import { argueFn, type CaseFile } from "@/agents/trial";
-import { fileExhibits } from "@/shared/clerk";
+import { CLERK_FOUND, fileExhibits, sameAddress } from "@/shared/clerk";
 import { formatMetrics, loanMetrics } from "@/shared/metrics";
 import { applyLoanOps, loadLoanState, resetLoanState } from "@/data/spacetime";
 import { sameName, signOffNeeded } from "@/lib/approval";
 import { lifecycle, type Lifecycle } from "@/lib/lifecycle";
 import { computeOpsMetrics } from "@/lib/ops";
 import type {
-  Argument, AuditEvent, Case, Claim, Crux, Decision, EvidenceItem, GraphNode, LoanStage, Note, Question, Round, Side, SignOff, Verdict, Edge, Loan,
+  Argument, AuditEvent, Case, Claim, Company, Crux, Decision, EvidenceItem, GraphNode, LoanStage, Note, Question, Round, Side, SignOff, Verdict, Edge, Loan,
 } from "@/shared/types";
 
 type Shared = {
@@ -162,7 +162,15 @@ function subgraph(s: Store, caseId: string) {
   }
   const edges = s.edges.filter((e) => ids.has(e.from) && ids.has(e.to));
   const nodes = [...ids].map((id) => nodeById(id, s.loans)).filter(Boolean) as GraphNode[];
-  return { nodes, edges, flagged: mock.flaggedEdges[caseId] ?? [] };
+  return { nodes, edges: [...edges, ...foundAddressLinks(nodes, s.edges)], flagged: mock.flaggedEdges[caseId] ?? [] };
+}
+// Companies on the map at the same address with no record linking them: the clerk's hidden finds.
+function foundAddressLinks(nodes: GraphNode[], all: Edge[]): Edge[] {
+  const companies = nodes.flatMap((n) => (n.kind === "company" ? [n.data as Company] : []));
+  const linked = (a: string, b: string) => all.some((e) => e.kind === "shares_address" && ((e.from === a && e.to === b) || (e.from === b && e.to === a)));
+  return companies.flatMap((a, i) => companies.slice(i + 1)
+    .filter((b) => sameAddress(a.address, b.address) && !linked(a.id, b.id))
+    .map((b) => ({ id: `found-${a.id}-${b.id}`, from: a.id, to: b.id, kind: "shares_address" as const, detail: CLERK_FOUND })));
 }
 export const useSubgraph = (caseId: string) => subgraph(useStore(), caseId);
 export const useArguments = (caseId: string) => useStore().arguments.filter((a) => a.caseId === caseId);

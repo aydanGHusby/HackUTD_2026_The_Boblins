@@ -10,6 +10,10 @@ const usd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const x = (n: number) => `${n.toFixed(2)}x`;
 const uniq = (ids: string[]) => [...new Set(ids)];
 const normalize = (address: string) => address.toLowerCase().replace(/[^a-z0-9]/g, "");
+/** True when two addresses are the same once case, spaces and punctuation are ignored. */
+export const sameAddress = (a: string, b: string) => normalize(a) === normalize(b);
+/** `detail` on address links the clerk found that no record states; the map draws them dotted. */
+export const CLERK_FOUND = "found by the clerk";
 
 export function fileExhibits(p: Portfolio, loanId: string): Exhibit[] {
   const m = loanMetrics(p, loanId);
