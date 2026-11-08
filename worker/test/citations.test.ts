@@ -19,7 +19,7 @@ test("a planted fake id is caught every time", () => {
   const rand = (n: number) => (seed = (seed * 1103515245 + 12345) % 2 ** 31) % n;
   for (let i = 0; i < 500; i++) {
     const cites = Array.from({ length: 1 + rand(5) }, () => allIds[rand(allIds.length)]);
-    const fake = ["lien-77", "c99", "L-9999", "e21", "ev-ghost", " p4 "][rand(6)];
+    const fake = ["lien-77", "c99", "L-9999", "e99", "ev-ghost", " p99 "][rand(6)];
     cites.splice(rand(cites.length + 1), 0, fake);
     const { claim, reasons } = checkClaim(index, { text: `claim ${i}`, citations: cites });
     assert.equal(claim.verified, false, `missed fake ${fake} in ${cites}`);

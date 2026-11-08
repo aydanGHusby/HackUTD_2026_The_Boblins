@@ -1,3 +1,4 @@
+import { CreditMemo } from "@/components/CreditMemo";
 import { LoadingStatus } from "@/components/Mascot";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -28,6 +29,7 @@ import {
   useCrux,
   useEvidence,
   useLoanLifecycle,
+  useLoanMetrics,
   useNotes,
   useQuestions,
   useSignOff,
@@ -69,6 +71,7 @@ function CasePage() {
   const args = useArguments(id);
   const graph = useSubgraph(id);
   const crux = useCrux(id);
+  const metrics = useLoanMetrics(id);
   const evidence = useEvidence(id);
   const questions = useQuestions(id);
   const notes = useNotes(id);
@@ -261,7 +264,7 @@ function CasePage() {
                     )}
                   >
                     {d === "summary"
-                      ? "Where they agree"
+                      ? "Credit memo"
                       : d === "evidence"
                         ? `Evidence (${evidence.length})`
                         : "History"}
@@ -272,37 +275,7 @@ function CasePage() {
                 ))}
               </div>
               {drawer === "summary" && (
-                <div className="grid gap-3 p-4 md:grid-cols-2">
-                  {!crux ? (
-                    <p className="text-sm text-muted-foreground">
-                      Available once both agents finish.
-                    </p>
-                  ) : (
-                    <>
-                      <div>
-                        <h3 className="text-xs font-bold text-ocean">Both agents agree</h3>
-                        <ul className="mt-1.5 space-y-1 text-sm">
-                          {crux.agreed.map((a) => (
-                            <li key={a}>• {readable(a)}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-bold text-candy-strong">Still disputed</h3>
-                        <ul className="mt-1.5 space-y-2 text-sm">
-                          {crux.disputed.map((d) => (
-                            <li key={d.point}>
-                              {readable(d.point)}
-                              <div className="text-xs text-muted-foreground">
-                                Would be settled by: {readable(d.decidingFact)}
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </>
-                  )}
-                </div>
+                <CreditMemo crux={crux} metrics={metrics} formatText={readable} />
               )}
               {drawer === "evidence" && (
                 <div className="grid gap-2 p-3 md:grid-cols-2">

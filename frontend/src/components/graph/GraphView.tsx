@@ -1,3 +1,4 @@
+import { CLERK_FOUND } from "@/shared/clerk";
 // Interactive SVG network canvas: drag nodes, drag background to pan, wheel/pinch or buttons to zoom.
 // Same props the Cytoscape GraphView will take at handoff.
 import * as Dialog from "@radix-ui/react-dialog";
@@ -210,7 +211,7 @@ export function GraphView({
         hover === e.to ||
         (!!selected && (e.from === selected || e.to === selected));
       if (!on) continue;
-      const label = humanize(e.kind);
+      const label = e.detail === CLERK_FOUND ? "same address · found by clerk" : humanize(e.kind);
       const box = (x: number, y: number): Box => ({ x, y, w: label.length * 6.3 + 10, h: 15 });
       const dx = b.x - a.x,
         dy = b.y - a.y,
@@ -299,7 +300,8 @@ export function GraphView({
               b = pos[e.to];
             if (!a || !b) return null;
             const isFlag = flagged.includes(e.id),
-              isHl = hl.has(e.id);
+              isHl = hl.has(e.id),
+              found = e.detail === CLERK_FOUND;
             const faded = neighbors
               ? !(
                   neighbors.has(e.from) &&
@@ -344,11 +346,16 @@ export function GraphView({
                       ? "stroke-primary halo-ocean"
                       : isFlag
                         ? "stroke-candy-strong halo-candy"
-                        : "stroke-muted-foreground/40",
+                        : found
+                          ? "stroke-sky"
+                          : "stroke-muted-foreground/40",
                     isFlag && !isHl && "graph-flow",
                   )}
-                  strokeWidth={isHl ? 3.5 : isFlag ? 2.5 : 1.25}
-                  strokeDasharray={e.kind === "shares_address" ? "5 4" : isFlag ? "8 6" : undefined}
+                  strokeLinecap={found ? "round" : undefined}
+                  strokeWidth={isHl ? 3.5 : isFlag || found ? 2.5 : 1.25}
+                  strokeDasharray={
+                    found ? "1 6" : e.kind === "shares_address" ? "5 4" : isFlag ? "8 6" : undefined
+                  }
                 />
               </g>
             );
@@ -537,6 +544,23 @@ export function GraphView({
           <span className="h-0.5 w-3 bg-candy-strong" />
           flagged
         </span>
+        {edges.some((e) => e.detail === CLERK_FOUND) && (
+          <span className="flex items-center gap-1">
+            <svg width="14" height="4" aria-hidden>
+              <line
+                x1="1"
+                y1="2"
+                x2="13"
+                y2="2"
+                className="stroke-sky"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray="1 4"
+              />
+            </svg>
+            found by clerk
+          </span>
+        )}
         <span className="ml-auto">Drag nodes · drag to pan · scroll to zoom · click to focus</span>
       </div>
     </div>

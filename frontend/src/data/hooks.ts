@@ -2,15 +2,16 @@
 // (src/data/spacetime.ts); with no database running, the app falls back to the mock data.
 import { useEffect, useSyncExternalStore } from "react";
 import * as mock from "@/mock/mockData";
-import { argueFn, type CaseFile } from "@/agents/trial";
-import { fileExhibits } from "@/shared/clerk";
+import { argueFn, memoFn, type CaseFile } from "@/agents/trial";
+import { CLERK_FOUND, fileExhibits, sameAddress } from "@/shared/clerk";
 import { formatMetrics, loanMetrics } from "@/shared/metrics";
 import { applyLoanOps, loadLoanState, resetLoanState } from "@/data/spacetime";
 import { sameName, signOffNeeded } from "@/lib/approval";
+import { crossDealLinks } from "@/lib/crossdeal";
 import { lifecycle, type Lifecycle } from "@/lib/lifecycle";
 import { computeOpsMetrics } from "@/lib/ops";
 import type {
-  Argument, AuditEvent, Case, Claim, Crux, Decision, EvidenceItem, GraphNode, LoanStage, Note, Question, Round, Side, SignOff, Verdict, Edge, Loan,
+  Argument, AuditEvent, Case, Claim, Company, Crux, Decision, EvidenceItem, GraphNode, LoanStage, Note, Question, Round, Side, SignOff, Verdict, Edge, Loan,
 } from "@/shared/types";
 
 type Shared = {
@@ -49,7 +50,8 @@ type Op =
 function applyOps(s: Store, ops: Op[]): Store {
   const next: Store = { ...s };
   for (const o of ops) {
-    const list = next[o.table] as unknown as Record<string, unknown>[];
+    // evidence and cruxes can be missing on older data.
+    const list = (next[o.table] ?? []) as unknown as Record<string, unknown>[];
     (next as Record<Table, unknown>)[o.table] =
       o.op === "append" ? [...list, o.item]
       : o.op === "update" ? list.map((x) => (x[o.key] === o.value ? { ...x, ...o.patch } : x))
@@ -162,7 +164,17 @@ function subgraph(s: Store, caseId: string) {
   }
   const edges = s.edges.filter((e) => ids.has(e.from) && ids.has(e.to));
   const nodes = [...ids].map((id) => nodeById(id, s.loans)).filter(Boolean) as GraphNode[];
-  return { nodes, edges, flagged: mock.flaggedEdges[caseId] ?? [] };
+  // Demo cases have hand-picked red edges; others (e.g. loans submitted live) get their cross-deal links.
+  const flagged = mock.flaggedEdges[caseId] ?? crossDealLinks(portfolio(s), c.loanId).edgeIds;
+  return { nodes, edges: [...edges, ...foundAddressLinks(nodes, s.edges)], flagged };
+}
+// Companies on the map at the same address with no record linking them: the clerk's hidden finds.
+function foundAddressLinks(nodes: GraphNode[], all: Edge[]): Edge[] {
+  const companies = nodes.flatMap((n) => (n.kind === "company" ? [n.data as Company] : []));
+  const linked = (a: string, b: string) => all.some((e) => e.kind === "shares_address" && ((e.from === a && e.to === b) || (e.from === b && e.to === a)));
+  return companies.flatMap((a, i) => companies.slice(i + 1)
+    .filter((b) => sameAddress(a.address, b.address) && !linked(a.id, b.id))
+    .map((b) => ({ id: `found-${a.id}-${b.id}`, from: a.id, to: b.id, kind: "shares_address" as const, detail: CLERK_FOUND })));
 }
 export const useSubgraph = (caseId: string) => subgraph(useStore(), caseId);
 export const useArguments = (caseId: string) => useStore().arguments.filter((a) => a.caseId === caseId);
@@ -178,6 +190,12 @@ const portfolio = (s: Shared) => ({ companies: mock.companies, people: mock.peop
 export const useCrux = (caseId: string) =>
   (useStore().cruxes ?? []).find((c) => c.caseId === caseId) ?? mock.cruxes.find((c) => c.caseId === caseId);
 export const useEvidence = (caseId: string) => evidenceFor(useStore(), caseId);
+/** Credit metrics for the case's loan, computed across every loan. */
+export function useLoanMetrics(caseId: string) {
+  const s = useStore();
+  const c = s.cases.find((x) => x.id === caseId);
+  return c ? loanMetrics(portfolio(s), c.loanId) : undefined;
+}
 export const useQuestions = (caseId: string) => useStore().questions.filter((q) => q.caseId === caseId);
 export const useNotes = (caseId: string) => useStore().notes.filter((n) => n.caseId === caseId);
 export const useAudit = (caseId: string) =>
@@ -316,6 +334,7 @@ export async function runTrial(caseId: string, actor: string) {
   commit(
     { op: "append", table: "running", item: { caseId, by: actor, at: now() } },
     { op: "remove", table: "arguments", key: "caseId", value: caseId },
+    { op: "remove", table: "cruxes", key: "caseId", value: caseId },
     setCaseStatus(caseId, "in_trial"),
     { op: "append", table: "audit", item: log(caseId, actor, "started a trial") },
   );
@@ -325,10 +344,11 @@ export async function runTrial(caseId: string, actor: string) {
       argueAndRecord(caseId, "defense", "opening", { file }),
     ]);
     const verified = (a: Argument) => a.claims.filter((c) => c.verified);
-    await Promise.all([
+    const rebuttals = await Promise.all([
       argueAndRecord(caseId, "prosecution", "rebuttal", { file, opponent: verified(def) }),
       argueAndRecord(caseId, "defense", "rebuttal", { file, opponent: verified(pro) }),
     ]);
+    await recordMemo(caseId, file, [pro, def, ...rebuttals]);
     commit(setCaseStatus(caseId, "awaiting_verdict"), { op: "remove", table: "running", key: "caseId", value: caseId });
   } catch (err) {
     const message = (err as Error).message;
@@ -338,6 +358,20 @@ export async function runTrial(caseId: string, actor: string) {
       { op: "remove", table: "running", key: "caseId", value: caseId },
       { op: "append", table: "audit", item: log(caseId, "trial", `stopped: ${message}`) },
     );
+  }
+}
+// The credit memo from the verified claims. If it fails the trial still ends; the analyst decides without it.
+async function recordMemo(caseId: string, file: CaseFile, args: Argument[]) {
+  const claims = args.flatMap((a) => a.claims.filter((c) => c.verified).map((c) => ({ side: a.side, round: a.round, text: c.text, citations: c.citations })));
+  try {
+    const draft = await memoFn({ data: { file, claims } });
+    commit(
+      { op: "remove", table: "cruxes", key: "caseId", value: caseId },
+      { op: "append", table: "cruxes", item: { caseId, ...draft } satisfies Crux },
+      { op: "append", table: "audit", item: log(caseId, "memo", `credit memo: suggests ${draft.memo.recommendation.replace(/_/g, " ")}`) },
+    );
+  } catch (err) {
+    commit({ op: "append", table: "audit", item: log(caseId, "memo", `credit memo failed: ${(err as Error).message}`) });
   }
 }
 const STAGE_ACTION: Partial<Record<LoanStage, string>> = {
@@ -400,8 +434,17 @@ export function submitLoan(input: { borrowerId: string; amount: number; purpose:
   if (input.collateralIds.some((id) => store.edges.some((e) => e.from === id && e.kind === "pledged_to"))) triggers.push("duplicate_collateral");
   if (borrower && Date.now() - new Date(borrower.registeredOn).getTime() < 365 * 864e5 && input.amount > 1_000_000) triggers.push("new_company_large_loan");
   if (borrower && input.amount > borrower.annualRevenue * 3) triggers.push("amount_vs_revenue");
+  // Cross-deal: run the clerk's link search on the portfolio as it would be with this loan in it.
+  // Double pledges are already their own trigger, so this one is about people and addresses.
+  const createdOn = now().slice(0, 10);
+  const cross = crossDealLinks({
+    ...portfolio(store),
+    loans: [...store.loans, { id: loanId, borrowerId: input.borrowerId, amount: input.amount, createdOn }],
+    edges: [...store.edges, ...newEdges],
+  }, loanId);
+  if (cross.kinds.some((k) => k !== "shared_collateral")) triggers.push("cross_deal_link");
   const riskScore = Math.min(100, 20 + triggers.length * 30);
-  const loan: Loan = { id: loanId, borrowerId: input.borrowerId, amount: input.amount, purpose: input.purpose, createdOn: now().slice(0, 10), status: triggers.length ? "under_review" : "approved" };
+  const loan: Loan = { id: loanId, borrowerId: input.borrowerId, amount: input.amount, purpose: input.purpose, createdOn, status: triggers.length ? "under_review" : "approved" };
   const ops: Op[] = [
     { op: "append", table: "loans", item: loan },
     ...newEdges.map((item): Op => ({ op: "append", table: "edges", item })),
@@ -413,9 +456,13 @@ export function submitLoan(input: { borrowerId: string; amount: number; purpose:
       { op: "append", table: "cases", item: { id: caseId, loanId, riskScore, triggers, status: "queued" } },
       { op: "append", table: "audit", item: log(caseId, actor, `submitted loan ${loanId}; risk rules opened case (score ${riskScore})`) },
     );
+    if (cross.companyIds.length) {
+      const names = cross.companyIds.map((id) => mock.companies.find((c) => c.id === id)?.name ?? id).join(", ");
+      ops.push({ op: "append", table: "audit", item: log(caseId, "risk_rules", `cross-deal links (${cross.kinds.map((k) => k.replace(/_/g, " ")).join(", ")}) to ${names}`) });
+    }
   }
   commit(...ops);
-  return { loanId, caseId, triggers };
+  return { loanId, caseId, triggers, linkedCompanies: cross.companyIds };
 }
 
 // Local question workspace remains a frontend-only drafting tool.

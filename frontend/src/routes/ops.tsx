@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Activity, Bot, CheckCircle2, Clock, Gavel, Hourglass } from "lucide-react";
+import { Activity, Bot, CheckCircle2, Clock, Gavel, Hourglass, RotateCcw } from "lucide-react";
 import { Panel } from "@/components/ui-kit";
-import { useLiveStatus, useOpsMetrics } from "@/data/hooks";
+import { Button } from "@/components/ui/button";
+import { resetDemo, useLiveStatus, useOpsMetrics } from "@/data/hooks";
+import { useIdentity } from "@/data/identity";
 import { duration } from "@/lib/ops";
 import { cn } from "@/lib/utils";
 
@@ -107,6 +110,33 @@ function Ops() {
           </ResponsiveContainer>
         </div>
       </Panel>
+
+      <DemoReset />
     </div>
+  );
+}
+
+/** Seniors only: put the shared database back to the demo data before judging. */
+function DemoReset() {
+  const me = useIdentity();
+  const [state, setState] = useState<"idle" | "busy" | "done">("idle");
+  if (me.role !== "senior_reviewer") return null;
+  const reset = async () => {
+    if (!window.confirm("Reset the shared database to the demo data? This removes every loan, decision, note and AI argument added since, for everyone.")) return;
+    setState("busy");
+    try { await resetDemo(); setState("done"); } catch { setState("idle"); }
+  };
+  return (
+    <Panel className="mt-6 flex flex-wrap items-center justify-between gap-3 p-4">
+      <div>
+        <h2 className="text-sm font-bold">Demo data</h2>
+        <p className="text-xs text-muted-foreground">
+          {state === "done" ? "Reset done. Run the worker to pre-run the demo cases." : "Restore the demo cases, including the CASE-06 fraud ring, for everyone."}
+        </p>
+      </div>
+      <Button variant="destructive" size="sm" disabled={state === "busy"} onClick={reset}>
+        <RotateCcw className="h-3.5 w-3.5" />{state === "busy" ? "Resetting…" : "Reset demo data"}
+      </Button>
+    </Panel>
   );
 }

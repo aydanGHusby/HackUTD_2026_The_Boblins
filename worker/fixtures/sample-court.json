@@ -34,6 +34,34 @@
       "address": "5 Summit Pl, Denver CO",
       "registeredOn": "2026-06-30",
       "annualRevenue": 90000
+    },
+    {
+      "id": "c6",
+      "name": "Meridian Cold Storage LLC",
+      "address": "1450 Commerce Way, Suite 210, Irving TX",
+      "registeredOn": "2026-03-02",
+      "annualRevenue": 410000
+    },
+    {
+      "id": "c7",
+      "name": "Pinecrest Freight Partners LLC",
+      "address": "1450 Commerce Way Suite 210 Irving, TX",
+      "registeredOn": "2026-02-11",
+      "annualRevenue": 520000
+    },
+    {
+      "id": "c8",
+      "name": "Silverline Distribution Co",
+      "address": "1450 Commerce Way, Suite 210, Irving TX",
+      "registeredOn": "2026-04-19",
+      "annualRevenue": 380000
+    },
+    {
+      "id": "c9",
+      "name": "Northgate Logistics Holdings",
+      "address": "1450 Commerce Way, Suite 210, Irving TX",
+      "registeredOn": "2026-10-21",
+      "annualRevenue": 0
     }
   ],
   "people": [
@@ -51,6 +79,11 @@
       "id": "p3",
       "name": "Victor Lune",
       "netWorth": 310000
+    },
+    {
+      "id": "p4",
+      "name": "Raymond Voss",
+      "netWorth": 1100000
     }
   ],
   "collateral": [
@@ -77,6 +110,18 @@
       "kind": "inventory",
       "value": 400000,
       "description": "Mining equipment inventory"
+    },
+    {
+      "id": "col5",
+      "kind": "real_estate",
+      "value": 3200000,
+      "description": "Cold-storage warehouse, 1450 Commerce Way"
+    },
+    {
+      "id": "col6",
+      "kind": "equipment",
+      "value": 900000,
+      "description": "Refrigerated trailer fleet (12 units)"
     }
   ],
   "loans": [
@@ -119,6 +164,30 @@
       "purpose": "Acquisition",
       "createdOn": "2026-11-05",
       "status": "intake"
+    },
+    {
+      "id": "L-1006",
+      "borrowerId": "c6",
+      "amount": 2600000,
+      "purpose": "Equipment financing",
+      "createdOn": "2026-11-06",
+      "status": "under_review"
+    },
+    {
+      "id": "L-1007",
+      "borrowerId": "c7",
+      "amount": 1900000,
+      "purpose": "Working capital",
+      "createdOn": "2026-09-15",
+      "status": "approved"
+    },
+    {
+      "id": "L-1008",
+      "borrowerId": "c8",
+      "amount": 1400000,
+      "purpose": "Fleet purchase",
+      "createdOn": "2026-10-02",
+      "status": "approved"
     }
   ],
   "edges": [
@@ -245,6 +314,93 @@
       "from": "col4",
       "to": "L-1005",
       "kind": "pledged_to"
+    },
+    {
+      "id": "e21",
+      "from": "c6",
+      "to": "L-1006",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e22",
+      "from": "c7",
+      "to": "L-1007",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e23",
+      "from": "c8",
+      "to": "L-1008",
+      "kind": "borrower_of"
+    },
+    {
+      "id": "e24",
+      "from": "col5",
+      "to": "L-1007",
+      "kind": "pledged_to"
+    },
+    {
+      "id": "e25",
+      "from": "col5",
+      "to": "L-1006",
+      "kind": "pledged_to",
+      "detail": "Warehouse already pledged to L-1007"
+    },
+    {
+      "id": "e26",
+      "from": "col6",
+      "to": "L-1008",
+      "kind": "pledged_to"
+    },
+    {
+      "id": "e27",
+      "from": "p4",
+      "to": "c6",
+      "kind": "director_of"
+    },
+    {
+      "id": "e28",
+      "from": "p4",
+      "to": "c7",
+      "kind": "director_of"
+    },
+    {
+      "id": "e29",
+      "from": "p4",
+      "to": "c8",
+      "kind": "owns",
+      "detail": "100%"
+    },
+    {
+      "id": "e30",
+      "from": "p4",
+      "to": "c9",
+      "kind": "director_of"
+    },
+    {
+      "id": "e31",
+      "from": "c6",
+      "to": "c8",
+      "kind": "shares_address",
+      "detail": "1450 Commerce Way"
+    },
+    {
+      "id": "e32",
+      "from": "p4",
+      "to": "L-1006",
+      "kind": "guarantees"
+    },
+    {
+      "id": "e33",
+      "from": "p4",
+      "to": "L-1007",
+      "kind": "guarantees"
+    },
+    {
+      "id": "e34",
+      "from": "p4",
+      "to": "L-1008",
+      "kind": "guarantees"
     }
   ],
   "cases": [
@@ -293,6 +449,17 @@
       "riskScore": 72,
       "triggers": [
         "new_company_large_loan"
+      ],
+      "status": "queued"
+    },
+    {
+      "id": "CASE-06",
+      "loanId": "L-1006",
+      "riskScore": 96,
+      "triggers": [
+        "duplicate_collateral",
+        "new_company_large_loan",
+        "amount_vs_revenue"
       ],
       "status": "queued"
     }

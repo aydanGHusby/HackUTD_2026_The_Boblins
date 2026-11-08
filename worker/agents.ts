@@ -1,5 +1,6 @@
 // The courtroom agents: clerk (FRA-20), prosecutor/defender (FRA-24, FRA-42, FRA-52) and crux (FRA-50).
 // Agents only produce text and citations; the worker writes them and a human analyst decides.
+import { MEMO_SYSTEM, validateMemo } from "../frontend/src/shared/memo.ts";
 import type { GraphIndex } from "../shared/graph.ts";
 import type { Argument, Claim, Crux, EvidenceItem, Round, Side } from "../shared/types.ts";
 import { checkClaims } from "./citations.ts";
@@ -7,7 +8,7 @@ import type { DraftClaim, Rejection } from "./citations.ts";
 import { askForJson, runToolLoop } from "./llm.ts";
 import type { ChatMessage, LLM } from "./llm.ts";
 import {
-  CLERK_SYSTEM, CRUX_SYSTEM, DEFENDER_SYSTEM, PROSECUTOR_SYSTEM, advocateTask, clerkTask, cruxTask,
+  CLERK_SYSTEM, DEFENDER_SYSTEM, PROSECUTOR_SYSTEM, advocateTask, clerkTask, cruxTask,
 } from "./prompts.ts";
 import { TOOL_SPECS, runTool } from "./tools.ts";
 
@@ -15,7 +16,8 @@ import { TOOL_SPECS, runTool } from "./tools.ts";
 // With thinking on, NvidiaLLM adds room for the reasoning on top.
 const CLERK_TOKENS = 1500;
 const ADVOCATE_TOKENS = 800;
-const CRUX_TOKENS = 800;
+// The memo adds a recommendation, conditions and documents on top of the agreed/disputed points.
+const CRUX_TOKENS = 1200;
 
 export interface ClerkResult {
   facts: DraftClaim[];
@@ -91,10 +93,10 @@ export async function runAdvocate(llm: LLM, opts: {
 
 export async function runCrux(llm: LLM, opts: { caseId: string; brief: string; args: Argument[] }): Promise<Crux> {
   const messages: ChatMessage[] = [
-    { role: "system", content: CRUX_SYSTEM },
+    { role: "system", content: MEMO_SYSTEM },
     { role: "user", content: cruxTask(opts.brief, opts.args) },
   ];
-  const crux = await askForJson(llm, messages, validateCrux, { maxTokens: CRUX_TOKENS });
+  const crux = await askForJson(llm, messages, validateMemo, { maxTokens: CRUX_TOKENS });
   return { caseId: opts.caseId, ...crux };
 }
 
@@ -126,19 +128,4 @@ function validateClaims(value: unknown): DraftClaim[] {
   });
   if (!out.length) throw new Error("claims must contain at least one claim");
   return out;
-}
-
-function validateCrux(value: unknown): Omit<Crux, "caseId"> {
-  const v = value as { agreed?: unknown; disputed?: unknown };
-  if (!v || !Array.isArray(v.agreed) || !Array.isArray(v.disputed)) throw new Error('expected {"agreed":[...],"disputed":[...]}');
-  const agreed = v.agreed.filter((s): s is string => typeof s === "string" && !!s.trim());
-  const disputed = v.disputed.map((d, i) => {
-    const point = (d as { point?: unknown })?.point;
-    const decidingFact = (d as { decidingFact?: unknown })?.decidingFact;
-    if (typeof point !== "string" || typeof decidingFact !== "string") {
-      throw new Error(`disputed[${i}] needs string "point" and "decidingFact"`);
-    }
-    return { point, decidingFact };
-  });
-  return { agreed, disputed };
 }
