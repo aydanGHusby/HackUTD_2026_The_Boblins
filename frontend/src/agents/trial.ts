@@ -27,8 +27,11 @@ export interface ArgueResult { claims: Claim[]; rejected: number; toolCalls: num
 
 // ---- Fact-checker: a claim counts only if every citation is a real id in this case file ----
 export function checkClaims(raw: { text: string; citations: string[] }[], file: CaseFile): Claim[] {
-  // Ids named in the credit metrics (a guarantor's other loans) are real records too.
-  const known = new Set([...file.nodes.map((n) => n.id), ...file.edges.map((e) => e.id), ...file.evidence.map((e) => e.id), ...metricIds(file.metrics ?? "")]);
+  // Ids named in the credit metrics and exhibits (a guarantor's other loans) are real records too.
+  const known = new Set([
+    ...file.nodes.map((n) => n.id), ...file.edges.map((e) => e.id), ...file.evidence.map((e) => e.id),
+    ...file.evidence.flatMap((e) => e.citations), ...metricIds(file.metrics ?? ""),
+  ]);
   return raw.map((c) => ({
     text: c.text,
     citations: c.citations,

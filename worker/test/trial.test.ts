@@ -11,7 +11,7 @@ import { FAKE_ID, FakeLLM, loadFixture } from "./fake-llm.ts";
 test("a full trial reaches awaiting_verdict with evidence, six arguments and a crux", async () => {
   const store = new MemoryStore(loadFixture());
   const llm = new FakeLLM();
-  await runTrial("CASE-01", { llm, store, depth: "full" });
+  await runTrial("CASE-01", { llm, store, depth: "full", clerk: "ai" });
 
   const s = store.state;
   assert.equal(s.cases.find((c) => c.id === "CASE-01")!.status, "awaiting_verdict");
@@ -131,10 +131,35 @@ test("the worker runs at most two trials at once, highest risk first", async () 
 
 test("the worker gives up on a case after two failed attempts", async () => {
   const store = new MemoryStore({ ...loadFixture(), questions: [] });
-  const llm = new FakeLLM({ failOn: "You are the clerk" });
+  const llm = new FakeLLM({ failOn: "You are the prosecutor" });
   const worker = new CourtWorker({ llm, store, caseIds: ["CASE-03"] });
   await worker.runUntilIdle();
   assert.equal(worker.attempts.get("case:CASE-03"), 2);
   assert.equal(worker.failures.length, 2);
   assert.equal(store.state.cases.find((c) => c.id === "CASE-03")!.status, "queued");
+});
+
+test("the code clerk files exact exhibits with cross-deal links and no model call", async () => {
+  const store = new MemoryStore(loadFixture());
+  const llm = new FakeLLM();
+  await runTrial("CASE-01", { llm, store, depth: "opening", useTools: false });
+  const exhibits = store.state.evidence.filter((e) => e.caseId === "CASE-01");
+  const facts = exhibits.map((e) => e.fact).join("\n");
+  assert.match(facts, /Double pledge: col1 \(\$2,400,000\) also secures L-1002/);
+  assert.match(facts, /net worth covers only 0\.22x/);
+  assert.match(facts, /Daniel Okafor directs Harbor Freight Logistics LLC and also directs Bayline Holdings Inc/);
+  assert.match(facts, /Connected group: .* owe \$3,800,000 across 2 loans/);
+  assert.deepEqual(exhibits.map((e) => e.id).slice(0, 2), ["ex1", "ex2"]);
+  // Openings only: two advocate calls, none for the clerk.
+  assert.equal(llm.calls.length, 2);
+  assert.ok(!llm.calls.some((c) => String(c.messages[0]?.content ?? "").startsWith("You are the clerk")));
+});
+
+test("the code clerk finds a shared address even when no edge records it", async () => {
+  const data = loadFixture();
+  data.edges = data.edges.filter((e) => e.kind !== "shares_address" && e.kind !== "director_of");
+  const store = new MemoryStore(data);
+  await runTrial("CASE-01", { llm: new FakeLLM(), store, depth: "opening", useTools: false });
+  const facts = store.state.evidence.map((e) => e.fact).join("\n");
+  assert.match(facts, /Bayline Holdings Inc is registered at the same address .*, a link not recorded anywhere else/);
 });

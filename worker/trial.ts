@@ -2,9 +2,10 @@
 // Agents never decide; the case ends waiting for a human verdict. On failure it goes back to queued.
 import { randomUUID } from "node:crypto";
 import { buildIndex, hasId, subgraph } from "../shared/graph.ts";
+import { fileExhibits } from "../frontend/src/shared/clerk.ts";
 import { formatMetrics, loanMetrics, METRICS_HEADER, metricIds } from "../frontend/src/shared/metrics.ts";
 import type { GraphIndex } from "../shared/graph.ts";
-import type { Argument, Case, EvidenceItem, Question, Round, Side } from "../shared/types.ts";
+import type { Argument, Case, EvidenceItem, GraphData, Question, Round, Side } from "../shared/types.ts";
 import { runAdvocate, runClerk, runCrux } from "./agents.ts";
 import { describeRejections } from "./citations.ts";
 import type { LLM } from "./llm.ts";
@@ -24,6 +25,8 @@ export interface TrialDeps {
   store: CourtStore;
   depth?: Depth;
   useTools?: boolean;
+  // Who files the evidence: "code" (default; exact, instant, cross-deal search) or the older "ai" clerk.
+  clerk?: "code" | "ai";
   log?: (msg: string) => void;
 }
 
@@ -31,6 +34,7 @@ const SIDES: Side[] = ["prosecution", "defense"];
 const ACTOR: Record<Side, string> = { prosecution: "prosecutor", defense: "defender" };
 
 interface CaseContext {
+  graph: GraphData;
   index: GraphIndex;
   brief: string;
   // Ids an advocate may cite: the 2-hop subgraph around the loan plus everything the evidence cites.
@@ -51,7 +55,7 @@ async function loadContext(store: CourtStore, c: Case, evidence: EvidenceItem[] 
     brief += `\n\n${METRICS_HEADER}\n${text}`;
     for (const id of metricIds(text)) if (hasId(index, id)) allowed.add(id);
   }
-  return { index, brief, allowed };
+  return { graph, index, brief, allowed };
 }
 
 export async function runTrial(caseId: string, deps: TrialDeps): Promise<void> {
@@ -70,14 +74,23 @@ export async function runTrial(caseId: string, deps: TrialDeps): Promise<void> {
     const ctx = await loadContext(store, c);
 
     log(`[${caseId}] clerk`);
-    const clerk = await runClerk(llm, { index: ctx.index, brief: ctx.brief, useTools: deps.useTools ?? true });
-    const evidence: EvidenceItem[] = clerk.facts.map((f) => ({
-      id: `ev-${randomUUID().slice(0, 8)}`, caseId, fact: f.text, citations: f.citations,
-    }));
-    for (const item of evidence) await store.addEvidence(item);
-    for (const id of evidence.flatMap((e) => e.citations)) ctx.allowed.add(id);
-    await audit("clerk", `filed ${evidence.length} evidence items using ${clerk.toolCalls.length} tool calls`);
-    for (const line of describeRejections(clerk.dropped)) await audit("citation_checker", `clerk ${line}`);
+    let evidence: EvidenceItem[];
+    if ((deps.clerk ?? "code") === "code") {
+      // Exhibit ids are stable per case (ex1, ex2, ...) so agents can cite them by name.
+      evidence = fileExhibits(ctx.graph, c.loanId).map((x, i) => ({ id: `ex${i + 1}`, caseId, fact: x.fact, citations: x.citations }));
+      for (const item of evidence) await store.addEvidence(item);
+      for (const id of evidence.flatMap((e) => e.citations)) ctx.allowed.add(id);
+      await audit("clerk", `filed ${evidence.length} exhibits from the records (code clerk, cross-deal search)`);
+    } else {
+      const clerk = await runClerk(llm, { index: ctx.index, brief: ctx.brief, useTools: deps.useTools ?? true });
+      evidence = clerk.facts.map((f) => ({
+        id: `ev-${randomUUID().slice(0, 8)}`, caseId, fact: f.text, citations: f.citations,
+      }));
+      for (const item of evidence) await store.addEvidence(item);
+      for (const id of evidence.flatMap((e) => e.citations)) ctx.allowed.add(id);
+      await audit("clerk", `filed ${evidence.length} evidence items using ${clerk.toolCalls.length} tool calls`);
+      for (const line of describeRejections(clerk.dropped)) await audit("citation_checker", `clerk ${line}`);
+    }
 
     const rounds: Round[] = ROUNDS[depth];
     const args: Argument[] = [];

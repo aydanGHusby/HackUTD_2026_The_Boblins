@@ -2,7 +2,7 @@
 // Shared by the loan app (src/data/hooks.ts) and the worker (worker/prompts.ts), so this file has no
 // imports and uses only erasable TypeScript that Node can run directly.
 
-interface Company { id: string; name: string; registeredOn: string; annualRevenue: number }
+interface Company { id: string; name: string; address: string; registeredOn: string; annualRevenue: number }
 interface Person { id: string; name: string; netWorth: number }
 interface Collateral { id: string; value: number; description: string }
 interface Loan { id: string; borrowerId: string; amount: number; createdOn: string }
