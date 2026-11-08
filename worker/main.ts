@@ -24,7 +24,7 @@ const depth = values.depth as Depth;
 if (depth !== "opening" && depth !== "full") throw new Error("--depth must be opening or full");
 const log = (msg: string) => console.log(`${new Date().toISOString().slice(11, 19)} ${msg}`);
 const llm = NvidiaLLM.fromEnv(log);
-log(`model ${llm.model}, depth ${depth}, tools ${values["no-tools"] ? "off" : "on"}`);
+log(`model ${llm.model}, thinking ${llm.thinking ? "on" : "off"}, depth ${depth}, tools ${values["no-tools"] ? "off" : "on"}`);
 
 if (values.spacetime) {
   const store = SpacetimeStore.fromEnv();

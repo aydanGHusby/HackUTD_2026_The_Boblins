@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { askForJson, extractJson, runToolLoop, stripThink } from "../llm.ts";
+import { NvidiaLLM, askForJson, extractJson, runToolLoop, stripThink } from "../llm.ts";
 import type { ChatRequest, ChatResponse, LLM } from "../llm.ts";
 
 class Scripted implements LLM {
@@ -68,4 +68,22 @@ test("runToolLoop executes calls and withholds tools on the last turn", async ()
   assert.ok(llm.requests[0].tools && llm.requests[1].tools);
   assert.equal(llm.requests[2].tools, undefined);
   assert.equal(res.messages.filter((m) => m.role === "tool").length, 2);
+});
+
+test("NvidiaLLM sends the thinking switch and explains an answer cut off by thinking", async () => {
+  const realFetch = globalThis.fetch;
+  const bodies: Record<string, unknown>[] = [];
+  globalThis.fetch = (async (_url: string, init: RequestInit) => {
+    bodies.push(JSON.parse(String(init.body)));
+    return new Response(JSON.stringify({ choices: [{ finish_reason: "length", message: { content: "" } }] }), { status: 200 });
+  }) as typeof fetch;
+  try {
+    const off = new NvidiaLLM({ apiKey: "k", model: "m" });
+    await assert.rejects(off.chat({ messages: [] }), /used all 4096 output tokens without answering \(thinking off\)/);
+    const on = new NvidiaLLM({ apiKey: "k", model: "m", thinking: true });
+    await assert.rejects(on.chat({ messages: [] }), /16384/);
+    assert.deepEqual(bodies.map((b) => b.chat_template_kwargs), [{ enable_thinking: false }, { enable_thinking: true }]);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });

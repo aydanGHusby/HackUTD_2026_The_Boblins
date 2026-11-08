@@ -41,6 +41,9 @@ export interface NvidiaOptions {
   baseUrl?: string;
   maxRetries?: number;
   timeoutMs?: number;
+  // Nemotron reasoning mode. Off by default: ~3-10x faster, and with it on Lightning can spend its
+  // whole output budget thinking and never answer.
+  thinking?: boolean;
   log?: (msg: string) => void;
 }
 
@@ -53,6 +56,7 @@ export class NvidiaLLM implements LLM {
   baseUrl: string;
   maxRetries: number;
   timeoutMs: number;
+  thinking: boolean;
   log: (msg: string) => void;
   // Request count and wall time, for comparing models.
   stats = { requests: 0, retries: 0, ms: 0 };
@@ -63,6 +67,7 @@ export class NvidiaLLM implements LLM {
     this.baseUrl = opts.baseUrl ?? NVIDIA_BASE_URL;
     this.maxRetries = opts.maxRetries ?? 4;
     this.timeoutMs = opts.timeoutMs ?? 120_000;
+    this.thinking = opts.thinking ?? false;
     this.log = opts.log ?? (() => {});
   }
 
@@ -75,6 +80,7 @@ export class NvidiaLLM implements LLM {
       apiKey,
       model: process.env.NVIDIA_MODEL || DEFAULT_MODEL,
       baseUrl: process.env.NVIDIA_BASE_URL || undefined,
+      thinking: process.env.NEMOTRON_THINKING === "on",
       log,
     });
   }
@@ -84,7 +90,9 @@ export class NvidiaLLM implements LLM {
       model: this.model,
       messages: req.messages,
       temperature: req.temperature ?? 0.2,
-      max_tokens: req.maxTokens ?? 4096,
+      // Thinking needs room to answer after it reasons.
+      max_tokens: req.maxTokens ?? (this.thinking ? 16384 : 4096),
+      chat_template_kwargs: { enable_thinking: this.thinking },
     };
     if (req.tools?.length) {
       body.tools = req.tools;
@@ -124,9 +132,13 @@ export class NvidiaLLM implements LLM {
       }
 
       const json = (await res.json()) as {
-        choices?: { message?: { content?: string | null; tool_calls?: ToolCall[] } }[];
+        choices?: { finish_reason?: string; message?: { content?: string | null; tool_calls?: ToolCall[] } }[];
       };
-      const msg = json.choices?.[0]?.message ?? {};
+      const choice = json.choices?.[0];
+      const msg = choice?.message ?? {};
+      if (choice?.finish_reason === "length" && !stripThink(msg.content ?? "") && !msg.tool_calls?.length) {
+        throw new Error(`${this.model} used all ${body.max_tokens} output tokens without answering (thinking ${this.thinking ? "on" : "off"})`);
+      }
       return { content: stripThink(msg.content ?? ""), toolCalls: msg.tool_calls ?? [] };
     }
   }
