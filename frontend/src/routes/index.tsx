@@ -11,13 +11,13 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Paper View · See the network behind the loan" },
+      { title: "Paper Trail · See the network behind the loan" },
       {
         name: "description",
         content:
-          "Paper View flags commercial loans with network problems, lets two agents argue both sides, and leaves the decision to a person with the evidence in front of them.",
+          "Paper Trail flags commercial loans with network problems, lets two agents argue both sides, and leaves the decision to a person with the evidence in front of them.",
       },
-      { property: "og:title", content: "Paper View · See the network behind the loan" },
+      { property: "og:title", content: "Paper Trail · See the network behind the loan" },
       {
         property: "og:description",
         content:
@@ -55,7 +55,7 @@ function Landing() {
       <header className="flex flex-wrap items-center justify-between gap-4">
         <Link
           to="/"
-          aria-label="Paper View home"
+          aria-label="Paper Trail home"
           className="flex items-center gap-2 rounded-lg text-lg font-extrabold tracking-tight"
         >
           <BrandLogo size={46} />
@@ -83,7 +83,7 @@ function Landing() {
           </h1>
           <p className="mt-5 text-base leading-relaxed text-muted-foreground">
             A flagged loan is rarely one bad borrower. It is a shared address, a warehouse pledged
-            twice, the same director on two companies. Paper View lays the whole network on the
+            twice, the same director on two companies. Paper Trail lays the whole network on the
             table, has two agents argue both sides of it, and hands you the decision with the
             evidence still visible.
           </p>
@@ -131,7 +131,7 @@ function Landing() {
 
       <footer className="mt-auto flex flex-wrap items-center gap-3 border-t border-border pt-5 text-xs text-muted-foreground">
         <span>
-          Paper View · every decision is logged with the analyst who made it and the reason they
+          Paper Trail · every decision is logged with the analyst who made it and the reason they
           gave.
         </span>
         <Link

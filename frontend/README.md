@@ -1,6 +1,6 @@
-# Paper View frontend
+# Paper Trail frontend
 
-Paper View uses the canonical `backend` branch's loan data, agent server functions, lifecycle and approval rules. The interface has a two-panel courtroom: network/evidence/summary/history on the left; live agent discussion and the human decision on the right. The sidebar also opens the case queue, intake, senior escalations, and Operations.
+Paper Trail uses the canonical `backend` branch's loan data, agent server functions, lifecycle and approval rules. The interface has a two-panel courtroom: network/evidence/summary/history on the left; live agent discussion and the human decision on the right. The sidebar also opens the case queue, intake, senior escalations, and Operations.
 
 ## Run locally
 

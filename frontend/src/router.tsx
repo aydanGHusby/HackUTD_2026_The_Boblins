@@ -12,7 +12,7 @@ export const getRouter = () => {
     context: { queryClient },
     scrollRestoration: true,
     defaultPendingMs: 200,
-    defaultPendingComponent: () => <LoadingPanel label="Opening Paper View…" />,
+    defaultPendingComponent: () => <LoadingPanel label="Opening Paper Trail…" />,
     // Lets Query own freshness; set caching defaults on the QueryClient, not the router.
     defaultPreloadStaleTime: 0,
   });

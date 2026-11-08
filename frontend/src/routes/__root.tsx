@@ -92,13 +92,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Paper View" },
+      { title: "Paper Trail" },
       {
         name: "description",
         content:
           "Network-based fraud review for commercial loans, with AI agents arguing both sides.",
       },
-      { property: "og:title", content: "Paper View" },
+      { property: "og:title", content: "Paper Trail" },
       {
         property: "og:description",
         content:

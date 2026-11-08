@@ -81,5 +81,5 @@ if (!stopping)
   );
 if (!stopping)
   console.log(
-    "\nPaper View: http://127.0.0.1:3111/\nKeep this terminal open. Ctrl+C stops services started here.",
+    "\nPaper Trail: http://127.0.0.1:3111/\nKeep this terminal open. Ctrl+C stops services started here.",
   );

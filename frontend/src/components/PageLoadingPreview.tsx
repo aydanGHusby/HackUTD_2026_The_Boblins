@@ -13,7 +13,7 @@ export function PageLoadingPreview({ children }: { children: ReactNode }) {
     <>
       {waiting && (
         <div className="flex min-h-[80vh] items-center justify-center">
-          <LoadingPanel label="Opening Paper View…" />
+          <LoadingPanel label="Opening Paper Trail…" />
         </div>
       )}
       {/* Keep the route mounted so real data loading continues during the visual preview. */}

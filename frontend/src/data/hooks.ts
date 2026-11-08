@@ -255,6 +255,18 @@ export function useEscalations() {
     return reason ? [{ verdict: v, case: c, loan, borrower: borrowerName(loan), reason }] : [];
   });
 }
+/** Every decided case, newest first, with what was decided and where the loan ended up. */
+export function useDecidedCases() {
+  const s = useStore();
+  return s.verdicts
+    .flatMap((v) => {
+      const c = s.cases.find((x) => x.id === v.caseId);
+      if (!c) return [];
+      const loan = s.loans.find((l) => l.id === c.loanId);
+      return [{ verdict: v, case: c, loan, borrower: borrowerName(loan), signOff: s.signOffs.find((o) => o.caseId === v.caseId), stage: loanLifecycle(s, c.loanId)?.stage }];
+    })
+    .sort((a, b) => b.verdict.decidedAt.localeCompare(a.verdict.decidedAt));
+}
 /** "connecting" until the first database read, then "online", or "offline" (mock data only). */
 export const useLiveStatus = () => useStore().live;
 /** Operations page numbers, recomputed whenever the shared data changes. */
