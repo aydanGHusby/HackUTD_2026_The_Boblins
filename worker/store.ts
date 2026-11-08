@@ -1,5 +1,6 @@
 // Where the worker reads cases and writes its output. MemoryStore backs local runs and tests;
-// SpacetimeStore talks to the loan-courtroom SpacetimeDB module over HTTP as the worker identity.
+// LoanStateStore talks to the loan app's SpacetimeDB module (spacetimedb/src/index.ts) over HTTP.
+import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type {
@@ -120,135 +121,133 @@ export class MemoryStore implements CourtStore {
 }
 
 // ---------------------------------------------------------------------------------------------
-// SpacetimeStore — UNTESTED and OUT OF DATE. It calls the per-row reducers from the original plan
-// (add_argument, set_case_status, ...). The module on backend-da instead keeps the whole loan state
-// in one loan_state row and edits it with apply_loan_ops([{op, table, ...}]), and its table list has
-// no evidence or cruxes yet. Rewrite this against apply_loan_ops before using --spacetime.
+// LoanStateStore — the loan app's SpacetimeDB design (backend-da): the whole shared state is one
+// JSON row in loan_state, changed by apply_loan_ops([{op, table, ...}]) in one transaction.
+// Two gaps in that module today: it has no company/person/collateral lists (the app takes them
+// from its mock data, so pass the same records via `nodes`), and apply_loan_ops rejects unknown
+// tables, so evidence and cruxes are kept in this process only until it accepts them.
 // ---------------------------------------------------------------------------------------------
 
-export interface SpacetimeOptions {
-  url: string; // e.g. https://maincloud.spacetimedb.com or http://localhost:3000
-  database: string;
-  token: string; // the worker identity's token (SPACETIMEDB_TOKEN)
+export interface LoanStateOptions {
+  url: string; // http://127.0.0.1:3108 (npm run db:start) or https://maincloud.spacetimedb.com
+  database: string; // fraudgraph-local or the shared maincloud name
+  token?: string; // optional; the module currently accepts anonymous calls
+  nodes: Pick<GraphData, "companies" | "people" | "collateral">;
+  actor?: string;
 }
 
-const TABLES = {
-  company: "company",
-  person: "person",
-  collateral: "collateral",
-  loan: "loan",
-  edge: "edge",
-  case: "court_case",
-  evidence: "evidence",
-  argument: "argument",
-  question: "question",
-};
+type LoanOp =
+  | { op: "append"; table: string; item: unknown }
+  | { op: "update"; table: string; key: string; value: string; patch: Record<string, unknown> }
+  | { op: "remove"; table: string; key: string; value: string };
 
-export class SpacetimeStore implements CourtStore {
-  opts: SpacetimeOptions;
+interface LoanState {
+  cases: Case[];
+  loans: GraphData["loans"];
+  edges: GraphData["edges"];
+  arguments: Argument[];
+  questions: Question[];
+  audit: AuditEvent[];
+  [table: string]: unknown;
+}
 
-  constructor(opts: SpacetimeOptions) {
+export class LoanStateStore implements CourtStore {
+  opts: LoanStateOptions;
+  // Kept here because apply_loan_ops has no evidence/cruxes tables yet.
+  localEvidence: EvidenceItem[] = [];
+  localCruxes: Crux[] = [];
+  // Database round trips, for the performance report.
+  stats = { reads: 0, writes: 0, readMs: 0, writeMs: 0 };
+  lastRevision = 0;
+
+  constructor(opts: LoanStateOptions) {
     this.opts = opts;
   }
 
-  static fromEnv(): SpacetimeStore {
-    const url = process.env.SPACETIMEDB_URL || "https://maincloud.spacetimedb.com";
-    const database = process.env.SPACETIMEDB_DATABASE;
-    const token = process.env.SPACETIMEDB_TOKEN;
-    if (!database || !token) throw new Error("SPACETIMEDB_DATABASE and SPACETIMEDB_TOKEN must be set for --spacetime");
-    return new SpacetimeStore({ url, database, token });
+  static fromEnv(nodes: LoanStateOptions["nodes"]): LoanStateStore {
+    return new LoanStateStore({
+      url: process.env.SPACETIMEDB_URL || "http://127.0.0.1:3108",
+      database: process.env.SPACETIMEDB_DATABASE || "fraudgraph-local",
+      // Ignore the old .env.example placeholder; the module accepts anonymous calls.
+      token: process.env.SPACETIMEDB_TOKEN && !process.env.SPACETIMEDB_TOKEN.endsWith("_here") ? process.env.SPACETIMEDB_TOKEN : undefined,
+      nodes,
+    });
   }
 
-  async sql(query: string): Promise<Record<string, unknown>[]> {
-    const res = await fetch(`${this.opts.url}/v1/database/${this.opts.database}/sql`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${this.opts.token}`, "Content-Type": "text/plain" },
-      body: query,
+  async request(path: string, body: string): Promise<Response> {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (this.opts.token) headers.Authorization = `Bearer ${this.opts.token}`;
+    const res = await fetch(`${this.opts.url}/v1/database/${encodeURIComponent(this.opts.database)}${path}`, {
+      method: "POST", headers, body, signal: AbortSignal.timeout(15_000),
     });
-    if (!res.ok) throw new Error(`SpacetimeDB sql ${res.status}: ${(await res.text()).slice(0, 300)}`);
-    const results = (await res.json()) as { schema: { elements: { name: unknown }[] }; rows: unknown[][] }[];
-    const first = results[0];
-    if (!first) return [];
-    const names = first.schema.elements.map((e) => camel(unwrapOption(e.name) as string));
-    return first.rows.map((row) => Object.fromEntries(row.map((v, i) => [names[i], unwrapOption(v)])));
+    if (!res.ok) throw new Error(`SpacetimeDB ${path} ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    return res;
   }
 
-  async call(reducer: string, args: unknown[]): Promise<void> {
-    const res = await fetch(`${this.opts.url}/v1/database/${this.opts.database}/call/${reducer}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${this.opts.token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(args),
-    });
-    if (!res.ok) throw new Error(`SpacetimeDB reducer ${reducer} ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  async load(): Promise<LoanState> {
+    const t = Date.now();
+    const results = (await (await this.request("/sql", "SELECT data, revision FROM loan_state")).json()) as { rows: [string, number][] }[];
+    this.stats.reads++;
+    this.stats.readMs += Date.now() - t;
+    const row = results[0]?.rows?.[0];
+    if (!row) throw new Error(`loan_state is empty in ${this.opts.database}; open the loan app once (or reset it) to seed it`);
+    this.lastRevision = row[1];
+    return JSON.parse(row[0]) as LoanState;
+  }
+
+  async apply(ops: LoanOp[]): Promise<void> {
+    const t = Date.now();
+    await this.request("/call/apply_loan_ops", JSON.stringify([`worker-${randomUUID()}`, JSON.stringify(ops)]));
+    this.stats.writes++;
+    this.stats.writeMs += Date.now() - t;
   }
 
   async getGraph(): Promise<GraphData> {
-    const [companies, people, collateral, loans, edges] = await Promise.all([
-      this.sql(`SELECT * FROM ${TABLES.company}`),
-      this.sql(`SELECT * FROM ${TABLES.person}`),
-      this.sql(`SELECT * FROM ${TABLES.collateral}`),
-      this.sql(`SELECT * FROM ${TABLES.loan}`),
-      this.sql(`SELECT * FROM ${TABLES.edge}`),
-    ]);
-    return { companies, people, collateral, loans, edges } as unknown as GraphData;
+    const s = await this.load();
+    return { ...this.opts.nodes, loans: s.loans, edges: s.edges };
   }
   async listCases(): Promise<Case[]> {
-    return (await this.sql(`SELECT * FROM ${TABLES.case}`)) as unknown as Case[];
+    return (await this.load()).cases;
   }
   async getCase(caseId: string): Promise<Case | undefined> {
     return (await this.listCases()).find((c) => c.id === caseId);
   }
   async setCaseStatus(caseId: string, status: CaseStatus): Promise<void> {
-    await this.call("set_case_status", [caseId, status]);
+    // The app shows a case as "running" while a `running` entry for it exists.
+    const ops: LoanOp[] = [
+      { op: "update", table: "cases", key: "id", value: caseId, patch: { status } },
+      { op: "remove", table: "running", key: "caseId", value: caseId },
+    ];
+    if (status === "in_trial") ops.push({ op: "append", table: "running", item: { caseId, by: this.opts.actor ?? "worker", at: new Date().toISOString() } });
+    await this.apply(ops);
   }
-  async clearCaseOutputs(_caseId: string): Promise<void> {
-    // No reducer for this in the plan; a retried trial will append next to the earlier partial rows.
+  async clearCaseOutputs(caseId: string): Promise<void> {
+    await this.apply([{ op: "remove", table: "arguments", key: "caseId", value: caseId }]);
+    this.localEvidence = this.localEvidence.filter((e) => e.caseId !== caseId);
+    this.localCruxes = this.localCruxes.filter((c) => c.caseId !== caseId);
   }
   async addEvidence(item: EvidenceItem): Promise<void> {
-    await this.call("add_evidence", [item.id, item.caseId, item.fact, item.citations]);
+    this.localEvidence.push(item);
   }
   async listEvidence(caseId: string): Promise<EvidenceItem[]> {
-    return (await this.sql(`SELECT * FROM ${TABLES.evidence} WHERE case_id = '${esc(caseId)}'`)) as unknown as EvidenceItem[];
+    return this.localEvidence.filter((e) => e.caseId === caseId);
   }
   async addArgument(arg: Argument): Promise<void> {
-    // Claims are sent as a JSON string; the module is expected to store them as-is.
-    await this.call("add_argument", [arg.id, arg.caseId, arg.side, arg.round, JSON.stringify(arg.claims)]);
+    await this.apply([{ op: "append", table: "arguments", item: arg }]);
   }
   async listArguments(caseId: string): Promise<Argument[]> {
-    const rows = await this.sql(`SELECT * FROM ${TABLES.argument} WHERE case_id = '${esc(caseId)}'`);
-    return rows.map((r) => ({
-      ...r,
-      claims: typeof r.claims === "string" ? JSON.parse(r.claims) : (r.claims ?? JSON.parse(String(r.claimsJson ?? "[]"))),
-    })) as unknown as Argument[];
+    return (await this.load()).arguments.filter((a) => a.caseId === caseId);
   }
   async setCrux(crux: Crux): Promise<void> {
-    await this.call("set_crux", [crux.caseId, crux.agreed, JSON.stringify(crux.disputed)]);
+    this.localCruxes = this.localCruxes.filter((c) => c.caseId !== crux.caseId).concat(crux);
   }
   async listQuestions(): Promise<Question[]> {
-    return (await this.sql(`SELECT * FROM ${TABLES.question}`)) as unknown as Question[];
+    return (await this.load()).questions;
   }
   async answerQuestion(questionId: string, answerId: string): Promise<void> {
-    await this.call("answer_question", [questionId, answerId]);
+    await this.apply([{ op: "update", table: "questions", key: "id", value: questionId, patch: { answerId } }]);
   }
   async logAudit(event: { caseId: string; actor: string; action: string }): Promise<void> {
-    await this.call("log_audit", [event.caseId, event.actor, event.action]);
+    await this.apply([{ op: "append", table: "audit", item: { id: `au-${randomUUID().slice(0, 8)}`, at: new Date().toISOString(), ...event } }]);
   }
 }
-
-function esc(s: string): string {
-  return s.replace(/'/g, "''");
-}
-
-function camel(s: string): string {
-  return s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
-}
-
-// SATS JSON encodes Option<T> as {"some": v} or {"none": []}.
-function unwrapOption(v: unknown): unknown {
-  if (v && typeof v === "object" && !Array.isArray(v)) {
-    if ("some" in v) return (v as { some: unknown }).some;
-    if ("none" in v) return undefined;
-  }
-  return v;
-}
-

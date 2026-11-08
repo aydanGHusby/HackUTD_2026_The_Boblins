@@ -1,11 +1,14 @@
 // Courtroom worker entry point.
 //   node worker/main.ts --local worker/fixtures/sample-court.json [--out worker/out/court.json]
 //                       [--depth opening|full] [--case CASE-01] [--no-tools]
-//   node worker/main.ts --spacetime            (polls SpacetimeDB forever as the worker identity)
+//   node worker/main.ts --spacetime [--case CASE-05] [--once]
+//       Works on the loan app's SpacetimeDB (SPACETIMEDB_URL / SPACETIMEDB_DATABASE, default local
+//       fraudgraph-local). Company/person/collateral records come from --local (default the fixture),
+//       because the module doesn't store them. Without --once it polls forever.
 import { parseArgs } from "node:util";
 import { NvidiaLLM } from "./llm.ts";
 import { CourtWorker } from "./queue.ts";
-import { MemoryStore, SpacetimeStore } from "./store.ts";
+import { LoanStateStore, MemoryStore } from "./store.ts";
 import type { CourtState } from "./store.ts";
 import type { Depth } from "./trial.ts";
 
@@ -17,6 +20,7 @@ const { values } = parseArgs({
     case: { type: "string", multiple: true },
     "no-tools": { type: "boolean", default: false },
     spacetime: { type: "boolean", default: false },
+    once: { type: "boolean", default: false },
   },
 });
 
@@ -27,12 +31,32 @@ const llm = NvidiaLLM.fromEnv(log);
 log(`model ${llm.model}, thinking ${llm.thinking ? "on" : "off"}, depth ${depth}, tools ${values["no-tools"] ? "off" : "on"}`);
 
 if (values.spacetime) {
-  const store = SpacetimeStore.fromEnv();
-  const worker = new CourtWorker({ llm, store, depth, useTools: !values["no-tools"], log });
-  const ctrl = new AbortController();
-  process.on("SIGINT", () => ctrl.abort());
-  log("polling SpacetimeDB for queued cases (Ctrl-C to stop)");
-  await worker.runForever({ signal: ctrl.signal });
+  const fixture = MemoryStore.fromFile(values.local ?? "worker/fixtures/sample-court.json").state;
+  const store = LoanStateStore.fromEnv({ companies: fixture.companies, people: fixture.people, collateral: fixture.collateral });
+  const worker = new CourtWorker({ llm, store, depth, useTools: !values["no-tools"], log, caseIds: values.case });
+  log(`SpacetimeDB ${store.opts.url} database ${store.opts.database}`);
+  if (values.once) {
+    const started = Date.now();
+    await worker.runUntilIdle();
+    const s = await store.load();
+    printReport({ ...fixture, ...s, evidence: store.localEvidence, cruxes: store.localCruxes } as CourtState, values.case);
+    const secs = (Date.now() - started) / 1000;
+    const d = store.stats;
+    console.log(`
+Performance: ${secs.toFixed(1)}s wall time, loan_state now at revision ${store.lastRevision}`);
+    console.log(`  Nemotron: ${llm.stats.requests} requests, ${(llm.stats.ms / 1000).toFixed(1)}s total, ${llm.stats.retries} retries`);
+    console.log(`  SpacetimeDB: ${d.writes} writes (avg ${(d.writeMs / Math.max(1, d.writes)).toFixed(0)}ms), ${d.reads} reads (avg ${(d.readMs / Math.max(1, d.reads)).toFixed(0)}ms), ${((d.writeMs + d.readMs) / 1000).toFixed(1)}s total`);
+    console.log(`  Kept in this process only (module has no table yet): ${store.localEvidence.length} evidence items, ${store.localCruxes.length} crux`);
+    if (worker.failures.length) {
+      console.log(`Failures:\n${worker.failures.map((f) => `  ${f.key}: ${f.error}`).join("\n")}`);
+      process.exitCode = 1;
+    }
+  } else {
+    const ctrl = new AbortController();
+    process.on("SIGINT", () => ctrl.abort());
+    log("polling SpacetimeDB for queued cases (Ctrl-C to stop)");
+    await worker.runForever({ signal: ctrl.signal });
+  }
 } else {
   if (!values.local) throw new Error("pass --local <json> or --spacetime");
   const store = MemoryStore.fromFile(values.local, values.out);
