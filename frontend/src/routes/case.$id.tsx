@@ -124,9 +124,9 @@ function CasePage() {
 
   return (
     <PresentationView active={presenting}>
-      <div className="case-classic courtroom-layout flex min-h-screen flex-col lg:h-screen lg:overflow-hidden">
+      <div className="case-classic courtroom-layout flex min-h-screen flex-col 2xl:h-screen 2xl:overflow-hidden">
         {/* Header */}
-        <header className="edge-lit flex flex-wrap items-center gap-4 border-b border-border bg-card/70 px-6 py-3 backdrop-blur-xl">
+        <header className="edge-lit flex shrink-0 flex-wrap items-center gap-4 border-b border-border bg-card/70 px-6 py-3 backdrop-blur-xl">
           <Link
             to="/cases"
             aria-label="Back to cases"
@@ -188,10 +188,10 @@ function CasePage() {
           {life && <LifecycleBar lifecycle={life} running={running} />}
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,1fr)]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 2xl:grid-cols-[minmax(0,1.7fr)_minmax(340px,1fr)]">
           {/* Left: canvas + drawer */}
-          <section className="flex min-h-0 flex-col gap-3 overflow-y-auto bg-canvas p-4">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <section className="flex min-h-0 flex-col gap-3 bg-canvas p-4 2xl:overflow-y-auto">
+            <div className="flex shrink-0 items-center justify-between text-xs text-muted-foreground">
               <span className="font-semibold text-foreground">
                 Network map · 2 hops from {c.loanId}
               </span>
@@ -206,14 +206,14 @@ function CasePage() {
                 </button>
               )}
             </div>
-            <div className="glass edge-lit overflow-hidden rounded-2xl">
+            <div className="case-network-canvas glass edge-lit shrink-0 overflow-hidden rounded-2xl">
               <GraphView
                 nodes={graph.nodes}
                 edges={graph.edges}
                 centerId={c.loanId}
                 flagged={graph.flagged}
                 highlight={highlight}
-                height={presenting ? 520 : 440}
+                height={presenting ? "clamp(520px, 68vh, 820px)" : "clamp(460px, 60vh, 720px)"}
                 referenceLabel={label}
                 onInspect={(reference) => {
                   const node = graph.nodes.find((n) => n.id === reference);
@@ -240,7 +240,7 @@ function CasePage() {
                 }}
               />
             )}
-            <div className="glass edge-lit rounded-2xl">
+            <div className="glass edge-lit shrink-0 rounded-2xl">
               <div className="flex gap-1 border-b border-border p-2">
                 {(["summary", "evidence", "history"] as const).map((d) => (
                   <button
@@ -304,7 +304,7 @@ function CasePage() {
           {/* Right: findings overview + decision */}
           <aside
             aria-label="AI findings and your decision"
-            className="courtroom-discussion flex min-h-[650px] flex-col lg:min-h-0 border-l border-border bg-card/70 backdrop-blur-xl"
+            className="courtroom-discussion flex min-h-[650px] flex-col 2xl:min-h-0 border-l border-border bg-card/70 backdrop-blur-xl"
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <h2 className="text-sm font-bold">AI findings</h2>

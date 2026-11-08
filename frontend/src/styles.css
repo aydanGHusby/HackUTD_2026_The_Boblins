@@ -818,7 +818,14 @@
 .presentation-mode .agent-messages { padding: 1.5rem; }
 .presentation-mode .agent-messages .text-sm { font-size: 1rem; line-height: 1.6; }
 .presentation-mode .courtroom-layout > header { padding-inline: 1.5rem; }
-.presentation-mode .courtroom-layout > .grid { grid-template-columns: minmax(0, 1.1fr) minmax(380px, 1fr); }
+.presentation-mode .courtroom-layout > .grid { grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr); }
 @media (max-width: 900px) {
   .presentation-mode .courtroom-layout > .grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Never flex-shrink the map into a clipped strip when the memo opens. */
+.case-network-canvas { flex: 0 0 auto; min-height: 460px; }
+@media (max-width: 1535px) {
+  .courtroom-layout { height: auto; overflow: visible; }
+  .courtroom-discussion { min-height: 0; }
 }

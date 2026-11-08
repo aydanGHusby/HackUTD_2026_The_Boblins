@@ -25,7 +25,7 @@ interface Props {
   centerId: string;
   flagged?: string[];
   highlight?: string[];
-  height?: number;
+  height?: number | string;
   onInspect?: (id: string) => void;
   referenceLabel?: (id: string) => string;
 }
@@ -47,7 +47,7 @@ const icon: Record<NodeKind, LucideIcon> = {
   collateral: Warehouse,
   loan: Landmark,
 };
-const radius = (id: string, centerId: string) => (id === centerId ? 22 : 17);
+const radius = (id: string, centerId: string) => (id === centerId ? 26 : 21);
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 function layout(nodes: GraphNode[], edges: Edge[], centerId: string) {
@@ -114,7 +114,13 @@ export function GraphView({
   // screen px -> viewBox units
   const toSvg = useCallback((clientX: number, clientY: number): Pt => {
     const r = svgRef.current!.getBoundingClientRect();
-    return { x: ((clientX - r.left) / r.width) * W, y: ((clientY - r.top) / r.height) * H };
+    // SVG meet scaling adds letterboxing when the canvas is tall or narrow.
+    // Account for it so dragging and wheel zoom still follow the pointer.
+    const scale = Math.max(0.0001, Math.min(r.width / W, r.height / H));
+    return {
+      x: (clientX - r.left - (r.width - W * scale) / 2) / scale,
+      y: (clientY - r.top - (r.height - H * scale) / 2) / scale,
+    };
   }, []);
 
   const zoomAt = useCallback((p: Pt, next: number) => {
@@ -197,7 +203,7 @@ export function GraphView({
       const r = radius(n.id, centerId);
       taken.push({ x: p.x, y: p.y, w: r * 2 + 14, h: r * 2 + 14 });
       const name = n.label.length > 26 ? n.label.slice(0, 25) + "…" : n.label;
-      taken.push({ x: p.x, y: p.y + r + 14, w: name.length * 6.3 + 8, h: 16 });
+      taken.push({ x: p.x, y: p.y + r + 14, w: name.length * 7.5 + 8, h: 16 });
     }
     const kept = new Map<string, { x: number; y: number; label: string }>();
     for (const e of edges) {
@@ -212,7 +218,7 @@ export function GraphView({
         (!!selected && (e.from === selected || e.to === selected));
       if (!on) continue;
       const label = e.detail === CLERK_FOUND ? "same address · found by clerk" : humanize(e.kind);
-      const box = (x: number, y: number): Box => ({ x, y, w: label.length * 6.3 + 10, h: 15 });
+      const box = (x: number, y: number): Box => ({ x, y, w: label.length * 7.5 + 10, h: 15 });
       const dx = b.x - a.x,
         dy = b.y - a.y,
         len = Math.hypot(dx, dy) || 1;
@@ -228,7 +234,7 @@ export function GraphView({
 
   const canvas = (
     <div
-      className="relative w-full overflow-hidden rounded-md bg-canvas"
+      className="relative w-full shrink-0 overflow-hidden rounded-md bg-canvas"
       style={{ height: expanded ? "calc(100dvh - 6rem)" : height }}
     >
       <svg
@@ -440,14 +446,14 @@ export function GraphView({
                   textAnchor="middle"
                   strokeWidth={4}
                   strokeLinejoin="round"
-                  className="pointer-events-none fill-canvas stroke-canvas text-[11px] font-medium"
+                  className="pointer-events-none fill-canvas stroke-canvas text-[13px] font-medium"
                 >
                   {n.label.length > 26 ? n.label.slice(0, 25) + "…" : n.label}
                 </text>
                 <text
                   y={r + 14}
                   textAnchor="middle"
-                  className="pointer-events-none fill-foreground text-[11px] font-medium"
+                  className="pointer-events-none fill-foreground text-[13px] font-medium"
                 >
                   {n.label.length > 26 ? n.label.slice(0, 25) + "…" : n.label}
                 </text>
@@ -464,7 +470,7 @@ export function GraphView({
                   textAnchor="middle"
                   strokeWidth={5}
                   strokeLinejoin="round"
-                  className="fill-canvas stroke-canvas text-[11px] font-medium"
+                  className="fill-canvas stroke-canvas text-[13px] font-medium"
                 >
                   {l.label}
                 </text>
@@ -472,7 +478,7 @@ export function GraphView({
                   x={l.x}
                   y={l.y}
                   textAnchor="middle"
-                  className="fill-foreground/90 text-[11px] font-medium"
+                  className="fill-foreground/90 text-[13px] font-medium"
                 >
                   {l.label}
                 </text>
