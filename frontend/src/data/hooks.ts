@@ -1,27 +1,94 @@
-// Every component reads data through these hooks. Today they read an in-memory mock store;
-// at the SpacetimeDB handoff only this file (and actions below) changes.
+// Every component reads data through these hooks. The live collections sync with SpacetimeDB
+// (src/data/spacetime.ts); with no database running, the app falls back to the mock data.
 import { useSyncExternalStore } from "react";
 import * as mock from "@/mock/mockData";
 import { argueFn, type CaseFile } from "@/agents/trial";
+import { applyLoanOps, loadLoanState, resetLoanState } from "@/data/spacetime";
 import type {
   Argument, AuditEvent, Case, Claim, Decision, GraphNode, Note, Question, Round, Side, SignOff, Verdict, Edge, Loan,
 } from "@/shared/types";
 
-type Store = {
+type Shared = {
   cases: Case[]; loans: Loan[]; edges: Edge[]; arguments: Argument[]; questions: Question[];
   verdicts: Verdict[]; notes: Note[]; audit: AuditEvent[]; signOffs: SignOff[];
-  trials: Record<string, "running" | string>; // caseId → running, or the last error message
+};
+type Store = Shared & {
+  trials: Record<string, "running" | string>; // local only: caseId → running, or the last error message
 };
 
-let store: Store = {
+const seed = (): Shared => ({
   cases: [...mock.cases], loans: [...mock.loans], edges: [...mock.edges],
   arguments: [...mock.argumentsList], questions: [...mock.questions], verdicts: [...mock.verdicts],
-  notes: [...mock.notes], audit: [...mock.audit], signOffs: [], trials: {},
-};
+  notes: [...mock.notes], audit: [...mock.audit], signOffs: [],
+});
+let store: Store = { ...seed(), trials: {} };
 const listeners = new Set<() => void>();
-const subscribe = (l: () => void) => { listeners.add(l); return () => listeners.delete(l); };
+const subscribe = (l: () => void) => { listeners.add(l); startSync(); return () => listeners.delete(l); };
 const set = (patch: Partial<Store>) => { store = { ...store, ...patch }; listeners.forEach((l) => l()); };
 const useStore = () => useSyncExternalStore(subscribe, () => store, () => store);
+
+// ---- writes: small edits, applied here at once and in SpacetimeDB in one transaction ----
+type Table = keyof Shared;
+type Op =
+  | { op: "append"; table: Table; item: object }
+  | { op: "update"; table: Table; key: string; value: string; patch: object }
+  | { op: "remove"; table: Table; key: string; value: string };
+
+function applyOps(s: Store, ops: Op[]): Store {
+  const next: Store = { ...s };
+  for (const o of ops) {
+    const list = next[o.table] as unknown as Record<string, unknown>[];
+    (next as Record<Table, unknown>)[o.table] =
+      o.op === "append" ? [...list, o.item]
+      : o.op === "update" ? list.map((x) => (x[o.key] === o.value ? { ...x, ...o.patch } : x))
+      : list.filter((x) => x[o.key] !== o.value);
+  }
+  return next;
+}
+
+const sync = { started: false, online: false, revision: -1, pending: 0, busy: false };
+
+function commit(...ops: Op[]) {
+  store = applyOps(store, ops);
+  listeners.forEach((l) => l());
+  if (!sync.online) return;
+  sync.pending++;
+  applyLoanOps({ data: { actionId: uid("act"), ops: JSON.stringify(ops) } })
+    .catch((err) => console.error("[sync] write failed", err))
+    .finally(() => { sync.pending--; void refresh(); });
+}
+
+// ---- reads: poll the shared snapshot once a second (same approach as the root app's bridge) ----
+async function refresh() {
+  if (sync.busy || sync.pending) return;
+  sync.busy = true;
+  try {
+    const res = await loadLoanState();
+    if (res.status === "offline") { sync.online = false; return; }
+    if (res.status === "empty") { await resetLoanState({ data: JSON.stringify(seed()) }); sync.revision = -1; return; }
+    sync.online = true;
+    if (res.revision !== sync.revision && !sync.pending) {
+      sync.revision = res.revision;
+      set(JSON.parse(res.data) as Shared);
+    }
+  } catch (err) {
+    console.error("[sync] read failed", err);
+  } finally {
+    sync.busy = false;
+  }
+}
+function startSync() {
+  if (sync.started || typeof window === "undefined") return;
+  sync.started = true;
+  void refresh();
+  setInterval(() => void refresh(), 1000);
+}
+
+/** Put the shared demo data back to the starting cases (for judging). */
+export async function resetDemo() {
+  set({ ...seed(), trials: {} });
+  if (sync.online) { await resetLoanState({ data: JSON.stringify(seed()) }); sync.revision = -1; await refresh(); }
+}
 
 const now = () => new Date().toISOString();
 const uid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 8)}`;
@@ -91,30 +158,31 @@ export function useEscalations() {
 }
 export const useIntakeOptions = () => ({ companies: mock.companies, people: mock.people, collateral: mock.collateral });
 
-// ---- actions (become reducer calls) ----
+// ---- actions ----
 export function submitVerdict(caseId: string, analyst: string, decision: Decision, reasoning: string) {
-  const loanId = store.cases.find((c) => c.id === caseId)?.loanId;
+  const loanId = store.cases.find((c) => c.id === caseId)?.loanId ?? "";
   const loanStatus: Loan["status"] = decision === "fraud" ? "declined" : decision === "not_fraud" ? "approved" : "escalated";
-  set({
-    verdicts: [...store.verdicts.filter((v) => v.caseId !== caseId), { caseId, analyst, decision, reasoning, decidedAt: now() }],
-    cases: store.cases.map((c) => (c.id === caseId ? { ...c, status: "decided" } : c)),
-    loans: store.loans.map((l) => (l.id === loanId ? { ...l, status: loanStatus } : l)),
-    audit: [...store.audit, log(caseId, analyst, `verdict: ${decision}`)],
-  });
+  commit(
+    { op: "remove", table: "verdicts", key: "caseId", value: caseId },
+    { op: "append", table: "verdicts", item: { caseId, analyst, decision, reasoning, decidedAt: now() } },
+    { op: "update", table: "cases", key: "id", value: caseId, patch: { status: "decided" } },
+    { op: "update", table: "loans", key: "id", value: loanId, patch: { status: loanStatus } },
+    { op: "append", table: "audit", item: log(caseId, analyst, `verdict: ${decision}`) },
+  );
 }
 export async function askQuestion(caseId: string, askedBy: string, to: Side, text: string) {
   const qid = uid("q");
-  set({
-    questions: [...store.questions, { id: qid, caseId, askedBy, to, text }],
-    audit: [...store.audit, log(caseId, askedBy, `asked ${to} a question`)],
-  });
+  commit(
+    { op: "append", table: "questions", item: { id: qid, caseId, askedBy, to, text } },
+    { op: "append", table: "audit", item: log(caseId, askedBy, `asked ${to} a question`) },
+  );
   const file = caseFile(caseId);
   if (!file) return;
   try {
     const arg = await argueAndRecord(caseId, to, "answer", { file, question: text });
-    set({ questions: store.questions.map((q) => (q.id === qid ? { ...q, answerId: arg.id } : q)) });
+    commit({ op: "update", table: "questions", key: "id", value: qid, patch: { answerId: arg.id } });
   } catch (err) {
-    set({ audit: [...store.audit, log(caseId, agentActor[to], `could not answer: ${(err as Error).message}`)] });
+    commit({ op: "append", table: "audit", item: log(caseId, agentActor[to], `could not answer: ${(err as Error).message}`) });
   }
 }
 
@@ -132,24 +200,29 @@ function caseFile(caseId: string): CaseFile | undefined {
 async function argueAndRecord(caseId: string, side: Side, round: Round, extra: { file: CaseFile; opponent?: Claim[]; question?: string }) {
   const result = await argueFn({ data: { side, round, ...extra } });
   const arg: Argument = { id: uid("a"), caseId, side, round, claims: result.claims, createdAt: now() };
-  const events = [log(caseId, agentActor[side], `${round} argument (${result.toolCalls} tool calls)`)];
+  const ops: Op[] = [
+    { op: "append", table: "arguments", item: arg },
+    { op: "append", table: "audit", item: log(caseId, agentActor[side], `${round} argument (${result.toolCalls} tool calls)`) },
+  ];
   if (result.rejected) {
     const missing = result.claims.filter((c) => !c.verified).flatMap((c) => c.citations);
-    events.push(log(caseId, "citation_checker", `rejected ${result.rejected} claim${result.rejected > 1 ? "s" : ""} (unknown ids: ${missing.join(", ") || "none cited"})`));
+    ops.push({ op: "append", table: "audit", item: log(caseId, "citation_checker", `rejected ${result.rejected} claim${result.rejected > 1 ? "s" : ""} (unknown ids: ${missing.join(", ") || "none cited"})`) });
   }
-  set({ arguments: [...store.arguments, arg], audit: [...store.audit, ...events] });
+  commit(...ops);
   return arg;
 }
+
+const setCaseStatus = (caseId: string, status: Case["status"]): Op => ({ op: "update", table: "cases", key: "id", value: caseId, patch: { status } });
 
 export async function runTrial(caseId: string, actor: string) {
   const file = caseFile(caseId);
   if (!file || store.trials[caseId] === "running") return;
-  set({
-    trials: { ...store.trials, [caseId]: "running" },
-    arguments: store.arguments.filter((a) => a.caseId !== caseId),
-    cases: store.cases.map((c) => (c.id === caseId ? { ...c, status: "in_trial" } : c)),
-    audit: [...store.audit, log(caseId, actor, "started a trial")],
-  });
+  set({ trials: { ...store.trials, [caseId]: "running" } });
+  commit(
+    { op: "remove", table: "arguments", key: "caseId", value: caseId },
+    setCaseStatus(caseId, "in_trial"),
+    { op: "append", table: "audit", item: log(caseId, actor, "started a trial") },
+  );
   try {
     const [pro, def] = await Promise.all([
       argueAndRecord(caseId, "prosecution", "opening", { file }),
@@ -161,27 +234,25 @@ export async function runTrial(caseId: string, actor: string) {
       argueAndRecord(caseId, "defense", "rebuttal", { file, opponent: verified(pro) }),
     ]);
     const { [caseId]: _, ...rest } = store.trials;
-    set({ trials: rest, cases: store.cases.map((c) => (c.id === caseId ? { ...c, status: "awaiting_verdict" } : c)) });
+    set({ trials: rest });
+    commit(setCaseStatus(caseId, "awaiting_verdict"));
   } catch (err) {
     const message = (err as Error).message;
-    set({
-      trials: { ...store.trials, [caseId]: message },
-      cases: store.cases.map((c) => (c.id === caseId ? { ...c, status: "queued" } : c)),
-      audit: [...store.audit, log(caseId, "trial", `stopped: ${message}`)],
-    });
+    set({ trials: { ...store.trials, [caseId]: message } });
+    commit(setCaseStatus(caseId, "queued"), { op: "append", table: "audit", item: log(caseId, "trial", `stopped: ${message}`) });
   }
 }
 export function addNote(caseId: string, author: string, text: string) {
-  set({
-    notes: [...store.notes, { id: uid("n"), caseId, author, text, at: now() }],
-    audit: [...store.audit, log(caseId, author, "added a note")],
-  });
+  commit(
+    { op: "append", table: "notes", item: { id: uid("n"), caseId, author, text, at: now() } },
+    { op: "append", table: "audit", item: log(caseId, author, "added a note") },
+  );
 }
 export function signOff(caseId: string, reviewer: string, decision: "fraud" | "not_fraud", reasoning: string) {
-  set({
-    signOffs: [...store.signOffs, { caseId, reviewer, decision, reasoning, at: now() }],
-    audit: [...store.audit, log(caseId, reviewer, `senior sign-off: ${decision}`)],
-  });
+  commit(
+    { op: "append", table: "signOffs", item: { caseId, reviewer, decision, reasoning, at: now() } },
+    { op: "append", table: "audit", item: log(caseId, reviewer, `senior sign-off: ${decision}`) },
+  );
 }
 export function submitLoan(input: { borrowerId: string; amount: number; purpose: string; collateralIds: string[]; guarantorIds: string[] }, actor: string) {
   const loanId = `L-${1000 + store.loans.length + 1}`;
@@ -198,13 +269,18 @@ export function submitLoan(input: { borrowerId: string; amount: number; purpose:
   if (borrower && input.amount > borrower.annualRevenue * 3) triggers.push("amount_vs_revenue");
   const riskScore = Math.min(100, 20 + triggers.length * 30);
   const loan: Loan = { id: loanId, borrowerId: input.borrowerId, amount: input.amount, purpose: input.purpose, createdOn: now().slice(0, 10), status: triggers.length ? "under_review" : "approved" };
-  const patch: Partial<Store> = { loans: [...store.loans, loan], edges: [...store.edges, ...newEdges] };
+  const ops: Op[] = [
+    { op: "append", table: "loans", item: loan },
+    ...newEdges.map((item): Op => ({ op: "append", table: "edges", item })),
+  ];
   let caseId: string | undefined;
   if (triggers.length) {
     caseId = `CASE-${String(store.cases.length + 1).padStart(2, "0")}`;
-    patch.cases = [...store.cases, { id: caseId, loanId, riskScore, triggers, status: "queued" }];
-    patch.audit = [...store.audit, log(caseId, actor, `submitted loan ${loanId}; risk rules opened case (score ${riskScore})`)];
+    ops.push(
+      { op: "append", table: "cases", item: { id: caseId, loanId, riskScore, triggers, status: "queued" } },
+      { op: "append", table: "audit", item: log(caseId, actor, `submitted loan ${loanId}; risk rules opened case (score ${riskScore})`) },
+    );
   }
-  set(patch);
+  commit(...ops);
   return { loanId, caseId, triggers };
 }

@@ -5,6 +5,8 @@ import seed from './seed.json';
 const spacetimedb = schema({
   dashboard: table({ public: true }, { id: t.string().primaryKey(), data: t.string(), revision: t.u32() }),
   appliedAction: table({ public: false }, { id: t.string().primaryKey() }),
+  // Loan courtroom app (frontend/): one shared snapshot of the live collections in frontend/src/data/hooks.ts.
+  loanState: table({ public: true }, { id: t.string().primaryKey(), data: t.string(), revision: t.u32() }),
 });
 export default spacetimedb;
 export const init = spacetimedb.init(ctx => {
@@ -68,5 +70,41 @@ export const applyAction = spacetimedb.reducer({ actionId: t.string(), kind: t.s
   s.activityFeed.unshift({ id: args.actionId, user: author, action: description, time });
   s.activityFeed = s.activityFeed.slice(0, 100);
   ctx.db.dashboard.id.update({ ...row, data: JSON.stringify(s), revision: row.revision + 1 });
+  ctx.db.appliedAction.insert({ id: args.actionId });
+});
+
+// ---- Loan courtroom app ----
+// Small edits applied in one transaction, so two analysts writing at once never overwrite each other.
+const LOAN_TABLES = ['cases', 'loans', 'edges', 'arguments', 'questions', 'verdicts', 'notes', 'audit', 'signOffs'];
+type LoanOp =
+  | { op: 'append'; table: string; item: any }
+  | { op: 'update'; table: string; key: string; value: string; patch: any }
+  | { op: 'remove'; table: string; key: string; value: string };
+
+export const resetLoans = spacetimedb.reducer({ data: t.string() }, (ctx, { data }) => {
+  if (data.length > 500000) throw new Error('Seed too large');
+  const parsed = JSON.parse(data);
+  for (const name of LOAN_TABLES) if (!Array.isArray(parsed[name])) throw new Error('Seed missing ' + name);
+  const row = ctx.db.loanState.id.find('main');
+  if (row) ctx.db.loanState.id.update({ ...row, data, revision: row.revision + 1 });
+  else ctx.db.loanState.insert({ id: 'main', data, revision: 1 });
+});
+
+export const applyLoanOps = spacetimedb.reducer({ actionId: t.string(), ops: t.string() }, (ctx, args) => {
+  if (ctx.db.appliedAction.id.find(args.actionId)) return;
+  if (args.ops.length > 100000) throw new Error('Action too large');
+  const row = ctx.db.loanState.id.find('main');
+  if (!row) throw new Error('Loan state not initialized');
+  const s = JSON.parse(row.data);
+  for (const op of JSON.parse(args.ops) as LoanOp[]) {
+    if (!LOAN_TABLES.includes(op.table)) throw new Error('Unknown table ' + op.table);
+    const list: any[] = s[op.table];
+    if (op.op === 'append') list.push(op.item);
+    else if (op.op === 'update') s[op.table] = list.map(x => (x[op.key] === op.value ? { ...x, ...op.patch } : x));
+    else if (op.op === 'remove') s[op.table] = list.filter(x => x[op.key] !== op.value);
+    else throw new Error('Unsupported op');
+  }
+  s.audit = s.audit.slice(-500);
+  ctx.db.loanState.id.update({ ...row, data: JSON.stringify(s), revision: row.revision + 1 });
   ctx.db.appliedAction.insert({ id: args.actionId });
 });
