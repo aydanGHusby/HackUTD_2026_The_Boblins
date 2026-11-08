@@ -5,6 +5,7 @@ import * as mock from "@/mock/mockData";
 import { argueFn, type CaseFile } from "@/agents/trial";
 import { applyLoanOps, loadLoanState, resetLoanState } from "@/data/spacetime";
 import { lifecycle, type Lifecycle } from "@/lib/lifecycle";
+import { computeOpsMetrics } from "@/lib/ops";
 import type {
   Argument, AuditEvent, Case, Claim, Crux, Decision, EvidenceItem, GraphNode, LoanStage, Note, Question, Round, Side, SignOff, Verdict, Edge, Loan,
 } from "@/shared/types";
@@ -20,6 +21,8 @@ type Shared = {
 };
 type Store = Shared & {
   trialErrors: Record<string, string>; // local only: caseId → last error message
+  // local only: until the first read answers, the store holds the mock seed, not the shared data.
+  live: "connecting" | "online" | "offline";
 };
 
 const seed = (): Shared => ({
@@ -27,7 +30,7 @@ const seed = (): Shared => ({
   arguments: [...mock.argumentsList], questions: [...mock.questions], verdicts: [...mock.verdicts],
   notes: [...mock.notes], audit: [...mock.audit], signOffs: [], presence: [], running: [],
 });
-let store: Store = { ...seed(), trialErrors: {} };
+let store: Store = { ...seed(), trialErrors: {}, live: "connecting" };
 const listeners = new Set<() => void>();
 const subscribe = (l: () => void) => { listeners.add(l); startSync(); return () => listeners.delete(l); };
 const set = (patch: Partial<Store>) => { store = { ...store, ...patch }; listeners.forEach((l) => l()); };
@@ -77,7 +80,11 @@ async function refresh() {
   sync.busy = true;
   try {
     const res = await loadLoanState();
-    if (res.status === "offline") { sync.online = false; sync.checked = true; sync.queued = []; return; }
+    if (res.status === "offline") {
+      sync.online = false; sync.checked = true; sync.queued = [];
+      if (store.live !== "offline") set({ live: "offline" });
+      return;
+    }
     if (res.status === "empty") { await resetLoanState({ data: JSON.stringify(seed()) }); sync.revision = -1; return; }
     sync.online = true;
     if (!sync.checked) {
@@ -88,7 +95,7 @@ async function refresh() {
     }
     if (res.revision !== sync.revision && !sync.pending) {
       sync.revision = res.revision;
-      set({ presence: [], running: [], ...(JSON.parse(res.data) as Partial<Shared>) });
+      set({ presence: [], running: [], ...(JSON.parse(res.data) as Partial<Shared>), live: "online" });
     }
   } catch (err) {
     console.error("[sync] read failed", err);
@@ -221,6 +228,13 @@ export function useEscalations() {
       const loan = s.loans.find((l) => l.id === c.loanId);
       return { verdict: v, case: c, loan, borrower: borrowerName(loan) };
     });
+}
+/** "connecting" until the first database read, then "online", or "offline" (mock data only). */
+export const useLiveStatus = () => useStore().live;
+/** Operations page numbers, recomputed whenever the shared data changes. */
+export function useOpsMetrics() {
+  const s = useStore();
+  return computeOpsMetrics(s);
 }
 export const useIntakeOptions = () => ({ companies: mock.companies, people: mock.people, collateral: mock.collateral });
 

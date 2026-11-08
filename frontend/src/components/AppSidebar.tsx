@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutGrid, FilePlus2, ArrowUpCircle, Network, Moon, Sun } from "lucide-react";
+import { LayoutGrid, FilePlus2, ArrowUpCircle, Gauge, Network, Moon, Sun } from "lucide-react";
 import { setIdentity, useIdentity } from "@/data/identity";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ const nav = [
   { to: "/cases", label: "Cases", icon: LayoutGrid },
   { to: "/intake", label: "New loan", icon: FilePlus2 },
   { to: "/escalations", label: "Escalations", icon: ArrowUpCircle },
+  { to: "/ops", label: "Operations", icon: Gauge },
 ] as const;
 
 export function AppSidebar() {
