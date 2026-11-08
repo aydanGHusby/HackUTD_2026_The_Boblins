@@ -127,6 +127,6 @@ const pollTimer = setInterval(async () => {
 }, 1000);
 server.on('close', () => clearInterval(pollTimer));
 server.listen(PORT, HOST, () => {
-  console.log(`FraudGraph running at http://${HOST}:${PORT}`);
+  console.log(`Paper Trail running at http://${HOST}:${PORT}`);
   console.log(`Powered by NVIDIA Nemotron & SpacetimeDB Real-time Sync`);
 });

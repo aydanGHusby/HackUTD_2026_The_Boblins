@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "FraudGraph · See the network behind the loan" },
-      { name: "description", content: "FraudGraph flags commercial loans with network problems, lets two agents argue both sides, and leaves the decision to a person with the evidence in front of them." },
-      { property: "og:title", content: "FraudGraph · See the network behind the loan" },
+      { title: "Paper Trail · See the network behind the loan" },
+      { name: "description", content: "Paper Trail flags commercial loans with network problems, lets two agents argue both sides, and leaves the decision to a person with the evidence in front of them." },
+      { property: "og:title", content: "Paper Trail · See the network behind the loan" },
       { property: "og:description", content: "Risk rules flag the loan, two agents argue both sides, you decide with the evidence in front of you." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -42,7 +42,7 @@ function Landing() {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-candy text-on-candy glow-candy">
             <NetworkMark />
           </span>
-          Fraud<span className="text-sky">Graph</span>
+          Paper <span className="text-sky">Trail</span>
         </div>
         <Link to="/cases" className="text-sm font-semibold text-muted-foreground hover:text-foreground">
           Open cases
@@ -57,7 +57,7 @@ function Landing() {
           </h1>
           <p className="mt-5 text-base leading-relaxed text-muted-foreground">
             A flagged loan is rarely one bad borrower. It is a shared address, a warehouse pledged twice,
-            the same director on two companies. FraudGraph lays the whole network on the table, has two
+            the same director on two companies. Paper Trail lays the whole network on the table, has two
             agents argue both sides of it, and hands you the decision with the evidence still visible.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -101,7 +101,7 @@ function Landing() {
       </section>
 
       <footer className="mt-auto flex flex-wrap items-center gap-3 border-t border-border pt-5 text-xs text-muted-foreground">
-        <span>FraudGraph · every decision is logged with the analyst who made it and the reason they gave.</span>
+        <span>Paper Trail · every decision is logged with the analyst who made it and the reason they gave.</span>
         <Link to="/cases" className="ml-auto inline-flex items-center gap-1 font-semibold text-foreground hover:text-sky">
           Open cases <ArrowRight className="h-3.5 w-3.5" />
         </Link>
