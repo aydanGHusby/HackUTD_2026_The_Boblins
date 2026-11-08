@@ -1,0 +1,244 @@
+/*
+ * Tailwind v4 entry. Keep every @import in this top block. Load web fonts via <link> in __root.tsx.
+ */
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-ocean: var(--ocean);
+  --color-ocean-soft: var(--ocean-soft);
+  --color-sky: var(--sky);
+  --color-sky-soft: var(--sky-soft);
+  --color-candy: var(--candy);
+  --color-candy-strong: var(--candy-strong);
+  --color-candy-soft: var(--candy-soft);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-on-candy: var(--on-candy);
+  --color-on-sky: var(--on-sky);
+  --color-canvas: var(--canvas);
+  --color-glow-ocean: var(--glow-ocean);
+  --color-glow-candy: var(--glow-candy);
+  --color-node-company: var(--node-company);
+  --color-node-person: var(--node-person);
+  --color-node-collateral: var(--node-collateral);
+  --color-node-loan: var(--node-loan);
+  --color-chart-1: var(--ocean);
+  --color-chart-2: var(--sky);
+  --color-chart-3: var(--candy);
+  --color-chart-4: var(--success);
+  --color-chart-5: var(--warning);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-panel: var(--sidebar-panel);
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+:root {
+  --radius: 0.75rem;
+  color-scheme: light;
+
+  /* Brand palette */
+  --ocean: oklch(0.47 0.13 248);        /* ocean blue */
+  --ocean-soft: oklch(0.95 0.025 245);
+  --sky: oklch(0.8 0.1 228);            /* sky blue */
+  --sky-soft: oklch(0.96 0.03 228);
+  --candy: oklch(0.86 0.08 350);        /* cotton candy pink */
+  --candy-strong: oklch(0.53 0.19 355);
+  --candy-soft: oklch(0.965 0.032 350);
+  --success: oklch(0.65 0.13 165);
+  --warning: oklch(0.76 0.13 70);
+
+  /* Glow lights behind glass panels */
+  --glow-ocean: oklch(0.55 0.19 250);
+  --glow-candy: oklch(0.72 0.17 350);
+
+  /* Text placed directly on the pink / sky fills */
+  --on-candy: oklch(0.24 0.04 252);
+  --on-sky: oklch(0.24 0.04 252);
+
+  /* Network map fills (mid-tone so the white letter reads) */
+  --node-company: var(--ocean);
+  --node-person: var(--candy-strong);
+  --node-collateral: var(--success);
+  --node-loan: var(--warning);
+
+  --background: oklch(0.985 0.006 240);
+  --foreground: oklch(0.24 0.04 252);
+  --card: oklch(1 0 0 / 0.88);
+  --card-foreground: oklch(0.24 0.04 252);
+  --popover: oklch(1 0 0 / 0.96);
+  --popover-foreground: oklch(0.24 0.04 252);
+  --primary: var(--ocean);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: var(--sky-soft);
+  --secondary-foreground: var(--ocean);
+  --muted: oklch(0.965 0.01 240 / 0.85);
+  --muted-foreground: oklch(0.46 0.035 252);
+  --accent: var(--sky-soft);
+  --accent-foreground: var(--ocean);
+  --destructive: var(--candy-strong);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.45 0.05 250 / 0.16);
+  --input: oklch(0.45 0.05 250 / 0.24);
+  --ring: var(--sky);
+  --canvas: oklch(0.975 0.012 235);
+
+  --sidebar: var(--ocean);
+  --sidebar-foreground: oklch(0.96 0.02 230);
+  --sidebar-primary: var(--sky);
+  --sidebar-primary-foreground: var(--ocean);
+  --sidebar-accent: oklch(0.54 0.12 246);
+  --sidebar-accent-foreground: oklch(0.99 0 0);
+  --sidebar-border: oklch(0.55 0.11 246);
+  --sidebar-ring: var(--sky);
+  --sidebar-panel: oklch(0.99 0.01 240 / 0.16);
+
+  --shadow-glass: 0 1px 0 oklch(1 0 0 / 45%) inset, 0 1px 2px oklch(0.47 0.13 248 / 8%), 0 18px 40px -22px oklch(0.47 0.13 248 / 30%);
+  --shadow-card: var(--shadow-glass);
+  --shadow-glow-ocean: 0 0 0 1px oklch(0.55 0.19 250 / 35%), 0 8px 30px -6px oklch(0.55 0.19 250 / 45%);
+  --shadow-glow-candy: 0 0 0 1px oklch(0.72 0.17 350 / 40%), 0 8px 30px -6px oklch(0.72 0.17 350 / 45%);
+}
+
+/* Dark theme: obsidian glass lit by ocean and cotton candy, same hues as the light set. */
+.dark {
+  color-scheme: dark;
+
+  --ocean: oklch(0.76 0.12 232);
+  --ocean-soft: oklch(0.28 0.07 252);
+  --sky: oklch(0.82 0.11 218);
+  --sky-soft: oklch(0.27 0.07 238);
+  --candy: oklch(0.8 0.13 350);
+  --candy-strong: oklch(0.84 0.12 352);
+  --candy-soft: oklch(0.28 0.08 350);
+  --success: oklch(0.78 0.14 165);
+  --warning: oklch(0.84 0.12 80);
+
+  --glow-ocean: oklch(0.62 0.22 252);
+  --glow-candy: oklch(0.74 0.2 350);
+
+  --on-candy: oklch(0.22 0.07 350);
+  --on-sky: oklch(0.22 0.05 240);
+
+  --node-company: oklch(0.52 0.15 252);
+  --node-person: oklch(0.56 0.19 355);
+  --node-collateral: oklch(0.54 0.14 165);
+  --node-loan: oklch(0.62 0.13 72);
+
+  --background: oklch(0.145 0.022 268);
+  --foreground: oklch(0.96 0.01 250);
+  --card: oklch(0.215 0.035 272 / 0.7);
+  --card-foreground: oklch(0.96 0.01 250);
+  --popover: oklch(0.225 0.035 272 / 0.92);
+  --popover-foreground: oklch(0.96 0.01 250);
+  --primary: oklch(0.55 0.19 252);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.3 0.05 260 / 0.75);
+  --secondary-foreground: oklch(0.9 0.05 225);
+  --muted: oklch(0.28 0.032 270 / 0.75);
+  --muted-foreground: oklch(0.83 0.022 250);
+  --accent: oklch(0.33 0.06 250 / 0.8);
+  --accent-foreground: oklch(0.97 0.02 230);
+  --destructive: oklch(0.62 0.19 350);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.88 0.03 260 / 0.14);
+  --input: oklch(0.88 0.03 260 / 0.22);
+  --ring: oklch(0.76 0.13 232);
+  --canvas: oklch(0.11 0.018 268);
+
+  --sidebar: oklch(0.175 0.03 270);
+  --sidebar-foreground: oklch(0.92 0.015 240);
+  --sidebar-primary: var(--sky);
+  --sidebar-primary-foreground: oklch(0.22 0.05 240);
+  --sidebar-accent: oklch(0.3 0.06 258 / 0.85);
+  --sidebar-accent-foreground: oklch(0.98 0.01 235);
+  --sidebar-border: oklch(0.88 0.03 260 / 0.12);
+  --sidebar-ring: var(--sky);
+  --sidebar-panel: oklch(0.98 0.02 240 / 0.07);
+
+  --shadow-glass: 0 1px 0 oklch(1 0 0 / 7%) inset, 0 1px 2px oklch(0 0 0 / 40%), 0 22px 50px -24px oklch(0 0 0 / 80%);
+  --shadow-card: var(--shadow-glass);
+  --shadow-glow-ocean: 0 0 0 1px oklch(0.62 0.22 252 / 45%), 0 10px 40px -8px oklch(0.62 0.22 252 / 55%);
+  --shadow-glow-candy: 0 0 0 1px oklch(0.74 0.2 350 / 50%), 0 10px 40px -8px oklch(0.74 0.2 350 / 55%);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+}
+
+/* Frosted panel: translucent fill, hairline edge, lit top line. */
+@utility glass {
+  background-color: var(--card);
+  backdrop-filter: blur(16px) saturate(1.35);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-glass);
+}
+
+@utility edge-lit {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--glow-ocean) 35%, var(--glow-candy) 65%, transparent);
+    opacity: 0.55;
+  }
+}
+
+@utility glow-ocean { box-shadow: var(--shadow-glow-ocean); }
+@utility glow-candy { box-shadow: var(--shadow-glow-candy); }
+
+/* Neon halo for strokes and glyphs on the map. */
+@utility halo-ocean { filter: drop-shadow(0 0 6px var(--glow-ocean)); }
+@utility halo-candy { filter: drop-shadow(0 0 6px var(--glow-candy)); }
+
+@utility shadow-card { box-shadow: var(--shadow-card); }
+@keyframes graph-flow { to { stroke-dashoffset: -28; } }
+@keyframes graph-pulse { 50% { opacity: 0.35; } }
+@keyframes msg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@utility graph-flow { animation: graph-flow 1.2s linear infinite; }
+@utility graph-pulse { animation: graph-pulse 1.4s ease-in-out infinite; }
+@utility msg-in { animation: msg-in 0.25s ease-out both; }
