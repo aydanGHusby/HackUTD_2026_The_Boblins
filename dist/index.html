@@ -917,7 +917,7 @@
 
     <div class="realtime-pill">
       <div class="pulse-dot"></div>
-      <span id="realtimeStatus">SpacetimeDB: Synchronized (3 Analysts Live)</span>
+      <span id="realtimeStatus">Connecting to SpacetimeDB…</span>
     </div>
 
     <div class="nav-controls">
@@ -944,9 +944,7 @@
       </button>
 
       <div class="analysts-group" title="Active SpacetimeDB Analysts">
-        <div class="avatar sarah" title="Sarah Jenkins (You) - Lead Fraud Investigator">SJ<div class="avatar-online"></div></div>
-        <div class="avatar elena" title="Elena Rostova - Senior Forensic Analyst">ER<div class="avatar-online"></div></div>
-        <div class="avatar marcus" title="Marcus Vance - AML Compliance">MV<div class="avatar-online"></div></div>
+        <span class="tag">Shared local demo</span>
       </div>
     </div>
   </header>
@@ -1061,7 +1059,7 @@
           <button id="tabInvestigation" class="inspector-tab active" onclick="switchTab('investigation')">Forensics &amp; Prediction</button>
           <button id="tabCollab" class="inspector-tab" onclick="switchTab('collab')">SpacetimeDB Stream</button>
         </div>
-        <span id="analystPresencePill" style="font-size:11px; color:#38bdf8;">Investigator: Sarah J.</span>
+        <span id="analystPresencePill" style="font-size:11px; color:#38bdf8;">Shared case workspace</span>
       </div>
 
       <div id="inspectorContent" class="inspector-content">
@@ -1293,34 +1291,13 @@
       ]
     };
 
-    // Prepopulate Sarah's default initial investigation for ACC-8492
-    state.investigations['ACC-8492'] = `**1) Detection Summary**
-Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-velocity aggregation from retail accounts followed by an immediate offshore wire to a crypto gateway.
-
-**2) Identified Fraud Pattern**
-* **Smurfing/Structuring:** Inflows of $9,800, $9,950, and $9,900 engineered just under the $10,000 CTR reporting threshold.
-* **Rapid Layering:** Consolidated funds wired within minutes to offshore Cayman VASP to obscure origin.
-
-**3) Key Red Flags**
-* Sub-threshold amounts designed to evade Currency Transaction Reports.
-* Multiple unrelated retail accounts funding a commercial business wire account.
-* High-velocity dispersal window (under 10 minutes total).
-
-**4) Risk Level**
-**CRITICAL**
-
-**5) Recommended Immediate Actions**
-* Freeze account outgoing transfers immediately.
-* Submit a Suspicious Activity Report (SAR).
-* Place connected retail accounts on high-priority watch.`;
-
     // Number & Currency formatting helper
     const fmt = n => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 
     // Markdown Formatter for Nemotron Reports
     function formatMarkdown(md) {
       if (!md) return '';
-      let html = md
+      let html = String(md).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/gim, '<em>$1</em>')
         .replace(/^### (.*$)/gim, '<h4 style="margin:12px 0 6px; color:#93c5fa; font-size:13px;">$1</h4>')
@@ -1335,11 +1312,12 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
     }
 
     // Toast notification function
+    const escapeText = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     function showToast(message, type = 'normal') {
       const c = document.getElementById('toastContainer');
       const t = document.createElement('div');
       t.className = `toast ${type}`;
-      t.innerHTML = `<span>${type === 'critical' ? '🚨' : (type === 'prediction' ? '🔮' : (type === 'success' ? '✅' : 'ℹ️'))}</span> <span>${message}</span>`;
+      t.innerHTML = `<span>${type === 'critical' ? '🚨' : (type === 'prediction' ? '🔮' : (type === 'success' ? '✅' : 'ℹ️'))}</span> <span>${escapeText(message)}</span>`;
       c.appendChild(t);
       setTimeout(() => {
         t.style.opacity = '0';
@@ -1513,7 +1491,7 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
           const my = (from.y + to.y) / 2;
           ctx.font = 'bold 11px "JetBrains Mono", monospace';
           ctx.fillStyle = '#d8b4fe';
-          ctx.fillText(`⚡ Projected Vector: ${p.riskScore}% (${p.estimatedTimeframe})`, mx, my - 8);
+          ctx.fillText(`⚡ Projected Vector: ${p.riskScore}% (${escapeText(p.estimatedTimeframe)})`, mx, my - 8);
         });
       }
 
@@ -1748,7 +1726,7 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
         state.decisions[accountId] = { decision: 'yes', timestamp: Date.now(), analyst: 'Sarah Jenkins' };
         acc.status = 'flagged_mule';
         acc.riskScore = 98;
-        showToast(`✅ You chose YES: Confirmed Fraud on ${acc.owner}. Account frozen and SAR queued.`, 'critical');
+        showToast(`✅ You chose YES: Confirmed Fraud on ${acc.owner}. Demo account flagged for review.`, 'critical');
         state.activityFeed.unshift({
           id: 'ACT-' + Date.now(),
           user: 'Sarah Jenkins',
@@ -1781,32 +1759,9 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
 
       if (state.tab === 'collab') {
         container.innerHTML = `
-          <div class="section-card">
-            <div class="section-title">Active Analysts (SpacetimeDB Sync)</div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <div style="display:flex; align-items:center; justify-content:space-between; background:#0d1424; padding:8px 12px; border-radius:8px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <div class="avatar sarah" style="width:24px; height:24px; font-size:10px;">SJ</div>
-                  <span><b>Sarah Jenkins</b> <small style="color:#38bdf8;">(You · Lead Investigator)</small></span>
-                </div>
-                <span class="risk-badge normal" style="font-size:10px;">ACTIVE</span>
-              </div>
-              <div style="display:flex; align-items:center; justify-content:space-between; background:#0d1424; padding:8px 12px; border-radius:8px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <div class="avatar elena" style="width:24px; height:24px; font-size:10px;">ER</div>
-                  <span><b>Elena Rostova</b> <small style="color:#94a3b8;">(Senior Forensics)</small></span>
-                </div>
-                <span class="risk-badge normal" style="font-size:10px;">SYNCED</span>
-              </div>
-              <div style="display:flex; align-items:center; justify-content:space-between; background:#0d1424; padding:8px 12px; border-radius:8px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <div class="avatar marcus" style="width:24px; height:24px; font-size:10px;">MV</div>
-                  <span><b>Marcus Vance</b> <small style="color:#94a3b8;">(AML Compliance)</small></span>
-                </div>
-                <span class="risk-badge normal" style="font-size:10px;">SYNCED</span>
-              </div>
-            </div>
-          </div>
+          <div class="section-card"><div class="section-title">Connected dashboard views</div>
+          <p><span id="liveViewCount">${connectedViews}</span> live connections · You are ${analystName}</p>
+          <small>Open a second tab to collaborate. Views are browser connections, not verified user identities.</small></div>
 
           <div class="section-card">
             <div class="section-title">Collaborative Investigation Notes</div>
@@ -1817,12 +1772,12 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
                     <b>${n.author}</b>
                     <span>${n.time}</span>
                   </div>
-                  <div>${n.text}</div>
+                  <div>${escapeText(n.text)}</div>
                 </div>
               `).join('')}
             </div>
             <div style="display:flex; gap:8px; margin-top:8px;">
-              <input id="noteInput" type="text" placeholder="Share findings with Elena & Marcus..." style="flex:1; background:#0d1424; border:1px solid #334155; color:white; padding:8px 12px; border-radius:6px; font-size:12px;">
+              <input id="noteInput" type="text" placeholder="Share a finding with connected views..." style="flex:1; background:#0d1424; border:1px solid #334155; color:white; padding:8px 12px; border-radius:6px; font-size:12px;">
               <button class="btn btn-primary" onclick="postCaseNote()">Post</button>
             </div>
           </div>
@@ -1862,7 +1817,7 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
               <small style="color:var(--text-dim);">${acc.type} · ${acc.country}</small>
             </div>
             <span class="risk-badge ${acc.status === 'flagged_mule' ? 'critical' : (acc.status === 'predicted_risk' ? 'predicted' : (acc.riskScore > 50 ? 'high' : 'normal'))}">
-              ${decision?.decision === 'yes' ? '🚨 CONFIRMED FRAUD' : (decision?.decision === 'no' ? '✅ CLEARED' : (acc.status === 'predicted_risk' ? '⚡ PREDICTED' : (acc.riskScore >= 80 ? 'CRITICAL RISK' : 'RISK ' + acc.riskScore + '%')))}
+              ${decision?.decision === 'yes' ? 'FLAGGED FOR REVIEW' : (decision?.decision === 'no' ? '✅ CLEARED' : (acc.status === 'predicted_risk' ? '⚡ PREDICTED' : (acc.riskScore >= 80 ? 'CRITICAL RISK' : 'RISK ' + acc.riskScore + '%')))}
             </span>
           </div>
 
@@ -1903,14 +1858,14 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
 
           ${decision ? (decision.decision === 'yes' ? `
             <div class="decision-confirmed">
-              <span>✅</span> <div><b>Fraud Confirmed by Sarah Jenkins.</b> Account outgoing transfers are frozen and SAR report is queued.</div>
+              <span>✅</span> <div><b>Flagged for review.</b> Shared analyst decision saved. Bank actions are simulated.</div>
             </div>
             <button class="btn btn-subtle" style="font-size:11px; align-self:flex-start;" onclick="analystDecision('${acc.id}', false)">
               Undo / Change to NO (Dismiss)
             </button>
           ` : `
             <div class="decision-dismissed">
-              <span>❌</span> <div><b>Alert Dismissed by Sarah Jenkins.</b> Marked as legitimate verified activity.</div>
+              <span>❌</span> <div><b>Alert dismissed.</b> Shared analyst decision saved.</div>
             </div>
             <button class="btn btn-subtle" style="font-size:11px; align-self:flex-start;" onclick="analystDecision('${acc.id}', true)">
               Undo / Change to YES (Confirm Fraud)
@@ -1946,14 +1901,14 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
               ${state.predictions.map(p => `
                 <div class="prediction-card">
                   <div class="prediction-header">
-                    <span class="prediction-id">${p.id} · ${p.owner}</span>
-                    <span class="prediction-role">${p.projectedRole}</span>
+                    <span class="prediction-id">${escapeText(p.id)} · ${escapeText(p.owner)}</span>
+                    <span class="prediction-role">${escapeText(p.projectedRole)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; font-size:11px; color:#a855f7; font-weight:600;">
                     <span>Projected Risk: ${p.riskScore}%</span>
-                    <span>Window: ${p.estimatedTimeframe}</span>
+                    <span>Window: ${escapeText(p.estimatedTimeframe)}</span>
                   </div>
-                  <div class="prediction-reason">${p.vulnerabilityReason}</div>
+                  <div class="prediction-reason">${escapeText(p.vulnerabilityReason)}</div>
                 </div>
               `).join('')}
             </div>
@@ -2037,7 +1992,7 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Investigation failed');
-        state.investigations[accountId] = data.report;
+        await sharedAction('investigation', { accountId, report: data.report });
         state.activityFeed.unshift({
           id: 'ACT-' + Date.now(),
           user: 'NVIDIA Nemotron',
@@ -2046,9 +2001,9 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
         });
         showToast(`Nemotron Forensic Dossier ready for ${acc.owner}`, 'critical');
       } catch (err) {
-        state.investigations[accountId] = `**1) Detection Summary**\nFlagged cluster involving ${acc.id} (${acc.owner}) showing high-velocity aggregation from retail accounts followed by rapid offshore wire.\n\n**2) Identified Fraud Pattern**\n* **Smurfing/Structuring:** Inflows engineered just under $10,000 to evade CTR filing requirements.\n* **Layering:** Rapid movement through intermediary corporate entity to conceal ultimate beneficial origin.\n\n**3) Key Red Flags**\n* Velocity spike: Multiple transfers consolidated within minutes.\n* High-risk destination: Offshore Cayman VASP.\n\n**4) Risk Level**\n**CRITICAL**\n\n**5) Recommended Immediate Actions**\n* Place immediate administrative hold on account.\n* Submit Suspicious Activity Report (SAR).\n* Escalate to FinCEN liaison.\n\n*(Note: Displaying verified fallback analysis due to network restriction)*`;
-        showToast(`Forensic Dossier compiled for ${acc.owner}`, 'critical');
+        showToast('Investigation failed: ' + err.message, 'critical');
       }
+
       renderInspector();
     }
 
@@ -2071,8 +2026,7 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Prediction failed');
 
-        state.predictionActive = true;
-        state.predictions = data.predictions || [];
+        await sharedAction('prediction', { accountId, predictions: data.predictions || [] });
 
         // Update at-risk status on graph accounts
         state.predictions.forEach(p => {
@@ -2092,29 +2046,7 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
         document.getElementById('predictiveScrubber').style.display = 'flex';
         showToast(`Predictive Risk Evaluation complete: ${state.predictions.length} downstream accounts identified`, 'prediction');
       } catch (err) {
-        state.predictionActive = true;
-        state.predictions = [
-          {
-            id: 'ACC-3310',
-            owner: 'Vanguard Merchant Settlement',
-            riskScore: 88,
-            projectedRole: 'Next-Hop Layering Exit',
-            vulnerabilityReason: 'Shared settlement corridor with offshore crypto gateway. High probability of rapid liquidation.',
-            estimatedTimeframe: 'Next 12-24 hours'
-          },
-          {
-            id: 'ACC-5521',
-            owner: 'Starlight Escrow Services',
-            riskScore: 74,
-            projectedRole: 'Secondary Laundering Mule',
-            vulnerabilityReason: 'Common beneficiary cluster with Cayman VASP. Historical wash-trade counterpart.',
-            estimatedTimeframe: 'Next 24-48 hours'
-          }
-        ];
-        state.accounts.find(a => a.id === 'ACC-3310').status = 'predicted_risk';
-        state.accounts.find(a => a.id === 'ACC-5521').status = 'predicted_risk';
-        document.getElementById('predictiveScrubber').style.display = 'flex';
-        showToast(`Predictive Modeling: 2 downstream at-risk accounts identified`, 'prediction');
+        showToast('Prediction failed: ' + err.message, 'critical');
       }
 
       renderInspector();
@@ -2398,22 +2330,92 @@ Flagged cluster involving ACC-8492 (Apex Shell Logistics LLC) showing high-veloc
     // ========================================================
     // REAL-TIME SPACETIMEDB SSE CONNECTION
     // ========================================================
+    let sharedRevision = -1;
+    let databaseReady = false;
+    let connectedViews = 0;
+    const analystName = 'Analyst ' + (sessionStorage.getItem('fraudgraphAnalyst') || (() => {
+      const id = crypto.randomUUID().slice(0, 4);
+      sessionStorage.setItem('fraudgraphAnalyst', id);
+      return id;
+    })());
+    function syncLabel(message) {
+      document.getElementById('realtimeStatus').textContent = message;
+    }
+    function applySnapshot(snapshot) {
+      databaseReady = true;
+      syncLabel('SpacetimeDB connected · ' + connectedViews + ' live views');
+      if (snapshot.revision <= sharedRevision) return;
+      sharedRevision = snapshot.revision;
+      const oldPositions = new Map(state.accounts.map(a => [a.id, { x: a.x, y: a.y }]));
+      for (const key of ['accounts', 'transfers', 'caseNotes', 'activityFeed', 'investigations', 'decisions', 'predictions', 'predictionActive']) state[key] = snapshot.state[key];
+      state.accounts.forEach(a => Object.assign(a, oldPositions.get(a.id) || {}));
+      document.getElementById('predictiveScrubber').style.display = state.predictionActive ? 'flex' : 'none';
+      databaseReady = true;
+      const draft = document.getElementById('noteInput')?.value;
+      renderInspector();
+      if (draft && document.getElementById('noteInput')) document.getElementById('noteInput').value = draft;
+      syncLabel('SpacetimeDB connected · ' + connectedViews + ' live views');
+    }
+    async function sharedAction(kind, payload) {
+      if (!databaseReady) throw Error('Wait for SpacetimeDB to connect');
+      const response = await fetch('/api/shared', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionId: crypto.randomUUID(), kind, payload: { ...payload, author: analystName } })
+      });
+      const result = await response.json();
+      if (!response.ok) throw Error(result.error || 'Database update failed');
+      applySnapshot(result);
+    }
+    async function saveAction(kind, payload) {
+      try { await sharedAction(kind, payload); return true; }
+      catch (error) { showToast('Update failed: ' + error.message, 'critical'); return false; }
+    }
+    analystDecision = async (accountId, approved) => {
+      if (await saveAction('decision', { accountId, approved })) showToast('Decision saved to SpacetimeDB', 'success');
+    };
+    flagCase = accountId => analystDecision(accountId, true);
+    freezeAccount = async accountId => {
+      if (await saveAction('freeze', { accountId })) showToast('Demo account hold saved', 'success');
+    };
+    postCaseNote = async () => {
+      const input = document.getElementById('noteInput');
+      if (!input?.value.trim()) return;
+      const text = input.value.trim();
+      input.value = '';
+      if (await saveAction('note', { accountId: state.selectedId, text })) showToast('Case note saved and shared', 'success');
+      else if (document.getElementById('noteInput')) document.getElementById('noteInput').value = text;
+    };
+    triggerFraudBurst = async () => {
+      await saveAction('transfer', { transfer: { from: 'ACC-8492', to: 'ACC-3310', amount: 88500, type: 'Urgent Wire', flagged: true, reason: 'Simulated dispersal anomaly' } });
+    };
+    toggleTrafficSimulation = () => {
+      state.trafficRunning = !state.trafficRunning;
+      document.getElementById('trafficBtn').textContent = state.trafficRunning ? 'Stop simulated traffic' : 'Simulate Live Traffic';
+      if (!state.trafficRunning) { clearInterval(state.trafficTimer); return; }
+      state.trafficTimer = setInterval(async () => {
+        const eligible = state.accounts.filter(a => a.status !== 'frozen');
+        if (!eligible.length) return;
+        const from = eligible[Math.floor(Math.random() * eligible.length)];
+        const targets = state.accounts.filter(a => a.id !== from.id);
+        const to = targets[Math.floor(Math.random() * targets.length)];
+        await saveAction('transfer', { transfer: { from: from.id, to: to.id, amount: Math.floor(1000 + Math.random() * 8500), type: 'Simulated Wire', flagged: false } });
+      }, 3000);
+    };
+    loadScenario = scenario => {
+      state.selectedId = { sarah_case: 'ACC-8492', mule_ring: 'ACC-6102', payroll_drain: 'ACC-2041' }[scenario] || 'ACC-8492';
+      renderInspector();
+    };
     function initRealtimeSync() {
-      try {
-        const es = new EventSource('/api/events');
-        es.onmessage = e => {
-          try {
-            const ev = JSON.parse(e.data);
-            if (ev.type === 'transfer') {
-              state.transfers.push(ev.data);
-              particles.push({ edgeIndex: state.transfers.length - 1, progress: 0, speed: 0.005 });
-            } else if (ev.type === 'note') {
-              state.caseNotes.unshift(ev.data);
-            }
-            renderInspector();
-          } catch (err) {}
-        };
-      } catch (e) {}
+      syncLabel('Connecting to SpacetimeDB…');
+      const es = new EventSource('/api/events');
+      es.onmessage = event => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'snapshot') applySnapshot(data);
+        if (data.type === 'presence') { connectedViews = data.count; if (document.getElementById('liveViewCount')) document.getElementById('liveViewCount').textContent = connectedViews; syncLabel('SpacetimeDB connected · ' + connectedViews + ' live views'); }
+        if (data.type === 'database-error') { databaseReady = false; syncLabel('SpacetimeDB unavailable · reconnecting'); }
+      };
+      es.onerror = () => { databaseReady = false; syncLabel('Connection lost · reconnecting'); };
+      es.onopen = () => { databaseReady = true; };
     }
     initRealtimeSync();
 

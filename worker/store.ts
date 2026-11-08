@@ -120,9 +120,10 @@ export class MemoryStore implements CourtStore {
 }
 
 // ---------------------------------------------------------------------------------------------
-// SpacetimeStore — UNTESTED. The loan-courtroom module does not exist yet (BE-04, BE-12, BE-13,
-// INT-03). Table names, column names and reducer names/arguments below are placeholders taken
-// from the plan; check them against the real module before relying on this.
+// SpacetimeStore — UNTESTED and OUT OF DATE. It calls the per-row reducers from the original plan
+// (add_argument, set_case_status, ...). The module on backend-da instead keeps the whole loan state
+// in one loan_state row and edits it with apply_loan_ops([{op, table, ...}]), and its table list has
+// no evidence or cruxes yet. Rewrite this against apply_loan_ops before using --spacetime.
 // ---------------------------------------------------------------------------------------------
 
 export interface SpacetimeOptions {
@@ -152,9 +153,9 @@ export class SpacetimeStore implements CourtStore {
 
   static fromEnv(): SpacetimeStore {
     const url = process.env.SPACETIMEDB_URL || "https://maincloud.spacetimedb.com";
-    const database = process.env.SPACETIMEDB_DB;
+    const database = process.env.SPACETIMEDB_DATABASE;
     const token = process.env.SPACETIMEDB_TOKEN;
-    if (!database || !token) throw new Error("SPACETIMEDB_DB and SPACETIMEDB_TOKEN must be set for --spacetime");
+    if (!database || !token) throw new Error("SPACETIMEDB_DATABASE and SPACETIMEDB_TOKEN must be set for --spacetime");
     return new SpacetimeStore({ url, database, token });
   }
 

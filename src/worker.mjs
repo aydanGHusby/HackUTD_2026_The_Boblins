@@ -45,7 +45,7 @@ export default {
       return json({
         nemotron: Boolean(env.NVIDIA_API_KEY && env.NVIDIA_MODEL),
         model: env.NVIDIA_MODEL || 'nvidia/nemotron-3.5-super-vl-120b-a12b',
-        spacetimedb: true,
+        spacetimedb: false,
         dataset: 'IBM Transactions for Anti-Money Laundering (AML)'
       });
     }

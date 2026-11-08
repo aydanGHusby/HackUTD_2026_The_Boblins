@@ -1,39 +1,47 @@
-# FraudGraph SpacetimeDB Real-Time Engine
+# FraudGraph shared local case
 
-FraudGraph uses SpacetimeDB as its real-time, relational, multi-client graph synchronization engine.
+The running implementation is the TypeScript module in `src/index.ts`. The earlier `schema.rs` is a design sketch and is not used.
 
-## Real-Time Architecture
+SpacetimeDB 2.14.1 is installed in the ignored `.local-spacetime` folder. Its persistent database runs on `127.0.0.1:3108`, with database name `fraudgraph-local`.
 
-```
-                    ┌──────────────────────────────┐
-                    │      NVIDIA Nemotron AI       │
-                    │   (Forensics & Risk Models)  │
-                    └──────────────┬───────────────┘
-                                   │
-                                   ▼
-┌──────────────────┐       ┌───────────────────────┐       ┌──────────────────┐
-│  Sarah (Analyst) │◄─────►│      SpacetimeDB      │◄─────►│ Elena (Analyst)  │
-│  Browser Client  │       │ Real-Time Sync Engine │       │  Browser Client  │
-└──────────────────┘       └───────────────────────┘       └──────────────────┘
-                                   ▲
-                                   │
-                           Live Transactions
-                           (ACH, Wire, SWIFT)
+## Run
+
+From the project root, start the database in one terminal:
+
+```sh
+npm run db:start
 ```
 
-### Tables
-1. `account`: Core bank and business accounts, risk scores (0-100), and statuses.
-2. `transfer`: Graph edges representing financial transactions with amounts and flags.
-3. `investigation`: Forensic dossiers compiled by NVIDIA Nemotron and bank analysts.
-4. `risk_prediction`: Predictive threat intelligence mapping future high-risk accounts.
-5. `analyst_session`: Collaborative analyst presence and active views.
-6. `case_note`: Real-time collaborative investigation log and notes.
+Only for initial creation or a module update, use another terminal:
 
-### Reducers
-- `create_transfer`: Ingests and evaluates incoming banking transactions.
-- `flag_account_review`: Escalates an account to AML / SAR human review.
-- `freeze_account`: Temporarily halts outgoing transfers for a compromised node.
-- `save_investigation`: Stores full AI forensic report in real time across all clients.
-- `save_risk_prediction`: Publishes predicted future risk vectors to all analyst dashboards.
-- `add_case_note`: Adds a shared audit comment visible instantly to other analysts.
+```sh
+npm run db:publish
+```
 
+Then start the app:
+
+```sh
+npm run dev
+```
+
+The app defaults to http://localhost:3000. Open the same URL in two tabs. Add a case note or change a decision in one tab. Both update. Refresh a tab or restart the app/database to verify persistence. The connection indicator counts actual open browser streams, not authenticated people.
+
+## Implementation
+
+The public `dashboard` table stores a single synthetic case snapshot. The private `applied_action` table prevents a retried action from being applied twice. The `apply_action` reducer updates case state and its audit entry in one transaction. Notes, account decisions, simulated holds, transfers, AI reports, and predictions are shared. Graph coordinates, selected account, and filters remain local to each view.
+
+The Node server calls SpacetimeDB's HTTP reducer and SQL APIs. It sends committed updates to browsers with SSE and polls database revisions once per second for changes made through other app processes. This is a real database integration with an HTTP/SSE bridge, not a native browser SDK subscription.
+
+Demo transfers represent observed events, not bank transfers or balance settlement. A simulated hold rejects newly submitted outgoing demo transfers. No real bank is connected, and no SAR is filed. Scenarios select existing accounts without replacing shared decisions.
+
+This local synthetic demo has anonymous reducer access and listens only on loopback. Remote hosting needs an authenticated database connection and separate server deployment. The previous hosted Finch URL does not run this Node bridge.
+
+## Verification
+
+With database and app running:
+
+```sh
+TEST_ORIGIN=http://localhost:3000 npm run test:shared
+```
+
+Checks two event streams, shared notes, idempotent retry, concurrent writes, shared account decisions, held-account transfer rejection, and cross-origin write rejection. The test adds clearly labeled verification notes to the demo case.
