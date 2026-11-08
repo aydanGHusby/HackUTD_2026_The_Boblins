@@ -4,12 +4,13 @@ import { ArrowLeft, ChevronDown, Gavel, Loader2 } from "lucide-react";
 import { AgentChat } from "@/components/AgentChat";
 import { LifecycleBar } from "@/components/LifecycleBar";
 import { SignOffForm } from "@/components/SignOffForm";
+import { CreditMemo } from "@/components/CreditMemo";
 import { GraphView } from "@/components/graph/GraphView";
 import { Avatars, Empty, RiskScore, StatusBadge, TriggerTag } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import {
   addNote, advanceLoan, askQuestion, fundLoan, runTrial, submitVerdict, useArguments, useAudit, useCase, useCrux, useEvidence,
-  useLoanLifecycle, useNotes, useQuestions, useSignOff, useSubgraph, useTrial, useVerdict, useViewing,
+  useLoanLifecycle, useLoanMetrics, useNotes, useQuestions, useSignOff, useSubgraph, useTrial, useVerdict, useViewing,
 } from "@/data/hooks";
 import { useIdentity } from "@/data/identity";
 import { dateTime, humanize, money } from "@/lib/format";
@@ -38,6 +39,7 @@ function CasePage() {
   const args = useArguments(id);
   const graph = useSubgraph(id);
   const crux = useCrux(id);
+  const metrics = useLoanMetrics(id);
   const evidence = useEvidence(id);
   const questions = useQuestions(id);
   const notes = useNotes(id);
@@ -86,21 +88,12 @@ function CasePage() {
               {(["summary", "evidence", "history"] as const).map((d) => (
                 <button key={d} onClick={() => setDrawer(drawer === d ? null : d)}
                   className={cn("flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold", drawer === d ? "bg-primary text-primary-foreground glow-ocean" : "text-muted-foreground hover:bg-muted")}>
-                  {d === "summary" ? "Where they agree" : d === "evidence" ? `Evidence (${evidence.length})` : "History"}
+                  {d === "summary" ? "Credit memo" : d === "evidence" ? `Evidence (${evidence.length})` : "History"}
                   <ChevronDown className={cn("h-3 w-3 transition", drawer === d && "rotate-180")} />
                 </button>
               ))}
             </div>
-            {drawer === "summary" && (
-              <div className="grid gap-3 p-4 md:grid-cols-2">
-                {!crux ? <p className="text-sm text-muted-foreground">Available once both agents finish.</p> : <>
-                  <div><h3 className="text-xs font-bold text-ocean">Both agents agree</h3>
-                    <ul className="mt-1.5 space-y-1 text-sm">{crux.agreed.map((a) => <li key={a}>• {a}</li>)}</ul></div>
-                  <div><h3 className="text-xs font-bold text-candy-strong">Still disputed</h3>
-                    <ul className="mt-1.5 space-y-2 text-sm">{crux.disputed.map((d) => <li key={d.point}>{d.point}<div className="text-xs text-muted-foreground">Would be settled by: {d.decidingFact}</div></li>)}</ul></div>
-                </>}
-              </div>
-            )}
+            {drawer === "summary" && <CreditMemo crux={crux} metrics={metrics} />}
             {drawer === "evidence" && (
               <div className="grid gap-2 p-3 md:grid-cols-2">
                 {evidence.length === 0 && <p className="p-1 text-sm text-muted-foreground">No evidence filed yet.</p>}

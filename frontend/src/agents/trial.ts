@@ -1,5 +1,6 @@
 // Nemotron courtroom agents. The handler runs on the server, so the NVIDIA key never reaches the browser.
 import { METRICS_HEADER, metricIds } from "@/shared/metrics";
+import { MEMO_SYSTEM, memoTask, validateMemo, type MemoDraft } from "@/shared/memo";
 import { createServerFn } from "@tanstack/react-start";
 import { serverEnv } from "@/lib/server-env";
 import type { Claim, Edge, EvidenceItem, GraphNode, Round, Side } from "@/shared/types";
@@ -208,3 +209,35 @@ export async function argue(input: ArgueInput): Promise<ArgueResult> {
 export const argueFn = createServerFn({ method: "POST" })
   .validator((input: ArgueInput) => input)
   .handler(({ data }) => argue(data));
+
+// ---- Credit memo: one call after the rebuttals, from the verified claims and the credit metrics ----
+export interface MemoInput {
+  file: CaseFile;
+  claims: { side: Side; round: Round; text: string; citations: string[] }[];
+}
+
+export async function writeMemo({ file, claims }: MemoInput): Promise<MemoDraft> {
+  const header = `Case ${file.caseId}: loan ${file.loanId} to ${file.borrower}. Risk rules fired: ${file.triggers.join(", ") || "none"}.`;
+  const metrics = file.metrics ? `${METRICS_HEADER}\n${file.metrics}` : "";
+  const messages: Message[] = [
+    { role: "system", content: MEMO_SYSTEM },
+    { role: "user", content: memoTask(header, metrics, claims) },
+  ];
+  // One retry with the checker's reason, like the worker's askForJson.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const reply = await chat(messages, false);
+    const content = (reply.content ?? "").replace(/<think>[\s\S]*?<\/think>/g, "");
+    try {
+      const match = content.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("reply had no JSON object");
+      return validateMemo(JSON.parse(match[0]));
+    } catch (err) {
+      messages.push({ role: "assistant", content }, { role: "user", content: `Your reply was not valid: ${(err as Error).message}. Reply again with only the corrected JSON.` });
+    }
+  }
+  throw new Error("the memo writer never gave a usable answer");
+}
+
+export const memoFn = createServerFn({ method: "POST" })
+  .validator((input: MemoInput) => input)
+  .handler(({ data }) => writeMemo(data));

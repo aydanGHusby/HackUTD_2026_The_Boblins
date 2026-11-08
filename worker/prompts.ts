@@ -1,6 +1,8 @@
 // Every prompt the courtroom agents use, in one place (tuning target for FRA-60 / AI-11).
 import type { Argument, Case, EvidenceItem, Round, Side } from "../shared/types.ts";
 import type { GraphIndex } from "../shared/graph.ts";
+import { memoTask } from "../frontend/src/shared/memo.ts";
+import { METRICS_HEADER } from "../frontend/src/shared/metrics.ts";
 
 const CITATION_RULES = `Citation rules (a checker enforces these; claims that break them are rejected and shown to the analyst as rejected):
 - Cite only node and edge ids that appear in the brief or in tool results (e.g. "c1", "col1", "L-1001", "e4").
@@ -65,17 +67,6 @@ export const ROUND_TASKS: Record<Round, string> = {
   answer: "The analyst asked you the question below. Answer it directly in 1 or 2 claims. If the graph does not contain what was asked, say so plainly.",
 };
 
-export const CRUX_SYSTEM = `You summarise a commercial-loan fraud trial for the human analyst who will decide it.
-You do not decide the case. From the verified claims of both sides, write:
-- agreed: short statements both sides accept or do not contest
-- disputed: the points they disagree on, each with the decidingFact: a specific record or document that is NOT
-  already in the claims and that the analyst could request to settle it (e.g. "an appraisal of col4",
-  "the lien filing for col1"). Never restate numbers both sides already cite.
-
-Reply with only JSON in this shape:
-{"agreed":["..."],"disputed":[{"point":"...","decidingFact":"..."}]}
-Give at most 3 agreed points and at most 3 disputed points.`;
-
 export function clerkTask(brief: string, withTools: boolean): string {
   return withTools
     ? `${brief}\n\nUse the tools to investigate this case, then reply with the evidence JSON.`
@@ -102,9 +93,12 @@ export function advocateTask(opts: {
 }
 
 export function cruxTask(brief: string, args: Argument[]): string {
-  // The crux works from the claims; the first line of the brief is enough context.
-  const header = brief.split("\n")[0];
-  return `${header}\n\nVERIFIED CLAIMS FROM THE TRIAL:\n${formatArguments(args, true)}\n\nWrite the crux JSON.`;
+  // The memo works from the claims and the credit metrics; the first line of the brief names the case.
+  const header = brief.split("\n")[0] ?? "";
+  const at = brief.indexOf(METRICS_HEADER);
+  const metrics = at >= 0 ? brief.slice(at).trim() : "";
+  const verified = args.flatMap((a) => a.claims.filter((c) => c.verified).map((c) => ({ side: a.side, round: a.round, text: c.text, citations: c.citations })));
+  return memoTask(header, metrics, verified);
 }
 
 function latestRound(args: Argument[]): Argument[] {

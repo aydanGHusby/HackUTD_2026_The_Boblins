@@ -2,7 +2,7 @@
 // (src/data/spacetime.ts); with no database running, the app falls back to the mock data.
 import { useEffect, useSyncExternalStore } from "react";
 import * as mock from "@/mock/mockData";
-import { argueFn, type CaseFile } from "@/agents/trial";
+import { argueFn, memoFn, type CaseFile } from "@/agents/trial";
 import { CLERK_FOUND, fileExhibits, sameAddress } from "@/shared/clerk";
 import { formatMetrics, loanMetrics } from "@/shared/metrics";
 import { applyLoanOps, loadLoanState, resetLoanState } from "@/data/spacetime";
@@ -49,7 +49,8 @@ type Op =
 function applyOps(s: Store, ops: Op[]): Store {
   const next: Store = { ...s };
   for (const o of ops) {
-    const list = next[o.table] as unknown as Record<string, unknown>[];
+    // evidence and cruxes can be missing on older data.
+    const list = (next[o.table] ?? []) as unknown as Record<string, unknown>[];
     (next as Record<Table, unknown>)[o.table] =
       o.op === "append" ? [...list, o.item]
       : o.op === "update" ? list.map((x) => (x[o.key] === o.value ? { ...x, ...o.patch } : x))
@@ -186,6 +187,12 @@ const portfolio = (s: Shared) => ({ companies: mock.companies, people: mock.peop
 export const useCrux = (caseId: string) =>
   (useStore().cruxes ?? []).find((c) => c.caseId === caseId) ?? mock.cruxes.find((c) => c.caseId === caseId);
 export const useEvidence = (caseId: string) => evidenceFor(useStore(), caseId);
+/** Credit metrics for the case's loan, computed across every loan. */
+export function useLoanMetrics(caseId: string) {
+  const s = useStore();
+  const c = s.cases.find((x) => x.id === caseId);
+  return c ? loanMetrics(portfolio(s), c.loanId) : undefined;
+}
 export const useQuestions = (caseId: string) => useStore().questions.filter((q) => q.caseId === caseId);
 export const useNotes = (caseId: string) => useStore().notes.filter((n) => n.caseId === caseId);
 export const useAudit = (caseId: string) =>
@@ -319,6 +326,7 @@ export async function runTrial(caseId: string, actor: string) {
   commit(
     { op: "append", table: "running", item: { caseId, by: actor, at: now() } },
     { op: "remove", table: "arguments", key: "caseId", value: caseId },
+    { op: "remove", table: "cruxes", key: "caseId", value: caseId },
     setCaseStatus(caseId, "in_trial"),
     { op: "append", table: "audit", item: log(caseId, actor, "started a trial") },
   );
@@ -328,10 +336,11 @@ export async function runTrial(caseId: string, actor: string) {
       argueAndRecord(caseId, "defense", "opening", { file }),
     ]);
     const verified = (a: Argument) => a.claims.filter((c) => c.verified);
-    await Promise.all([
+    const rebuttals = await Promise.all([
       argueAndRecord(caseId, "prosecution", "rebuttal", { file, opponent: verified(def) }),
       argueAndRecord(caseId, "defense", "rebuttal", { file, opponent: verified(pro) }),
     ]);
+    await recordMemo(caseId, file, [pro, def, ...rebuttals]);
     commit(setCaseStatus(caseId, "awaiting_verdict"), { op: "remove", table: "running", key: "caseId", value: caseId });
   } catch (err) {
     const message = (err as Error).message;
@@ -341,6 +350,20 @@ export async function runTrial(caseId: string, actor: string) {
       { op: "remove", table: "running", key: "caseId", value: caseId },
       { op: "append", table: "audit", item: log(caseId, "trial", `stopped: ${message}`) },
     );
+  }
+}
+// The credit memo from the verified claims. If it fails the trial still ends; the analyst decides without it.
+async function recordMemo(caseId: string, file: CaseFile, args: Argument[]) {
+  const claims = args.flatMap((a) => a.claims.filter((c) => c.verified).map((c) => ({ side: a.side, round: a.round, text: c.text, citations: c.citations })));
+  try {
+    const draft = await memoFn({ data: { file, claims } });
+    commit(
+      { op: "remove", table: "cruxes", key: "caseId", value: caseId },
+      { op: "append", table: "cruxes", item: { caseId, ...draft } satisfies Crux },
+      { op: "append", table: "audit", item: log(caseId, "memo", `credit memo: suggests ${draft.memo.recommendation.replace(/_/g, " ")}`) },
+    );
+  } catch (err) {
+    commit({ op: "append", table: "audit", item: log(caseId, "memo", `credit memo failed: ${(err as Error).message}`) });
   }
 }
 const STAGE_ACTION: Partial<Record<LoanStage, string>> = {

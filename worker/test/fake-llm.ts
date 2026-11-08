@@ -56,8 +56,12 @@ export class FakeLLM implements LLM {
         toolCalls: [],
       };
     }
-    if (system.startsWith("You summarise")) {
-      return json({ agreed: [`${loanId} exists`], disputed: [{ point: "Is the second pledge legitimate?", decidingFact: "A lien filing on the collateral" }] });
+    if (system.startsWith("You write the credit memo")) {
+      return json({
+        agreed: [`${loanId} exists`],
+        disputed: [{ point: "Is the second pledge legitimate?", decidingFact: "A lien filing on the collateral" }],
+        memo: { recommendation: "escalate", summary: `${loanId} needs a senior review.`, conditions: [], documents: ["A UCC lien search on the collateral"] },
+      });
     }
     throw new Error(`fake LLM got an unknown prompt: ${system.slice(0, 60)}`);
   }

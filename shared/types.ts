@@ -45,7 +45,14 @@ export interface Claim { text: string; citations: string[]; verified: boolean }
 export type Side = "prosecution" | "defense";
 export type Round = "opening" | "rebuttal" | "closing" | "answer";
 export interface Argument { id: string; caseId: string; side: Side; round: Round; claims: Claim[]; createdAt: string }
-export interface Crux { caseId: string; agreed: string[]; disputed: { point: string; decidingFact: string }[] }
+// The credit memo's suggested next step; the analyst still decides. Older cruxes have no memo.
+export interface CreditMemo {
+  recommendation: "approve" | "approve_with_conditions" | "decline" | "escalate";
+  summary: string;
+  conditions: string[];
+  documents: string[];
+}
+export interface Crux { caseId: string; agreed: string[]; disputed: { point: string; decidingFact: string }[]; memo?: CreditMemo }
 export interface Question { id: string; caseId: string; askedBy: string; to: Side; text: string; answerId?: string }
 
 // ---- Human decisions and accountability ----
