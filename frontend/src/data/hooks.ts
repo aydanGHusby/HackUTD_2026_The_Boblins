@@ -1,6 +1,6 @@
 // Every component reads data through these hooks. The live collections sync with SpacetimeDB
 // (src/data/spacetime.ts); with no database running, the app falls back to the mock data.
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import * as mock from "@/mock/mockData";
 import { argueFn, type CaseFile } from "@/agents/trial";
 import { applyLoanOps, loadLoanState, resetLoanState } from "@/data/spacetime";
@@ -11,17 +11,19 @@ import type {
 type Shared = {
   cases: Case[]; loans: Loan[]; edges: Edge[]; arguments: Argument[]; questions: Question[];
   verdicts: Verdict[]; notes: Note[]; audit: AuditEvent[]; signOffs: SignOff[];
+  presence: { user: string; caseId: string; at: string }[]; // heartbeats from open case pages
+  running: { caseId: string; by: string; at: string }[]; // trials in progress, seen by everyone
 };
 type Store = Shared & {
-  trials: Record<string, "running" | string>; // local only: caseId → running, or the last error message
+  trialErrors: Record<string, string>; // local only: caseId → last error message
 };
 
 const seed = (): Shared => ({
   cases: [...mock.cases], loans: [...mock.loans], edges: [...mock.edges],
   arguments: [...mock.argumentsList], questions: [...mock.questions], verdicts: [...mock.verdicts],
-  notes: [...mock.notes], audit: [...mock.audit], signOffs: [],
+  notes: [...mock.notes], audit: [...mock.audit], signOffs: [], presence: [], running: [],
 });
-let store: Store = { ...seed(), trials: {} };
+let store: Store = { ...seed(), trialErrors: {} };
 const listeners = new Set<() => void>();
 const subscribe = (l: () => void) => { listeners.add(l); startSync(); return () => listeners.delete(l); };
 const set = (patch: Partial<Store>) => { store = { ...store, ...patch }; listeners.forEach((l) => l()); };
@@ -69,7 +71,7 @@ async function refresh() {
     sync.online = true;
     if (res.revision !== sync.revision && !sync.pending) {
       sync.revision = res.revision;
-      set(JSON.parse(res.data) as Shared);
+      set({ presence: [], running: [], ...(JSON.parse(res.data) as Partial<Shared>) });
     }
   } catch (err) {
     console.error("[sync] read failed", err);
@@ -86,7 +88,7 @@ function startSync() {
 
 /** Put the shared demo data back to the starting cases (for judging). */
 export async function resetDemo() {
-  set({ ...seed(), trials: {} });
+  set({ ...seed(), trialErrors: {} });
   if (sync.online) { await resetLoanState({ data: JSON.stringify(seed()) }); sync.revision = -1; await refresh(); }
 }
 
@@ -114,7 +116,7 @@ export function useCases() {
   const s = useStore();
   return s.cases.map((c) => {
     const loan = s.loans.find((l) => l.id === c.loanId);
-    return { ...c, loan, borrower: borrowerName(loan), viewers: mock.presence.filter((p) => p.caseId === c.id).map((p) => p.user) };
+    return { ...c, loan, borrower: borrowerName(loan), viewers: viewersOf(s, c.id) };
   });
 }
 export function useCase(id: string) {
@@ -122,7 +124,7 @@ export function useCase(id: string) {
   const c = s.cases.find((x) => x.id === id);
   if (!c) return undefined;
   const loan = s.loans.find((l) => l.id === c.loanId);
-  return { ...c, loan, borrower: borrowerName(loan), viewers: mock.presence.filter((p) => p.caseId === id).map((p) => p.user) };
+  return { ...c, loan, borrower: borrowerName(loan), viewers: viewersOf(s, id) };
 }
 function subgraph(s: Store, caseId: string) {
   const c = s.cases.find((x) => x.id === caseId);
@@ -144,7 +146,32 @@ export const useNotes = (caseId: string) => useStore().notes.filter((n) => n.cas
 export const useAudit = (caseId: string) =>
   useStore().audit.filter((a) => a.caseId === caseId).sort((a, b) => a.at.localeCompare(b.at));
 export const useVerdict = (caseId: string) => useStore().verdicts.find((v) => v.caseId === caseId);
-export const useTrial = (caseId: string) => useStore().trials[caseId];
+/** "running" while anyone's trial on this case is in progress, else this browser's last error. */
+export function useTrial(caseId: string): "running" | string | undefined {
+  const s = useStore();
+  return runningTrial(s, caseId) ? "running" : s.trialErrors[caseId];
+}
+
+// ---- live presence: each open case page sends a heartbeat; stale entries drop off ----
+const HEARTBEAT_MS = 5000;
+const fresh = (at: string, ms: number) => Date.now() - new Date(at).getTime() < ms;
+function viewersOf(s: Store, caseId: string) {
+  return [...new Set(s.presence.filter((p) => p.caseId === caseId && fresh(p.at, HEARTBEAT_MS * 3)).map((p) => p.user))];
+}
+const runningTrial = (s: Store, caseId: string) => s.running.find((r) => r.caseId === caseId && fresh(r.at, 3 * 60_000));
+
+/** Marks `user` as viewing `caseId` while the calling page is open. */
+export function useViewing(caseId: string, user: string) {
+  useEffect(() => {
+    const beat = () => commit(
+      { op: "remove", table: "presence", key: "user", value: user },
+      { op: "append", table: "presence", item: { user, caseId, at: now() } },
+    );
+    beat();
+    const timer = setInterval(beat, HEARTBEAT_MS);
+    return () => { clearInterval(timer); commit({ op: "remove", table: "presence", key: "user", value: user }); };
+  }, [caseId, user]);
+}
 export const useSignOff = (caseId: string) => useStore().signOffs.find((v) => v.caseId === caseId);
 export function useEscalations() {
   const s = useStore();
@@ -216,9 +243,11 @@ const setCaseStatus = (caseId: string, status: Case["status"]): Op => ({ op: "up
 
 export async function runTrial(caseId: string, actor: string) {
   const file = caseFile(caseId);
-  if (!file || store.trials[caseId] === "running") return;
-  set({ trials: { ...store.trials, [caseId]: "running" } });
+  if (!file || runningTrial(store, caseId)) return;
+  const { [caseId]: _, ...otherErrors } = store.trialErrors;
+  set({ trialErrors: otherErrors });
   commit(
+    { op: "append", table: "running", item: { caseId, by: actor, at: now() } },
     { op: "remove", table: "arguments", key: "caseId", value: caseId },
     setCaseStatus(caseId, "in_trial"),
     { op: "append", table: "audit", item: log(caseId, actor, "started a trial") },
@@ -233,13 +262,15 @@ export async function runTrial(caseId: string, actor: string) {
       argueAndRecord(caseId, "prosecution", "rebuttal", { file, opponent: verified(def) }),
       argueAndRecord(caseId, "defense", "rebuttal", { file, opponent: verified(pro) }),
     ]);
-    const { [caseId]: _, ...rest } = store.trials;
-    set({ trials: rest });
-    commit(setCaseStatus(caseId, "awaiting_verdict"));
+    commit(setCaseStatus(caseId, "awaiting_verdict"), { op: "remove", table: "running", key: "caseId", value: caseId });
   } catch (err) {
     const message = (err as Error).message;
-    set({ trials: { ...store.trials, [caseId]: message } });
-    commit(setCaseStatus(caseId, "queued"), { op: "append", table: "audit", item: log(caseId, "trial", `stopped: ${message}`) });
+    set({ trialErrors: { ...store.trialErrors, [caseId]: message } });
+    commit(
+      setCaseStatus(caseId, "queued"),
+      { op: "remove", table: "running", key: "caseId", value: caseId },
+      { op: "append", table: "audit", item: log(caseId, "trial", `stopped: ${message}`) },
+    );
   }
 }
 export function addNote(caseId: string, author: string, text: string) {

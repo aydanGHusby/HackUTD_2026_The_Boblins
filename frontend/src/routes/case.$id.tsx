@@ -7,7 +7,7 @@ import { Avatars, Empty, RiskScore, StatusBadge, TriggerTag } from "@/components
 import { Button } from "@/components/ui/button";
 import {
   addNote, askQuestion, runTrial, submitVerdict, useArguments, useAudit, useCase, useCrux, useEvidence,
-  useNotes, useQuestions, useSignOff, useSubgraph, useTrial, useVerdict,
+  useNotes, useQuestions, useSignOff, useSubgraph, useTrial, useVerdict, useViewing,
 } from "@/data/hooks";
 import { useIdentity } from "@/data/identity";
 import { dateTime, humanize, money } from "@/lib/format";
@@ -29,6 +29,7 @@ export const Route = createFileRoute("/case/$id")({
 function CasePage() {
   const { id } = Route.useParams();
   const me = useIdentity();
+  useViewing(id, me.name);
   const c = useCase(id);
   const args = useArguments(id);
   const graph = useSubgraph(id);

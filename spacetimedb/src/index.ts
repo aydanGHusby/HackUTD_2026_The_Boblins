@@ -76,6 +76,8 @@ export const applyAction = spacetimedb.reducer({ actionId: t.string(), kind: t.s
 // ---- Loan courtroom app ----
 // Small edits applied in one transaction, so two analysts writing at once never overwrite each other.
 const LOAN_TABLES = ['cases', 'loans', 'edges', 'arguments', 'questions', 'verdicts', 'notes', 'audit', 'signOffs'];
+// Live-only lists: who has a case open, and which trials are running. Added later, so they may be missing.
+const LIVE_TABLES = ['presence', 'running'];
 type LoanOp =
   | { op: 'append'; table: string; item: any }
   | { op: 'update'; table: string; key: string; value: string; patch: any }
@@ -97,8 +99,8 @@ export const applyLoanOps = spacetimedb.reducer({ actionId: t.string(), ops: t.s
   if (!row) throw new Error('Loan state not initialized');
   const s = JSON.parse(row.data);
   for (const op of JSON.parse(args.ops) as LoanOp[]) {
-    if (!LOAN_TABLES.includes(op.table)) throw new Error('Unknown table ' + op.table);
-    const list: any[] = s[op.table];
+    if (!LOAN_TABLES.includes(op.table) && !LIVE_TABLES.includes(op.table)) throw new Error('Unknown table ' + op.table);
+    const list: any[] = s[op.table] ?? [];
     if (op.op === 'append') list.push(op.item);
     else if (op.op === 'update') s[op.table] = list.map(x => (x[op.key] === op.value ? { ...x, ...op.patch } : x));
     else if (op.op === 'remove') s[op.table] = list.filter(x => x[op.key] !== op.value);
